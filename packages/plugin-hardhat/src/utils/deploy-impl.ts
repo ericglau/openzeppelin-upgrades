@@ -14,11 +14,13 @@ import {
   inferProxyKind,
   setProxyKind,
   ValidationOptions,
+  getBeaconAddress,
 } from '@openzeppelin/upgrades-core';
 
 import { deploy } from './deploy';
 import { Options, withDefaults } from './options';
 import { readValidations } from './validations';
+import { getBeaconProxyFactory } from '.';
 
 interface DeployedImpl {
   impl: string;
@@ -52,7 +54,17 @@ export async function deployImpl(
 
   if (proxyAddress !== undefined) {
     const manifest = await Manifest.forNetwork(provider);
-    const currentImplAddress = await getImplementationAddress(provider, proxyAddress);
+    let currentImplAddress: string;
+    if (opts.kind === 'beacon') {
+      const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
+      // TODO check if it's really a beacon
+      const BeaconProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer); 
+      // TODO see if there's a better way to attach
+      const beaconContract = await BeaconProxyFactory.attach(currentBeaconAddress);
+      currentImplAddress = await beaconContract.implementation();
+    } else {
+      currentImplAddress = await getImplementationAddress(provider, proxyAddress);
+    }
     const currentLayout = await getStorageLayoutForAddress(manifest, validations, currentImplAddress);
     assertStorageUpgradeSafe(currentLayout, layout, fullOpts);
   }

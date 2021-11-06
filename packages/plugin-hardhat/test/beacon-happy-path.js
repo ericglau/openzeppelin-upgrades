@@ -13,11 +13,11 @@ test('happy path', async t => {
 
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'beacon' });
 
-  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2, { kind: 'beacon' }); // TODO infer kind
+  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2, { kind: 'beacon' }); // beacon upgrade requires kind
   await greeter2.deployed();
   await greeter2.resetGreeting();
 
-  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3, { kind: 'beacon' }); // TODO infer kind
+  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3, { kind: 'beacon' }); // beacon upgrade requires kind
   const greeter3 = GreeterV3.attach(greeter3ImplAddr);
   const version3 = await greeter3.version();
   t.is(version3, 'V3');

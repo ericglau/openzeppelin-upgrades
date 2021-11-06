@@ -56,7 +56,6 @@ export async function deployImpl(
     const manifest = await Manifest.forNetwork(provider);
     let currentImplAddress: string;
     if (opts.kind === 'beacon') {
-      // TODO pull this into a common function to share with upgrade-proxy.ts
       const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
       // TODO check if it's really a beacon
       const IBeaconFactory = await getIBeaconFactory(hre, ImplFactory.signer);

@@ -20,7 +20,7 @@ import {
 import { deploy } from './deploy';
 import { Options, withDefaults } from './options';
 import { readValidations } from './validations';
-import { getBeaconProxyFactory, getUpgradeableBeaconFactory } from '.';
+import { getIBeaconFactory } from '.';
 
 interface DeployedImpl {
   impl: string;
@@ -59,8 +59,8 @@ export async function deployImpl(
       // TODO pull this into a common function to share with upgrade-proxy.ts
       const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
       // TODO check if it's really a beacon
-      const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);  // TODO use IBeacon instead
-      const beaconContract = UpgradeableBeaconFactory.attach(currentBeaconAddress);
+      const IBeaconFactory = await getIBeaconFactory(hre, ImplFactory.signer);
+      const beaconContract = IBeaconFactory.attach(currentBeaconAddress);
       currentImplAddress = await beaconContract.implementation();
     } else {
       currentImplAddress = await getImplementationAddress(provider, proxyAddress);

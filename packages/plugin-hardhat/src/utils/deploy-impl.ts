@@ -20,7 +20,7 @@ import {
 import { deploy } from './deploy';
 import { Options, withDefaults } from './options';
 import { readValidations } from './validations';
-import { getBeaconProxyFactory } from '.';
+import { getBeaconProxyFactory, getUpgradeableBeaconFactory } from '.';
 
 interface DeployedImpl {
   impl: string;
@@ -58,9 +58,9 @@ export async function deployImpl(
     if (opts.kind === 'beacon') {
       const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
       // TODO check if it's really a beacon
-      const BeaconProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer); 
+      const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);  // TODO use IBeacon instead
       // TODO see if there's a better way to attach
-      const beaconContract = await BeaconProxyFactory.attach(currentBeaconAddress);
+      const beaconContract = await UpgradeableBeaconFactory.attach(currentBeaconAddress);
       currentImplAddress = await beaconContract.implementation();
     } else {
       currentImplAddress = await getImplementationAddress(provider, proxyAddress);

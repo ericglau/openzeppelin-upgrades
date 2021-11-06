@@ -25,7 +25,7 @@ export interface ImplDeployment extends Deployment {
 }
 
 export interface ProxyDeployment extends Deployment {
-  kind: 'uups' | 'transparent';
+  kind: 'uups' | 'transparent' | 'beacon';
 }
 
 function defaultManifest(): ManifestData {

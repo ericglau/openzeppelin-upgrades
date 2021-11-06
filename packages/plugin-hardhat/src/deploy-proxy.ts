@@ -8,6 +8,7 @@ import {
   deploy,
   deployImpl,
   getProxyFactory,
+  getBeaconProxyFactory,
   getTransparentUpgradeableProxyFactory,
   getProxyAdminFactory,
   DeployTransaction,
@@ -35,10 +36,10 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
     const { impl, kind } = await deployImpl(hre, ImplFactory, opts);
     const data = getInitializerData(ImplFactory, args, opts.initializer);
 
-    if (kind === 'uups') {
+    if (kind === 'uups' || kind === 'beacon') {
       if (await manifest.getAdmin()) {
         logWarning(`A proxy admin was previously deployed on this network`, [
-          `This is not natively used with the current kind of proxy ('uups').`,
+          `This is not natively used with the current kind of proxy ('${kind}').`,
           `Changes to the admin will have no effect on this new proxy.`,
         ]);
       }
@@ -48,6 +49,12 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
     switch (kind) {
       case 'uups': {
         const ProxyFactory = await getProxyFactory(hre, ImplFactory.signer);
+        proxyDeployment = Object.assign({ kind }, await deploy(ProxyFactory, impl, data));
+        break;
+      }
+
+      case 'beacon': {
+        const ProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer);
         proxyDeployment = Object.assign({ kind }, await deploy(ProxyFactory, impl, data));
         break;
       }

@@ -10,6 +10,6 @@ test.before(async t => {
 test('happy path with library', async t => {
   const { Adder, AdderV2 } = t.context;
   const adder = await upgrades.deployProxy(Adder, { kind: 'beacon' });
-  const adder2 = await upgrades.upgradeProxy(adder, AdderV2, { kind: 'beacon' });
+  const adder2 = await upgrades.upgradeProxy(adder, AdderV2);
   await adder2.add(1);
 });

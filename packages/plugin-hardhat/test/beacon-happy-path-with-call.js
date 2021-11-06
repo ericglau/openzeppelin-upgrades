@@ -17,8 +17,7 @@ test('happy path - call with args', async t => {
   // TODO test for an error?
 
   await upgrades.upgradeProxy(greeter, GreeterV2, {
-    call: { fn: 'setGreeting', args: ['Called during upgrade'] },
-    kind: 'beacon'
+    call: { fn: 'setGreeting', args: ['Called during upgrade'] }
   });
 
   // beacon does not support upgradeToAndCall()
@@ -33,10 +32,9 @@ test('happy path - call without args', async t => {
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
   // TODO test for an error?
-  
+
   await upgrades.upgradeProxy(greeter, GreeterV2, {
-    call: 'resetGreeting',
-    kind: 'beacon'
+    call: 'resetGreeting'
   });
 
   // beacon does not support upgradeToAndCall()

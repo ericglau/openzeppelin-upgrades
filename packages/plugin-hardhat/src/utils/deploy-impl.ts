@@ -41,7 +41,7 @@ export async function deployImpl(
   const layout = getStorageLayout(validations, version);
 
   if (opts.kind === undefined) {
-    opts.kind = await inferProxyKind(validations, version, provider, proxyAddress);
+    opts.kind = inferProxyKind(validations, version);
   }
 
   if (proxyAddress !== undefined) {

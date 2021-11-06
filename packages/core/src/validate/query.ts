@@ -155,7 +155,7 @@ export async function inferProxyKind(data: ValidationData, version: Version, pro
   } else {
     if (provider !== undefined && proxyAddress != undefined) {
       try {
-        getBeaconAddress(provider, proxyAddress);
+        await getBeaconAddress(provider, proxyAddress);
         return 'beacon';
       } catch (e: any) {
         return 'transparent';

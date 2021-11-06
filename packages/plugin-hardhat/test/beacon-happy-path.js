@@ -17,7 +17,7 @@ test('happy path', async t => {
   await greeter2.deployed();
   await greeter2.resetGreeting();
 
-  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
+  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3, { kind: 'beacon' }); // TODO infer kind
   const greeter3 = GreeterV3.attach(greeter3ImplAddr);
   const version3 = await greeter3.version();
   t.is(version3, 'V3');

@@ -47,9 +47,8 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment): UpgradeFunctio
 
         const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
         // TODO check if it's really a beacon
-        const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, signer);  // TODO use IBeacon instead
-        // TODO see if there's a better way to attach
-        const beaconContract = await UpgradeableBeaconFactory.attach(currentBeaconAddress);
+        const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, signer);
+        const beaconContract = UpgradeableBeaconFactory.attach(currentBeaconAddress);
   
         // beacon does not support upgradeToAndCall
         return (nextImpl, call) => beaconContract.upgradeTo(nextImpl);

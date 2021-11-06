@@ -60,8 +60,7 @@ export async function deployImpl(
       const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
       // TODO check if it's really a beacon
       const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);  // TODO use IBeacon instead
-      // TODO see if there's a better way to attach
-      const beaconContract = await UpgradeableBeaconFactory.attach(currentBeaconAddress);
+      const beaconContract = UpgradeableBeaconFactory.attach(currentBeaconAddress);
       currentImplAddress = await beaconContract.implementation();
     } else {
       currentImplAddress = await getImplementationAddress(provider, proxyAddress);

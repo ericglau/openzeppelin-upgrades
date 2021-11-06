@@ -23,8 +23,9 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment): UpgradeFunctio
   return async function upgradeProxy(proxy, ImplFactory, opts: UpgradeOptions = {}) {
     const proxyAddress = getContractAddress(proxy);
 
-    const upgradeTo = await getUpgrader(proxyAddress, opts, ImplFactory.signer);
     const { impl: nextImpl } = await deployImpl(hre, ImplFactory, opts, proxyAddress);
+    // upgrade kind is inferred above
+    const upgradeTo = await getUpgrader(proxyAddress, opts, ImplFactory.signer);
     const call = encodeCall(ImplFactory, opts.call);
     const upgradeTx = await upgradeTo(nextImpl, call);
 

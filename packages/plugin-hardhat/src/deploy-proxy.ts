@@ -56,9 +56,9 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
 
       case 'beacon': {
         const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);
-        const beaconAddress = await deploy(UpgradeableBeaconFactory, impl); // TODO should this be able to fetch an existing beacon?
+        const beaconDeployment = await deploy(UpgradeableBeaconFactory, impl); // TODO should this be able to fetch an existing beacon?
         const BeaconProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer);
-        proxyDeployment = Object.assign({ kind }, await deploy(BeaconProxyFactory, beaconAddress, data));
+        proxyDeployment = Object.assign({ kind }, await deploy(BeaconProxyFactory, beaconDeployment.address, data));
         break;
       }
 

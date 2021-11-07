@@ -22,8 +22,11 @@ test('happy path', async t => {
   // new impl 
   await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);
   t.is(await greeter.greet(), 'Hello, Hardhat!');
-  await greeter.resetGreeting();
-  //t.is(await greeter.greet(), 'Hello World');
+  
+
+  const greeter2 = await GreeterV2.attach(greeter.address);
+  await greeter2.resetGreeting();
+  t.is(await greeter2.greet(), 'Hello World');
 /*
   // new beacon
   const greeterBeacon3 = await upgrades.deployBeacon(GreeterV3);

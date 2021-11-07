@@ -94,7 +94,7 @@ export async function deployImplForBeacon(
   }
 
   if (beaconAddress !== undefined) {
-    await setProxyKind(provider, beaconAddress, opts);
+    await setProxyKind(provider, beaconAddress, opts); // TODO don't treat beacon as a proxy
   }
 
   const fullOpts = withDefaults(opts);

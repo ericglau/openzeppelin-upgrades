@@ -33,11 +33,8 @@ export function makeUpgradeBeacon(hre: HardhatRuntimeEnvironment): UpgradeBeacon
     const manifest = await Manifest.forNetwork(provider);
     await manifest.addBeacon(beaconDeployment);*/
 
-/*    const inst = ImplFactory.attach(beaconAddress);
-    // @ts-ignore Won't be readonly because inst was created through attach.
-    inst.deployTransaction = upgradeTx;
-    return inst;
-    */
+
+    
 
     // TODO avoid duplicate code from below
     const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);

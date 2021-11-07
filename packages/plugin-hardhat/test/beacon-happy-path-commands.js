@@ -12,9 +12,7 @@ test('happy path', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
   const greeterBeacon = await upgrades.deployBeacon(Greeter);
-  const greeter = await upgrades.deployBeaconProxy(Greeter, greeterBeacon, {
-    call: { fn: 'setGreeting', args: ['Hello, Hardhat!'] }
-  });
+  const greeter = await upgrades.deployBeaconProxy(Greeter, greeterBeacon, ['Hello, Hardhat!']);
   await greeter.deployed();
 
   t.is(await greeter.greet(), 'Hello, Hardhat!');
@@ -22,10 +20,11 @@ test('happy path', async t => {
   // new impl 
   await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);  
 
-  // test it with updated ABI
+  // reattach proxy contract instance using the updated ABI
   const greeter2 = await GreeterV2.attach(greeter.address);
   t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
+
 
 });

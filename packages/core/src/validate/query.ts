@@ -150,17 +150,23 @@ export async function inferProxyKind(data: ValidationData, version: Version, pro
   const dataV3 = normalizeValidationData(data);
   const [contractName, runValidation] = getContractNameAndRunValidation(dataV3, version);
   const methods = getAllMethods(runValidation, contractName);
-  if (methods.includes(upgradeToSignature)) {
+  if (await isBeaconProxy(provider, proxyAddress)) {
+    return 'beacon';
+  } else if (methods.includes(upgradeToSignature)) {
     return 'uups';
   } else {
-    if (provider !== undefined && proxyAddress != undefined) {
-      try {
-        await getBeaconAddress(provider, proxyAddress);
-        return 'beacon';
-      } catch (e: any) {
-        return 'transparent';
-      }
-    }
     return 'transparent';
   }
+}
+
+export async function isBeaconProxy(provider?: EthereumProvider, proxyAddress?: string): Promise<boolean> {
+  if (provider !== undefined && proxyAddress != undefined) {
+    try {
+      await getBeaconAddress(provider, proxyAddress);
+      return true;
+    } catch (e: any) {
+      return false;
+    }
+  }
+  return false;
 }

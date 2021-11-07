@@ -8,17 +8,20 @@ test.before(async t => {
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
 });
 
-test('happy path', async t => {
+test('block beacon upgrade via upgradeProxy', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'beacon' });
 
-  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
-  await greeter2.deployed();
-  await greeter2.resetGreeting();
+  try {
+    const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
+    t.fail("upgradeProxy() should not allow a beacon proxy to be upgraded");
+  } catch (e) {
+  }
 
-  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
-  const greeter3 = GreeterV3.attach(greeter3ImplAddr);
-  const version3 = await greeter3.version();
-  t.is(version3, 'V3');
+  try {
+    const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
+    t.fail("prepareUpgrade() should not allow a beacon proxy to be prepared for upgrade");
+  } catch (e) {
+  }
 });

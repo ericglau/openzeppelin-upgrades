@@ -43,25 +43,15 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment): UpgradeFunctio
     const adminAddress = await getAdminAddress(provider, proxyAddress);
     const adminBytecode = await getCode(provider, adminAddress);
 
-    if (adminBytecode === '0x') {
-      if (kind === 'beacon') {
-        const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
-        const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, signer);
-        const beaconContract = UpgradeableBeaconFactory.attach(currentBeaconAddress);
+    if (kind === 'beacon') {
+      const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
+      throw new Error(`The proxy is a beacon proxy which cannot be upgraded directly. Use upgradeBeacon() with the beacon at address ${currentBeaconAddress} instead.`);
+    } else if (adminBytecode === '0x') {
+      // No admin contract: use TransparentUpgradeableProxyFactory to get proxiable interface
+      const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, signer);
+      const proxy = TransparentUpgradeableProxyFactory.attach(proxyAddress);
 
-        return (nextImpl, call) => {
-          if (call !== undefined) {
-            throw new Error('Beacon does not support calling a function while upgrading the implementation contract');
-          }
-          return beaconContract.upgradeTo(nextImpl);
-        }
-      } else {
-        // No admin contract: use TransparentUpgradeableProxyFactory to get proxiable interface
-        const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, signer);
-        const proxy = TransparentUpgradeableProxyFactory.attach(proxyAddress);
-
-        return (nextImpl, call) => (call ? proxy.upgradeToAndCall(nextImpl, call) : proxy.upgradeTo(nextImpl));
-      }
+      return (nextImpl, call) => (call ? proxy.upgradeToAndCall(nextImpl, call) : proxy.upgradeTo(nextImpl));
     } else {
       // Admin contract: redirect upgrade call through it
       const manifest = await Manifest.forNetwork(provider);

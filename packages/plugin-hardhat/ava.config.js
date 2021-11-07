@@ -1,5 +1,5 @@
 export default {
-  files: ['test/beacon-happy-path-commands.js'],
+  files: ['test/beacon-upgrade-proxy-block.js'],
   ignoredByWatcher: ['**/*.ts', '.openzeppelin'],
   verbose: true,
   serial: true,

@@ -14,14 +14,13 @@ test('happy path - call with args', async t => {
 
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
-  // TODO test for an error?
-
-  await upgrades.upgradeProxy(greeter, GreeterV2, {
-    call: { fn: 'setGreeting', args: ['Called during upgrade'] }
-  });
-
-  // beacon does not support upgradeToAndCall()
-  t.is(await greeter.greet(), 'Hello, Hardhat!');
+  try {
+    await upgrades.upgradeProxy(greeter, GreeterV2, {
+      call: { fn: 'setGreeting', args: ['Called during upgrade'] }
+    });
+    t.fail("Expected an error due to function call during beacon implementation upgrade");
+  } catch (e) {
+  }
 });
 
 test('happy path - call without args', async t => {
@@ -31,12 +30,11 @@ test('happy path - call without args', async t => {
 
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
-  // TODO test for an error?
-
-  await upgrades.upgradeProxy(greeter, GreeterV2, {
-    call: 'resetGreeting'
-  });
-
-  // beacon does not support upgradeToAndCall()
-  t.is(await greeter.greet(), 'Hello, Hardhat!');
+  try {
+    await upgrades.upgradeProxy(greeter, GreeterV2, {
+      call: 'resetGreeting'
+    });
+    t.fail("Expected an error due to function call during beacon implementation upgrade");
+  } catch (e) {
+  }
 });

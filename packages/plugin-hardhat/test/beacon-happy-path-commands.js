@@ -15,6 +15,8 @@ test('happy path', async t => {
   const greeter = await upgrades.deployBeaconProxy(Greeter, greeterBeacon, {
     call: { fn: 'setGreeting', args: ['Hello, Hardhat!'] }
   });
+  await greeter.deployed();
+
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 /*
   // new impl 

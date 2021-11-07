@@ -60,10 +60,15 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
 
     await manifest.addProxy(proxyDeployment);
 
-    const beaconProxy = BeaconProxyFactory.attach(proxyDeployment.address);
+/*    const beaconProxy = BeaconProxyFactory.attach(proxyDeployment.address);
     // @ts-ignore Won't be readonly because inst was created through attach.
     beaconProxy.deployTransaction = proxyDeployment.deployTransaction;
-    return beaconProxy;
+    return beaconProxy;*/
+
+    const inst = ImplFactory.attach(proxyDeployment.address);
+    // @ts-ignore Won't be readonly because inst was created through attach.
+    inst.deployTransaction = proxyDeployment.deployTransaction;
+    return inst;
   };
 
   function getInitializerData(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {

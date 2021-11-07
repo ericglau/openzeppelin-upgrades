@@ -46,7 +46,6 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment): UpgradeFunctio
     if (adminBytecode === '0x') {
       if (opts.kind === 'beacon') {
         const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
-        // TODO check if it's really a beacon
         const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, signer);
         const beaconContract = UpgradeableBeaconFactory.attach(currentBeaconAddress);
 

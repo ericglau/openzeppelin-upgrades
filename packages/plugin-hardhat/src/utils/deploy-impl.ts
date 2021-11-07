@@ -57,7 +57,6 @@ export async function deployImpl(
     let currentImplAddress: string;
     if (opts.kind === 'beacon') {
       const currentBeaconAddress = await getBeaconAddress(provider, proxyAddress);
-      // TODO check if it's really a beacon
       const IBeaconFactory = await getIBeaconFactory(hre, ImplFactory.signer);
       const beaconContract = IBeaconFactory.attach(currentBeaconAddress);
       currentImplAddress = await beaconContract.implementation();

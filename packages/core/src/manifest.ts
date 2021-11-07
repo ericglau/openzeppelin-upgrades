@@ -17,6 +17,7 @@ export interface ManifestData {
     [version in string]?: ImplDeployment;
   };
   proxies: ProxyDeployment[];
+  beacons: BeaconDeployment[];
   admin?: Deployment;
 }
 
@@ -28,11 +29,15 @@ export interface ProxyDeployment extends Deployment {
   kind: 'uups' | 'transparent' | 'beacon';
 }
 
+export interface BeaconDeployment extends Deployment {
+}
+
 function defaultManifest(): ManifestData {
   return {
     manifestVersion: currentManifestVersion,
     impls: {},
     proxies: [],
+    beacons: [],
   };
 }
 
@@ -71,6 +76,18 @@ export class Manifest {
       throw new DeploymentNotFound(`Proxy at address ${address} is not registered`);
     }
     return deployment;
+  }
+
+  async addBeacon(beacon: BeaconDeployment): Promise<void> {
+    await this.lockedRun(async () => {
+      const data = await this.read();
+      const existing = data.beacons.findIndex(p => p.address === beacon.address);
+      if (existing >= 0) {
+        data.beacons.splice(existing, 1);
+      }
+      data.beacons.push(beacon);
+      await this.write(data);
+    });
   }
 
   async addProxy(proxy: ProxyDeployment): Promise<void> {
@@ -164,6 +181,7 @@ function normalizeManifestData(input: ManifestData): ManifestData {
   return {
     ...pick(input, ['manifestVersion', 'admin']),
     proxies: input.proxies.map(p => normalizeDeployment(p, ['kind'])),
+    beacons: input.beacons.map(p => normalizeDeployment(p, [])),
     impls: mapValues(input.impls, i => i && normalizeDeployment(i, ['layout'])),
   };
 }

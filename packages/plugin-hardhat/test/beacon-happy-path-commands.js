@@ -20,11 +20,11 @@ test('happy path', async t => {
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
   // new impl 
-  await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);
-  t.is(await greeter.greet(), 'Hello, Hardhat!');
-  
+  await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);  
 
+  // test it with updated ABI
   const greeter2 = await GreeterV2.attach(greeter.address);
+  t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
 /*

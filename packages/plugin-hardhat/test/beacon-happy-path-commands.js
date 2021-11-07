@@ -12,11 +12,11 @@ test('happy path', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
   const greeterBeacon = await upgrades.deployBeacon(Greeter);
-  /*const greeter = await upgrades.deployBeaconProxy(greeterBeacon, {
+  const greeter = await upgrades.deployBeaconProxy(Greeter, greeterBeacon, {
     call: { fn: 'setGreeting', args: ['Hello, Hardhat!'] }
   });
   t.is(await greeter.greet(), 'Hello, Hardhat!');
-
+/*
   // new impl 
   await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);
   t.is(await greeter.greet(), 'Hello, Hardhat!');

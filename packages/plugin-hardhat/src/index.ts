@@ -11,6 +11,9 @@ import type { DeployFunction } from './deploy-proxy';
 import type { PrepareUpgradeFunction } from './prepare-upgrade';
 import type { UpgradeFunction } from './upgrade-proxy';
 import type { DeployBeaconFunction } from './deploy-beacon';
+import type { DeployBeaconProxyFunction } from './deploy-beacon-proxy';
+//import type { UpgradeBeaconFunction } from './upgrade-beacon';
+//import type { UpgradeBeaconProxyFunction } from './upgrade-beacon-proxy';
 import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInstanceFunction } from './admin';
 
 export interface HardhatUpgrades {
@@ -18,7 +21,7 @@ export interface HardhatUpgrades {
   upgradeProxy: UpgradeFunction;
   prepareUpgrade: PrepareUpgradeFunction;
   deployBeacon: DeployBeaconFunction;
-  //deployBeaconProxy: DeployBeaconProxyFunction;
+  deployBeaconProxy: DeployBeaconProxyFunction;
   //upgradeBeacon: UpgradeBeaconFunction;
   //upgradeBeaconProxy: UpgradeBeaconProxyFunction;
   silenceWarnings: typeof silenceWarnings;
@@ -83,8 +86,8 @@ extendEnvironment(hre => {
     const { makeUpgradeProxy } = require('./upgrade-proxy');
     const { makePrepareUpgrade } = require('./prepare-upgrade');
     const { makeDeployBeacon } = require('./deploy-beacon');
-    /*const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
-    const { makeUpgradeBeacon } = require('./upgrade-beacon');
+    const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
+    /*const { makeUpgradeBeacon } = require('./upgrade-beacon');
     const { makeUpgradeBeaconProxy } = require('./upgrade-beacon-proxy');*/
     const { makeChangeProxyAdmin, makeTransferProxyAdminOwnership, makeGetInstanceFunction } = require('./admin');
 
@@ -94,7 +97,7 @@ extendEnvironment(hre => {
       upgradeProxy: makeUpgradeProxy(hre),
       prepareUpgrade: makePrepareUpgrade(hre),
       deployBeacon: makeDeployBeacon(hre),
-      //deployBeaconProxy: makeDeployBeaconProxy(hre),
+      deployBeaconProxy: makeDeployBeaconProxy(hre),
       //upgradeBeacon: makeUpgradeBeacon(hre),
       //upgradeBeaconProxy: makeUpgradeBeaconProxy(hre),
       admin: {

@@ -13,29 +13,34 @@ import {
   DeployTransaction,
   getBeaconProxyFactory,
   getUpgradeableBeaconFactory,
+  UpgradeOptions,
 } from './utils';
 
 export interface DeployBeaconProxyFunction {
-  (ImplFactory: ContractFactory, beacon: Contract, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
-  (ImplFactory: ContractFactory, beacon: Contract, opts?: DeployOptions): Promise<Contract>;
+//  (ImplFactory: ContractFactory, beacon: Contract, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
+//  (ImplFactory: ContractFactory, beacon: Contract, opts?: DeployOptions): Promise<Contract>;
+  (ImplFactory: ContractFactory, beacon: Contract, opts?: UpgradeOptions): Promise<Contract>;
 }
 
 export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBeaconProxyFunction {
   return async function deployBeaconProxy(
     ImplFactory: ContractFactory,
     beacon: Contract, // TODO contract or address
-    args: unknown[] | DeployOptions = [],
-    opts: DeployOptions = {},
+    //args: unknown[] | DeployOptions = [],
+    //opts: DeployOptions = {},
+    opts: UpgradeOptions = {},
   ) {
-    if (!Array.isArray(args)) {
+    /*if (!Array.isArray(args)) {
       opts = args;
       args = [];
-    }
+    }*/
 
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
-    const data = getInitializerData(ImplFactory, args, opts.initializer);
+
+    const data = encodeCall(ImplFactory, opts.call);
+    //const data = getInitializerData(ImplFactory, args, opts.initializer);
     if (opts.kind === undefined) {
       opts.kind = 'beacon'; // TODO
     }
@@ -57,7 +62,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
 
     const beaconProxy = BeaconProxyFactory.attach(proxyDeployment.address);
     // @ts-ignore Won't be readonly because inst was created through attach.
-    beaconProxy.deployTransaction = beaconDeployment.deployTransaction;
+    beaconProxy.deployTransaction = proxyDeployment.deployTransaction;
     return beaconProxy;
   };
 
@@ -80,5 +85,17 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
       }
       throw e;
     }
+  }
+
+  function encodeCall(factory: ContractFactory, call: UpgradeOptions['call']): string | undefined {
+    if (!call) {
+      return undefined;
+    }
+  
+    if (typeof call === 'string') {
+      call = { fn: call };
+    }
+  
+    return factory.interface.encodeFunctionData(call.fn, call.args ?? []);
   }
 }

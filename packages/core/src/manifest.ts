@@ -69,6 +69,15 @@ export class Manifest {
     return deployment;
   }
 
+  async getBeaconFromAddress(address: string): Promise<BeaconDeployment> {
+    const data = await this.read();
+    const deployment = data.proxies.find(d => d?.address === address);
+    if (deployment === undefined) {
+      throw new DeploymentNotFound(`Beacon at address ${address} is not registered`);
+    }
+    return deployment;
+  }
+
   async getProxyFromAddress(address: string): Promise<ProxyDeployment> {
     const data = await this.read();
     const deployment = data.proxies.find(d => d?.address === address);

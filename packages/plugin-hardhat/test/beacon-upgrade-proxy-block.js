@@ -14,14 +14,26 @@ test('block beacon upgrade via upgradeProxy', async t => {
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'beacon' });
 
   try {
-    const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
+    await upgrades.upgradeProxy(greeter, GreeterV2);
     t.fail("upgradeProxy() should not allow a beacon proxy to be upgraded");
   } catch (e) {
   }
 
   try {
-    const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
+    await upgrades.prepareUpgrade(greeter.address, GreeterV3);
     t.fail("prepareUpgrade() should not allow a beacon proxy to be prepared for upgrade");
+  } catch (e) {
+  }
+});
+
+test('block transparent upgrade via upgradeBeacon', async t => {
+  const { Greeter, GreeterV2, GreeterV3 } = t.context;
+
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+
+  try {
+    await upgrades.upgradeBeacon(greeter, GreeterV2);
+    t.fail("upgradeBeacon() should not allow a non-beacon address");
   } catch (e) {
   }
 });

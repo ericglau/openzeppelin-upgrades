@@ -15,12 +15,15 @@ import {
   setProxyKind,
   ValidationOptions,
   getBeaconAddress,
+  EthereumProvider,
+  ProxyDeployment,
+  DeploymentNotFound,
 } from '@openzeppelin/upgrades-core';
 
 import { deploy } from './deploy';
 import { Options, withDefaults } from './options';
 import { readValidations } from './validations';
-import { getIBeaconFactory } from '.';
+import { getIBeaconFactory, getUpgradeableBeaconFactory } from '.';
 
 interface DeployedImpl {
   impl: string;
@@ -94,7 +97,10 @@ export async function deployImplForBeacon(
   }
 
   if (beaconAddress !== undefined) {
-    await setProxyKind(provider, beaconAddress, opts); // TODO don't treat beacon as a proxy
+    if (getImplementationAddress(provider, beaconAddress) !== undefined) {
+      throw new Error('Address is a regular proxy and cannot be upgraded using upgradeBeacon(). Use upgradeProxy() instead.');
+    }
+    //await setProxyKind(provider, beaconAddress, opts); // TODO don't treat beacon as a proxy
   }
 
   const fullOpts = withDefaults(opts);

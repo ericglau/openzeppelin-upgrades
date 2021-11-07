@@ -17,8 +17,6 @@ import {
 } from './utils';
 
 export interface DeployBeaconProxyFunction {
-//  (ImplFactory: ContractFactory, beacon: Contract, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
-//  (ImplFactory: ContractFactory, beacon: Contract, opts?: DeployOptions): Promise<Contract>;
   (ImplFactory: ContractFactory, beacon: Contract, opts?: UpgradeOptions): Promise<Contract>;
 }
 
@@ -26,21 +24,13 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
   return async function deployBeaconProxy(
     ImplFactory: ContractFactory,
     beacon: Contract, // TODO contract or address
-    //args: unknown[] | DeployOptions = [],
-    //opts: DeployOptions = {},
     opts: UpgradeOptions = {},
   ) {
-    /*if (!Array.isArray(args)) {
-      opts = args;
-      args = [];
-    }*/
-
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
 
     const data = encodeCall(ImplFactory, opts.call);
-    //const data = getInitializerData(ImplFactory, args, opts.initializer);
     if (opts.kind === undefined) {
       opts.kind = 'beacon'; // TODO
     }
@@ -56,41 +46,14 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     let proxyDeployment: Required<ProxyDeployment & DeployTransaction>;
     const BeaconProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer);
     proxyDeployment = Object.assign({ kind }, await deploy(BeaconProxyFactory, beacon.address, data));
-    //proxyDeployment = await deploy(BeaconProxyFactory, beacon.address);//TODO, data));
 
     await manifest.addProxy(proxyDeployment);
-
-/*    const beaconProxy = BeaconProxyFactory.attach(proxyDeployment.address);
-    // @ts-ignore Won't be readonly because inst was created through attach.
-    beaconProxy.deployTransaction = proxyDeployment.deployTransaction;
-    return beaconProxy;*/
 
     const inst = ImplFactory.attach(proxyDeployment.address);
     // @ts-ignore Won't be readonly because inst was created through attach.
     inst.deployTransaction = proxyDeployment.deployTransaction;
     return inst;
   };
-
-  function getInitializerData(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {
-    if (initializer === false) {
-      return '0x';
-    }
-
-    const allowNoInitialization = initializer === undefined && args.length === 0;
-    initializer = initializer ?? 'initialize';
-
-    try {
-      const fragment = ImplFactory.interface.getFunction(initializer);
-      return ImplFactory.interface.encodeFunctionData(fragment, args);
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        if (allowNoInitialization && e.message.includes('no matching function')) {
-          return '0x';
-        }
-      }
-      throw e;
-    }
-  }
 
   function encodeCall(factory: ContractFactory, call: UpgradeOptions['call']): string | undefined {
     if (!call) {

@@ -27,12 +27,5 @@ test('happy path', async t => {
   t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
-/*
-  // new beacon
-  const greeterBeacon3 = await upgrades.deployBeacon(GreeterV3);
-  await upgrades.upgradeBeaconProxy(greeter, greeterBeacon3, {
-    call: { fn: 'setGreeting', args: ['Called during upgrade'] }
-  });
-  t.is(await greeter.greet(), 'Called during upgrade');
-  t.is(await greeter.version(), 'V3');*/
+
 });

@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ContractFactory, Contract, ethers, Signer } from 'ethers';
 
-import { Manifest, logWarning, ProxyDeployment, DeploymentNotFound } from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment } from '@openzeppelin/upgrades-core';
 
 import {
   DeployOptions,
@@ -12,7 +12,7 @@ import {
   getContractAddress,
 } from './utils';
 import { getInitializerData } from './deploy-proxy';
-import { FormatTypes, Interface } from '@ethersproject/abi';
+import { Interface } from '@ethersproject/abi';
 
 export interface DeployBeaconProxyFunction {
   (beacon: ContractAddressOrInstance, ImplFactoryOrSigner: ContractFactory | Signer, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
@@ -44,7 +44,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
       if (ImplFactoryOrSigner instanceof ContractFactory) {
         contractInterface = ImplFactoryOrSigner.interface;
       } else {
-        throw new Error(`Beacon at address ${beaconAddress} was not found in manifest. Call deployBeaconProxy() with a contract factory for the beacon's implementation contract.`);
+        throw new Error(`Beacon at address ${beaconAddress} was not found in the network manifest. Call deployBeaconProxy() with a contract factory for the beacon's current implementation contract.`);
       }
     }
     const data = getInitializerData(contractInterface, args, opts.initializer);

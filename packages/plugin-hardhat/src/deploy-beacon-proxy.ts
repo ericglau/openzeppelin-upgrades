@@ -1,5 +1,5 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { ContractFactory, Contract, ethers } from 'ethers';
+import { ContractFactory, Contract, ethers, Signer } from 'ethers';
 
 import { Manifest, logWarning, ProxyDeployment, DeploymentNotFound } from '@openzeppelin/upgrades-core';
 
@@ -15,13 +15,13 @@ import { getInitializerData } from './deploy-proxy';
 import { FormatTypes, Interface } from '@ethersproject/abi';
 
 export interface DeployBeaconProxyFunction {
-  (ImplFactory: ContractFactory, beacon: ContractAddressOrInstance, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
-  (ImplFactory: ContractFactory, beacon: ContractAddressOrInstance, opts?: DeployOptions): Promise<Contract>;
+  (ImplFactoryOrSigner: ContractFactory | Signer, beacon: ContractAddressOrInstance, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
+  (ImplFactoryOrSigner: ContractFactory | Signer, beacon: ContractAddressOrInstance, opts?: DeployOptions): Promise<Contract>;
 }
 
 export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBeaconProxyFunction {
   return async function deployBeaconProxy(
-    ImplFactory: ContractFactory,
+    ImplFactoryOrSigner: ContractFactory | Signer,
     beacon: ContractAddressOrInstance,
     args: unknown[] | DeployOptions = [],
     opts: DeployOptions = {},
@@ -41,7 +41,11 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     try {
       contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress);
     } catch (e: any) {
-      contractInterface = ImplFactory.interface;
+      if (ImplFactoryOrSigner instanceof ContractFactory) {
+        contractInterface = ImplFactoryOrSigner.interface;
+      } else {
+        throw new Error(`Beacon at address ${beaconAddress} was not found in manifest. Call deployBeaconProxy() with a contract factory for the beacon's implementation contract.`);
+      }
     }
     const data = getInitializerData(contractInterface, args, opts.initializer);
     
@@ -53,12 +57,17 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     }
 
     let proxyDeployment: Required<ProxyDeployment & DeployTransaction>;
-    const BeaconProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer);
+    const BeaconProxyFactory = await getBeaconProxyFactory(hre); // TODO pass in signer if implfactory provided
     proxyDeployment = Object.assign({ kind: opts.kind }, await deploy(BeaconProxyFactory, beaconAddress, data));
 
     await manifest.addProxy(proxyDeployment);
 
-    const inst = ImplFactory.attach(proxyDeployment.address);
+    let inst;
+    if (ImplFactoryOrSigner instanceof ContractFactory) {
+      inst = ImplFactoryOrSigner.attach(proxyDeployment.address);
+    } else {
+      inst = new Contract(proxyDeployment.address, contractInterface, ImplFactoryOrSigner);
+    }
     // @ts-ignore Won't be readonly because inst was created through attach.
     inst.deployTransaction = proxyDeployment.deployTransaction;
     return inst;

@@ -10,6 +10,7 @@ import {
   getUpgradeableBeaconFactory,
   deployImplForBeacon,
 } from './utils';
+import { FormatTypes } from 'ethers/lib/utils';
 
 export interface DeployBeaconFunction {
   (ImplFactory: ContractFactory, opts?: DeployOptions): Promise<Contract>;
@@ -29,7 +30,8 @@ export function makeDeployBeacon(hre: HardhatRuntimeEnvironment): DeployBeaconFu
     let beaconDeployment: Required<BeaconDeployment & DeployTransaction>;
 
     const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);
-    beaconDeployment = await deploy(UpgradeableBeaconFactory, impl);
+    const abi = ImplFactory.interface.format(FormatTypes.json);
+    beaconDeployment = Object.assign({ abi: abi }, await deploy(UpgradeableBeaconFactory, impl));
 
     await manifest.addBeacon(beaconDeployment);
 

@@ -30,6 +30,7 @@ export interface ProxyDeployment extends Deployment {
 }
 
 export interface BeaconDeployment extends Deployment {
+  abi: string | string[];
 }
 
 function defaultManifest(): ManifestData {
@@ -71,7 +72,7 @@ export class Manifest {
 
   async getBeaconFromAddress(address: string): Promise<BeaconDeployment> {
     const data = await this.read();
-    const deployment = data.proxies.find(d => d?.address === address);
+    const deployment = data.beacons.find(d => d?.address === address);
     if (deployment === undefined) {
       throw new DeploymentNotFound(`Beacon at address ${address} is not registered`);
     }
@@ -190,7 +191,7 @@ function normalizeManifestData(input: ManifestData): ManifestData {
   return {
     ...pick(input, ['manifestVersion', 'admin']),
     proxies: input.proxies.map(p => normalizeDeployment(p, ['kind'])),
-    beacons: input.beacons.map(p => normalizeDeployment(p, [])),
+    beacons: input.beacons.map(p => normalizeDeployment(p, ['abi'])),
     impls: mapValues(input.impls, i => i && normalizeDeployment(i, ['layout'])),
   };
 }

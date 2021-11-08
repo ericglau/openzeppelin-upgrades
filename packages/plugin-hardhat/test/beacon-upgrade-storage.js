@@ -9,7 +9,9 @@ test.before(async t => {
 
 test('incompatible storage', async t => {
   const { Greeter, GreeterStorageConflict } = t.context;
-  const greeter = await upgrades.deployProxy(Greeter, ['Hola mundo!'], { kind: 'beacon' });
+  
+  const beacon = await upgrades.deployBeacon(Greeter);
+  const greeter = await upgrades.deployProxy(beacon, Greeter, ['Hola mundo!']);
   await t.throwsAsync(
     () => upgrades.upgradeProxy(greeter, GreeterStorageConflict),
     undefined,

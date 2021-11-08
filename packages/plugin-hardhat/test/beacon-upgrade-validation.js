@@ -10,7 +10,8 @@ test.before(async t => {
 test('invalid upgrade', async t => {
   const { Greeter, Invalid } = t.context;
 
-  const greeter = await upgrades.deployProxy(Greeter, ['Hola mundo!'], { kind: 'beacon' });
+  const beacon = await upgrades.deployBeacon(Greeter);
+  const greeter = await upgrades.deployProxy(beacon, Greeter, ['Hola mundo!']);
   await t.throwsAsync(
     () => upgrades.upgradeProxy(greeter, Invalid),
     undefined,

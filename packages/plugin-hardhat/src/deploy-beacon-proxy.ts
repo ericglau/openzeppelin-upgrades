@@ -8,18 +8,20 @@ import {
   deploy,
   DeployTransaction,
   getBeaconProxyFactory,
+  ContractAddressOrInstance,
+  getContractAddress,
 } from './utils';
 import { getInitializerData } from './deploy-proxy';
 
 export interface DeployBeaconProxyFunction {
-  (ImplFactory: ContractFactory, beacon: Contract, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
-  (ImplFactory: ContractFactory, beacon: Contract, opts?: DeployOptions): Promise<Contract>;
+  (ImplFactory: ContractFactory, beacon: ContractAddressOrInstance, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
+  (ImplFactory: ContractFactory, beacon: ContractAddressOrInstance, opts?: DeployOptions): Promise<Contract>;
 }
 
 export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBeaconProxyFunction {
   return async function deployBeaconProxy(
     ImplFactory: ContractFactory,
-    beacon: Contract, // TODO contract or address
+    beacon: ContractAddressOrInstance,
     args: unknown[] | DeployOptions = [],
     opts: DeployOptions = {},
   ) {
@@ -31,11 +33,10 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
+    opts.kind = 'beacon';
+
+    const beaconAddress = getContractAddress(beacon);
     const data = getInitializerData(ImplFactory, args, opts.initializer);
-    if (opts.kind === undefined) {
-      opts.kind = 'beacon'; // TODO
-    }
-    const { kind } = { kind: opts.kind };
     
     if (await manifest.getAdmin()) {
       logWarning(`A proxy admin was previously deployed on this network`, [
@@ -46,7 +47,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
 
     let proxyDeployment: Required<ProxyDeployment & DeployTransaction>;
     const BeaconProxyFactory = await getBeaconProxyFactory(hre, ImplFactory.signer);
-    proxyDeployment = Object.assign({ kind }, await deploy(BeaconProxyFactory, beacon.address, data));
+    proxyDeployment = Object.assign({ kind: opts.kind }, await deploy(BeaconProxyFactory, beaconAddress, data));
 
     await manifest.addProxy(proxyDeployment);
 

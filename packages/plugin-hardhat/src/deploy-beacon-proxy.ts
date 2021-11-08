@@ -1,20 +1,15 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { ContractFactory, Contract, Signer } from 'ethers';
+import type { ContractFactory, Contract } from 'ethers';
 
-import { Manifest, fetchOrDeployAdmin, logWarning, ProxyDeployment, Deployment } from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment } from '@openzeppelin/upgrades-core';
 
 import {
   DeployOptions,
   deploy,
-  deployImpl,
-  getProxyFactory,
-  getTransparentUpgradeableProxyFactory,
-  getProxyAdminFactory,
   DeployTransaction,
   getBeaconProxyFactory,
-  getUpgradeableBeaconFactory,
-  UpgradeOptions,
 } from './utils';
+import { getInitializerData } from './deploy-proxy';
 
 export interface DeployBeaconProxyFunction {
   (ImplFactory: ContractFactory, beacon: Contract, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
@@ -36,8 +31,6 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
-
-    //const data = encodeCall(ImplFactory, opts.call);
     const data = getInitializerData(ImplFactory, args, opts.initializer);
     if (opts.kind === undefined) {
       opts.kind = 'beacon'; // TODO
@@ -62,37 +55,4 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     inst.deployTransaction = proxyDeployment.deployTransaction;
     return inst;
   };
-
-  function encodeCall(factory: ContractFactory, call: UpgradeOptions['call']): string | undefined {
-    if (!call) {
-      return undefined;
-    }
-  
-    if (typeof call === 'string') {
-      call = { fn: call };
-    }
-  
-    return factory.interface.encodeFunctionData(call.fn, call.args ?? []);
-  }
-
-  function getInitializerData(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {
-    if (initializer === false) {
-      return '0x';
-    }
-
-    const allowNoInitialization = initializer === undefined && args.length === 0;
-    initializer = initializer ?? 'initialize';
-
-    try {
-      const fragment = ImplFactory.interface.getFunction(initializer);
-      return ImplFactory.interface.encodeFunctionData(fragment, args);
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        if (allowNoInitialization && e.message.includes('no matching function')) {
-          return '0x';
-        }
-      }
-      throw e;
-    }
-  }
 }

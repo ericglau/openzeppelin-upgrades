@@ -81,25 +81,25 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
     inst.deployTransaction = proxyDeployment.deployTransaction;
     return inst;
   };
+}
 
-  function getInitializerData(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {
-    if (initializer === false) {
-      return '0x';
-    }
+export function getInitializerData(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {
+  if (initializer === false) {
+    return '0x';
+  }
 
-    const allowNoInitialization = initializer === undefined && args.length === 0;
-    initializer = initializer ?? 'initialize';
+  const allowNoInitialization = initializer === undefined && args.length === 0;
+  initializer = initializer ?? 'initialize';
 
-    try {
-      const fragment = ImplFactory.interface.getFunction(initializer);
-      return ImplFactory.interface.encodeFunctionData(fragment, args);
-    } catch (e: unknown) {
-      if (e instanceof Error) {
-        if (allowNoInitialization && e.message.includes('no matching function')) {
-          return '0x';
-        }
+  try {
+    const fragment = ImplFactory.interface.getFunction(initializer);
+    return ImplFactory.interface.encodeFunctionData(fragment, args);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      if (allowNoInitialization && e.message.includes('no matching function')) {
+        return '0x';
       }
-      throw e;
     }
+    throw e;
   }
 }

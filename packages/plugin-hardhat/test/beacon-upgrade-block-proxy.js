@@ -27,6 +27,12 @@ test('block beacon upgrade via upgradeProxy', async t => {
     t.fail("prepareUpgrade() should not allow a beacon proxy to be prepared for upgrade");
   } catch (e) {
   }
+
+  try {
+    await upgrades.prepareUpgrade(beacon.address, GreeterV3);
+    t.fail("prepareUpgrade() should not allow a beacon to be prepared for upgrade");
+  } catch (e) {
+  }
 });
 
 test('block beacon proxy upgrade via upgradeBeacon', async t => {

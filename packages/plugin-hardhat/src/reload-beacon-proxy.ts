@@ -3,28 +3,23 @@ import { Contract, ethers } from 'ethers';
 
 import { Manifest, getBeaconAddress } from '@openzeppelin/upgrades-core';
 
-import {
-  ContractAddressOrInstance,
-  getContractAddress,
-} from './utils';
 import { Interface } from '@ethersproject/abi';
 
 export interface ReloadBeaconProxyFunction {
-  (proxy: ContractAddressOrInstance): Promise<Contract>;
+  (proxy: Contract): Promise<Contract>;
 }
 
 export function makeReloadBeaconProxy(hre: HardhatRuntimeEnvironment): ReloadBeaconProxyFunction {
   return async function reloadBeaconProxy(
-    proxy: ContractAddressOrInstance
+    proxy: Contract
   ) {
     const { provider } = hre.network;
 
-    const proxyAddress = getContractAddress(proxy);
-    const beaconAddress = await getBeaconAddress(provider, proxyAddress);
+    const beaconAddress = await getBeaconAddress(provider, proxy.address);
     let contractInterface: Interface;
     try {
       contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress);
-      return new Contract(proxyAddress, contractInterface, proxy instanceof Contract ? proxy.signer : undefined);
+      return new Contract(proxy.address, contractInterface, proxy.signer);
     } catch (e: any) {
         throw new Error(`Beacon at address ${beaconAddress} was not found in the network manifest. Use the implementation's contract factory to attach to the proxy address instead.`);
       }

@@ -14,6 +14,7 @@ import {
   getBeaconProxyFactory,
   getUpgradeableBeaconFactory,
 } from './utils';
+import { Interface } from '@ethersproject/abi';
 
 export interface DeployFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
@@ -35,7 +36,8 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
     const manifest = await Manifest.forNetwork(provider);
 
     const { impl, kind } = await deployImpl(hre, ImplFactory, opts);
-    const data = getInitializerData(ImplFactory, args, opts.initializer);
+    const contractInterface = ImplFactory.interface;
+    const data = getInitializerData(contractInterface, args, opts.initializer);
 
     if (kind === 'uups' || kind === 'beacon') {
       if (await manifest.getAdmin()) {
@@ -83,7 +85,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
   };
 }
 
-export function getInitializerData(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {
+export function getInitializerData(contractInterface: Interface, args: unknown[], initializer?: string | false): string {
   if (initializer === false) {
     return '0x';
   }
@@ -92,8 +94,8 @@ export function getInitializerData(ImplFactory: ContractFactory, args: unknown[]
   initializer = initializer ?? 'initialize';
 
   try {
-    const fragment = ImplFactory.interface.getFunction(initializer);
-    return ImplFactory.interface.encodeFunctionData(fragment, args);
+    const fragment = contractInterface.getFunction(initializer);
+    return contractInterface.encodeFunctionData(fragment, args);
   } catch (e: unknown) {
     if (e instanceof Error) {
       if (allowNoInitialization && e.message.includes('no matching function')) {

@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ContractFactory, Contract, ethers } from 'ethers';
 
-import { Manifest, logWarning, ProxyDeployment } from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment, DeploymentNotFound } from '@openzeppelin/upgrades-core';
 
 import {
   DeployOptions,
@@ -12,7 +12,7 @@ import {
   getContractAddress,
 } from './utils';
 import { getInitializerData } from './deploy-proxy';
-import { FormatTypes } from '@ethersproject/abi';
+import { FormatTypes, Interface } from '@ethersproject/abi';
 
 export interface DeployBeaconProxyFunction {
   (ImplFactory: ContractFactory, beacon: ContractAddressOrInstance, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
@@ -37,7 +37,13 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     opts.kind = 'beacon';
 
     const beaconAddress = getContractAddress(beacon);
-    const data = await getInitializerDataTEST(hre, beaconAddress, args, opts.initializer);
+    let contractInterface: Interface;
+    try {
+      contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress);
+    } catch (e: any) {
+      contractInterface = ImplFactory.interface;
+    }
+    const data = getInitializerData(contractInterface, args, opts.initializer);
     
     if (await manifest.getAdmin()) {
       logWarning(`A proxy admin was previously deployed on this network`, [
@@ -59,29 +65,9 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
   };
 }
 
-async function getInitializerDataTEST(hre: HardhatRuntimeEnvironment, beaconAddress: string, args: unknown[], initializer?: string | false): Promise<string> {
-  if (initializer === false) {
-    return '0x';
-  }
-
-  const allowNoInitialization = initializer === undefined && args.length === 0;
-  initializer = initializer ?? 'initialize';
-
-  try {
-    //const abi = ImplFactory.interface.format(FormatTypes.json);
-    const { provider } = hre.network;
-    const manifest = await Manifest.forNetwork(provider);
-    const beaconDeployment = await manifest.getBeaconFromAddress(beaconAddress);
-    const contractInterface = new ethers.utils.Interface(beaconDeployment.abi);
-
-    const fragment = contractInterface.getFunction(initializer);
-    return contractInterface.encodeFunctionData(fragment, args);
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      if (allowNoInitialization && e.message.includes('no matching function')) {
-        return '0x';
-      }
-    }
-    throw e;
-  }
+async function getBeaconInterfaceFromManifest(hre: HardhatRuntimeEnvironment, beaconAddress: string) {
+  const { provider } = hre.network;
+  const manifest = await Manifest.forNetwork(provider);
+  const beaconDeployment = await manifest.getBeaconFromAddress(beaconAddress);
+  return new ethers.utils.Interface(beaconDeployment.abi);
 }

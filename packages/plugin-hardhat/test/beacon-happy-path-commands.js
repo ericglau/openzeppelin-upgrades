@@ -11,7 +11,7 @@ test.before(async t => {
 test('happy path', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
-  const greeterBeacon = await upgrades.deployBeacon(Greeter);
+  const greeterBeacon = await upgrades.deployBeacon(Greeter); // TODO store the initializer in the beacon manifest
   const greeter = await upgrades.deployBeaconProxy(Greeter, greeterBeacon, ['Hello, Hardhat!']);
   await greeter.deployed();
 

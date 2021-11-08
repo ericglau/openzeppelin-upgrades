@@ -43,7 +43,7 @@ test('with flag', async t => {
   const beaconNew = await upgrades.deployBeacon(TokenNew, {
     unsafeAllow: ['external-library-linking'],
   });
-  const tokenNew = await upgrades.deployProxy(beaconNew, TokenNew, ['TKN', 5000]);
+  const tokenNew = await upgrades.deployBeaconProxy(beaconNew, TokenNew, ['TKN', 5000]);
 
   t.is('5000', (await tokenNew.totalSupply()).toString());
   t.is('V2', await tokenNew.getLibraryVersion());

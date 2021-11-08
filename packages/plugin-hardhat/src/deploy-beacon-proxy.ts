@@ -15,14 +15,14 @@ import { getInitializerData } from './deploy-proxy';
 import { FormatTypes, Interface } from '@ethersproject/abi';
 
 export interface DeployBeaconProxyFunction {
-  (ImplFactoryOrSigner: ContractFactory | Signer, beacon: ContractAddressOrInstance, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
-  (ImplFactoryOrSigner: ContractFactory | Signer, beacon: ContractAddressOrInstance, opts?: DeployOptions): Promise<Contract>;
+  (beacon: ContractAddressOrInstance, ImplFactoryOrSigner: ContractFactory | Signer, args?: unknown[], opts?: DeployOptions): Promise<Contract>;
+  (beacon: ContractAddressOrInstance, ImplFactoryOrSigner: ContractFactory | Signer, opts?: DeployOptions): Promise<Contract>;
 }
 
 export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBeaconProxyFunction {
   return async function deployBeaconProxy(
-    ImplFactoryOrSigner: ContractFactory | Signer,
     beacon: ContractAddressOrInstance,
+    ImplFactoryOrSigner: ContractFactory | Signer,
     args: unknown[] | DeployOptions = [],
     opts: DeployOptions = {},
   ) {

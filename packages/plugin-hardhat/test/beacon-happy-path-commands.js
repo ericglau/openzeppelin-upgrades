@@ -11,11 +11,14 @@ test.before(async t => {
 test('happy path', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
-  const greeterBeacon = await upgrades.deployBeacon(Greeter); // TODO store the initializer in the beacon manifest
-  const greeter = await upgrades.deployBeaconProxy(Greeter, greeterBeacon, ['Hello, Hardhat!']);
+  const greeterBeacon = await upgrades.deployBeacon(Greeter); 
+  const greeter = await upgrades.deployBeaconProxy(greeterBeacon, Greeter, ['Hello, Hardhat!']);
   await greeter.deployed();
-
   t.is(await greeter.greet(), 'Hello, Hardhat!');
+
+  const greeterAltProxy = await upgrades.deployBeaconProxy(greeterBeacon, Greeter.signer, ['Hello, Hardhat 2!']);
+  await greeterAltProxy.deployed();
+  t.is(await greeterAltProxy.greet(), 'Hello, Hardhat 2!');
 
   // new impl 
   await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);  
@@ -26,5 +29,9 @@ test('happy path', async t => {
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
 
-
+  // reattach proxy contract instance using the updated ABI for the alt proxy
+  const greeterAlt2 = await GreeterV2.attach(greeterAltProxy.address);
+  t.is(await greeterAlt2.greet(), 'Hello, Hardhat 2!');
+  await greeterAlt2.resetGreeting();
+  t.is(await greeterAlt2.greet(), 'Hello World');
 });

@@ -10,22 +10,29 @@ test.before(async t => {
   t.context.PortfolioV2Bad = await ethers.getContractFactory('PortfolioV2Bad');
 });
 
-test('deployProxy', async t => {
+test('deployBeaconProxy', async t => {
   const { Portfolio } = t.context;
-  const portfolio = await upgrades.deployProxy(Portfolio, [], { kind: 'beacon' });
+  const beacon = await upgrades.deployBeacon(Portfolio); 
+  const portfolio = await upgrades.deployBeaconProxy(beacon, Portfolio, []);
   await portfolio.enable('ETH');
 });
 
-test('upgradeProxy', async t => {
+test('upgradeBeacon', async t => {
   const { Portfolio, PortfolioV2 } = t.context;
-  const portfolio = await upgrades.deployProxy(Portfolio, [], { kind: 'beacon' });
-  const portfolio2 = await upgrades.upgradeProxy(portfolio, PortfolioV2);
+  const beacon = await upgrades.deployBeacon(Portfolio); 
+  const portfolio = await upgrades.deployBeaconProxy(beacon, Portfolio, []);
+
+  await upgrades.upgradeBeacon(beacon, PortfolioV2);
+
+  const portfolio2 = await upgrades.reloadBeaconProxy(portfolio);
   await portfolio2.enable('ETH');
 });
 
-test('upgradeProxy with incompatible layout', async t => {
+test('upgradeBeacon with incompatible layout', async t => {
   const { Portfolio, PortfolioV2Bad } = t.context;
-  const portfolio = await upgrades.deployProxy(Portfolio, [], { kind: 'beacon' });
-  const error = await t.throwsAsync(() => upgrades.upgradeProxy(portfolio, PortfolioV2Bad));
+
+  const beacon = await upgrades.deployBeacon(Portfolio); 
+  await upgrades.deployBeaconProxy(beacon, Portfolio, []);
+  const error = await t.throwsAsync(() => upgrades.upgradeBeacon(beacon, PortfolioV2Bad));
   t.true(error.message.includes('Upgraded `assets` to an incompatible type'));
 });

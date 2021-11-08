@@ -1,5 +1,5 @@
 export default {
-  files: ['test/beacon-*.js'],
+  files: ['test/beacon-linked*.js'],
   ignoredByWatcher: ['**/*.ts', '.openzeppelin'],
   verbose: true,
   serial: true,

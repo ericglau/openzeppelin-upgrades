@@ -9,8 +9,9 @@ test.before(async t => {
 
 test('multiple matching functions', async t => {
   const { InitializerOverloaded } = t.context;
+  const beacon = await upgrades.deployBeacon(InitializerOverloaded);
   await t.throwsAsync(
-    () => upgrades.deployProxy(InitializerOverloaded, [42], { kind: 'beacon' }),
+    () => upgrades.deployBeaconProxy(beacon, InitializerOverloaded, [42]),
     undefined,
     'multiple matching functions',
   );
@@ -18,7 +19,8 @@ test('multiple matching functions', async t => {
 
 test('unique function selector', async t => {
   const { InitializerOverloaded } = t.context;
-  const instance = await upgrades.deployProxy(InitializerOverloaded, [42], {
+  const beacon = await upgrades.deployBeacon(InitializerOverloaded);
+  const instance = await upgrades.deployBeaconProxy(beacon, InitializerOverloaded, [42], {
     kind: 'beacon',
     initializer: 'initialize(uint256)',
   });
@@ -27,13 +29,15 @@ test('unique function selector', async t => {
 
 test('no initialize function and no args', async t => {
   const { InitializerMissing } = t.context;
-  await upgrades.deployProxy(InitializerMissing, { kind: 'beacon' });
+  const beacon = await upgrades.deployBeacon(InitializerMissing);
+  await upgrades.deployBeaconProxy(beacon, InitializerMissing, { kind: 'beacon' });
 });
 
 test('no initialize function and explicit args', async t => {
   const { InitializerMissing } = t.context;
+  const beacon = await upgrades.deployBeacon(InitializerMissing);
   await t.throwsAsync(
-    () => upgrades.deployProxy(InitializerMissing, [42], { kind: 'beacon' }),
+    () => upgrades.deployBeaconProxy(beacon, InitializerMissing, [42], { kind: 'beacon' }),
     undefined,
     'no matching function',
   );

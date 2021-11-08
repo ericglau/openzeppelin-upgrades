@@ -23,13 +23,13 @@ test('happy path', async t => {
   // new impl 
   await upgrades.upgradeBeacon(greeterBeacon, GreeterV2);  
 
-  // reattach proxy contract instance using the updated ABI
+  // reload proxy to work with the new contract
   const greeter2 = await upgrades.reloadBeaconProxy(greeter);
   t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
 
-  // reattach proxy contract instance using the updated ABI for the alt proxy
+  // reload proxy to work with the new contract
   const greeterAlt2 = await upgrades.reloadBeaconProxy(greeterAltProxy);
   t.is(await greeterAlt2.greet(), 'Hello, Hardhat 2!');
   await greeterAlt2.resetGreeting();

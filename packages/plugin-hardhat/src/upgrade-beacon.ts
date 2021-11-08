@@ -33,7 +33,7 @@ export function makeUpgradeBeacon(hre: HardhatRuntimeEnvironment): UpgradeBeacon
     
     const beaconDeployment = {
       address: beaconAddress,
-      txHash: upgradeTx,
+      txHash: upgradeTx.hash,
       abi: abi
     }
     await manifest.addBeacon(beaconDeployment);

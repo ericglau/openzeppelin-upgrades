@@ -10,20 +10,25 @@ test.before(async t => {
   t.context.ActionV2Bad = await ethers.getContractFactory('ActionV2Bad');
 });
 
-test('deployProxy', async t => {
+test('deployBeaconProxy', async t => {
   const { Action } = t.context;
-  await upgrades.deployProxy(Action, [], { kind: 'beacon' });
+  const beacon = await upgrades.deployBeacon(Action); 
+  await upgrades.deployBeaconProxy(beacon, Action, []);
 });
 
-test('upgradeProxy', async t => {
+test('upgradeBeacon', async t => {
   const { Action, ActionV2 } = t.context;
-  const action = await upgrades.deployProxy(Action, [], { kind: 'beacon' });
-  await upgrades.upgradeProxy(action, ActionV2);
+  const beacon = await upgrades.deployBeacon(Action); 
+  await upgrades.deployBeaconProxy(beacon, Action, []);
+
+  await upgrades.upgradeBeacon(beacon, ActionV2);
 });
 
-test('upgradeProxy with incompatible layout', async t => {
+test('upgradeBeacon with incompatible layout', async t => {
   const { Action, ActionV2Bad } = t.context;
-  const action = await upgrades.deployProxy(Action, [], { kind: 'beacon' });
-  const error = await t.throwsAsync(() => upgrades.upgradeProxy(action, ActionV2Bad));
+  const beacon = await upgrades.deployBeacon(Action); 
+  await upgrades.deployBeaconProxy(beacon, Action, []);
+
+  const error = await t.throwsAsync(() => upgrades.upgradeBeacon(beacon, ActionV2Bad));
   t.true(error.message.includes('Upgraded `action` to an incompatible type'));
 });

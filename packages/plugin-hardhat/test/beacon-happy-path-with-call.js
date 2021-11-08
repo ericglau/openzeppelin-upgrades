@@ -10,12 +10,13 @@ test.before(async t => {
 test('happy path - call with args', async t => {
   const { Greeter, GreeterV2 } = t.context;
 
-  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'beacon' });
+  const greeterBeacon = await upgrades.deployBeacon(Greeter); 
+  const greeter = await upgrades.deployBeaconProxy(greeterBeacon, Greeter, ['Hello, Hardhat!']);
 
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
   try {
-    await upgrades.upgradeProxy(greeter, GreeterV2, {
+    await upgrades.upgradeBeacon(greeter, GreeterV2, {
       call: { fn: 'setGreeting', args: ['Called during upgrade'] }
     });
     t.fail("Expected an error due to function call during beacon implementation upgrade");
@@ -26,12 +27,13 @@ test('happy path - call with args', async t => {
 test('happy path - call without args', async t => {
   const { Greeter, GreeterV2 } = t.context;
 
-  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'beacon' });
+  const greeterBeacon = await upgrades.deployBeacon(Greeter); 
+  const greeter = await upgrades.deployBeaconProxy(greeterBeacon, Greeter, ['Hello, Hardhat!']);
 
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
   try {
-    await upgrades.upgradeProxy(greeter, GreeterV2, {
+    await upgrades.upgradeBeacon(greeter, GreeterV2, {
       call: 'resetGreeting'
     });
     t.fail("Expected an error due to function call during beacon implementation upgrade");

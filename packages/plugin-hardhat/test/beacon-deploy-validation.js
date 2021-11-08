@@ -9,7 +9,7 @@ test.before(async t => {
 test('invalid deployment', async t => {
   const { Invalid } = t.context;
   await t.throwsAsync(
-    () => upgrades.deployProxy(Invalid, { kind: 'beacon' }),
+    () => upgrades.deployBeacon(Invalid),
     undefined,
     'Contract `Invalid` is not upgrade safe',
   );

@@ -1,5 +1,5 @@
 export default {
-  files: ['test/beacon-upgrade-proxy-block.js'],
+  files: ['test/beacon-*.js'],
   ignoredByWatcher: ['**/*.ts', '.openzeppelin'],
   verbose: true,
   serial: true,

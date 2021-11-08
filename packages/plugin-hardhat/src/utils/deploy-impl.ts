@@ -93,14 +93,17 @@ export async function deployImplForBeacon(
   const layout = getStorageLayout(validations, version);
 
   if (opts.kind === undefined) {
-    opts.kind = await inferProxyKind(validations, version, provider, beaconAddress);
+    opts.kind = 'beacon';
   }
 
   if (beaconAddress !== undefined) {
-    if (getImplementationAddress(provider, beaconAddress) !== undefined) {
-      throw new Error('Address is a regular proxy and cannot be upgraded using upgradeBeacon(). Use upgradeProxy() instead.');
+    try {
+      if (await getImplementationAddress(provider, beaconAddress) !== undefined) {
+        throw new Error('Address is a regular proxy and cannot be upgraded using upgradeBeacon(). Use upgradeProxy() instead.');
+      }  
+    } catch (e: any) {
+      // error is expected for beacons since they don't use EIP-1967 implementation slots
     }
-    //await setProxyKind(provider, beaconAddress, opts); // TODO don't treat beacon as a proxy
   }
 
   const fullOpts = withDefaults(opts);
@@ -110,13 +113,11 @@ export async function deployImplForBeacon(
   if (beaconAddress !== undefined) {
     const manifest = await Manifest.forNetwork(provider);
     let currentImplAddress: string;
-    if (opts.kind === 'beacon') {
-      const IBeaconFactory = await getIBeaconFactory(hre, ImplFactory.signer);
-      const beaconContract = IBeaconFactory.attach(beaconAddress);
-      currentImplAddress = await beaconContract.implementation();
-    } else {
-      currentImplAddress = await getImplementationAddress(provider, beaconAddress);
-    }
+
+    const IBeaconFactory = await getIBeaconFactory(hre, ImplFactory.signer);
+    const beaconContract = IBeaconFactory.attach(beaconAddress);
+    currentImplAddress = await beaconContract.implementation();
+
     const currentLayout = await getStorageLayoutForAddress(manifest, validations, currentImplAddress);
     assertStorageUpgradeSafe(currentLayout, layout, fullOpts);
   }

@@ -26,7 +26,7 @@ test('block beacon upgrade via upgradeProxy', async t => {
   }
 });
 
-test('block transparent upgrade via upgradeBeacon', async t => {
+test('block proxy upgrade via upgradeBeacon', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });

@@ -4,7 +4,9 @@ const { ethers, upgrades } = require('hardhat');
 
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
+  t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
+  t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable');
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
 });
 
@@ -12,7 +14,7 @@ test('block beacon upgrade via upgradeProxy', async t => {
   const { Greeter, GreeterV2, GreeterV3 } = t.context;
 
   const beacon = await upgrades.deployBeacon(Greeter);
-  const greeter = await upgrades.deployProxy(beacon, Greeter, ['Hello, Hardhat!']);
+  const greeter = await upgrades.deployBeaconProxy(beacon, Greeter, ['Hello, Hardhat!']);
 
   try {
     await upgrades.upgradeProxy(greeter, GreeterV2);
@@ -31,7 +33,7 @@ test('block beacon proxy upgrade via upgradeBeacon', async t => {
   const { Greeter, GreeterV2 } = t.context;
 
   const beacon = await upgrades.deployBeacon(Greeter);
-  const greeter = await upgrades.deployProxy(beacon, Greeter, ['Hello, Hardhat!']);
+  const greeter = await upgrades.deployBeaconProxy(beacon, Greeter, ['Hello, Hardhat!']);
 
   try {
     await upgrades.upgradeBeacon(greeter, GreeterV2);
@@ -53,12 +55,12 @@ test('block transparent proxy upgrade via upgradeBeacon', async t => {
 });
 
 test('block uups proxy upgrade via upgradeBeacon', async t => {
-  const { Greeter, GreeterV2 } = t.context;
+  const { GreeterProxiable, GreeterV2Proxiable } = t.context;
 
-  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'uups' });
+  const greeter = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat!'], { kind: 'uups' });
 
   try {
-    await upgrades.upgradeBeacon(greeter, GreeterV2);
+    await upgrades.upgradeBeacon(greeter, GreeterV2Proxiable);
     t.fail("upgradeBeacon() should not allow a non-beacon address");
   } catch (e) {
   }

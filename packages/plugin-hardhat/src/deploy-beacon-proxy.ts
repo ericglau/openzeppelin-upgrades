@@ -37,7 +37,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     opts.kind = 'beacon';
 
     const beaconAddress = getContractAddress(beacon);
-    const data = getInitializerDataTEST(ImplFactory, args, opts.initializer);
+    const data = await getInitializerDataTEST(hre, beaconAddress, args, opts.initializer);
     
     if (await manifest.getAdmin()) {
       logWarning(`A proxy admin was previously deployed on this network`, [
@@ -59,7 +59,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
   };
 }
 
-export function getInitializerDataTEST(ImplFactory: ContractFactory, args: unknown[], initializer?: string | false): string {
+async function getInitializerDataTEST(hre: HardhatRuntimeEnvironment, beaconAddress: string, args: unknown[], initializer?: string | false): Promise<string> {
   if (initializer === false) {
     return '0x';
   }
@@ -68,9 +68,11 @@ export function getInitializerDataTEST(ImplFactory: ContractFactory, args: unkno
   initializer = initializer ?? 'initialize';
 
   try {
-    const abi = ImplFactory.interface.format(FormatTypes.json);
-
-    const contractInterface = new ethers.utils.Interface(abi);
+    //const abi = ImplFactory.interface.format(FormatTypes.json);
+    const { provider } = hre.network;
+    const manifest = await Manifest.forNetwork(provider);
+    const beaconDeployment = await manifest.getBeaconFromAddress(beaconAddress);
+    const contractInterface = new ethers.utils.Interface(beaconDeployment.abi);
 
     const fragment = contractInterface.getFunction(initializer);
     return contractInterface.encodeFunctionData(fragment, args);

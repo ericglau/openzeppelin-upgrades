@@ -35,7 +35,7 @@ export function makeUpgradeBeacon(hre: HardhatRuntimeEnvironment): UpgradeBeacon
       txHash: upgradeTx.hash,
       abi: abi,
     };
-    await manifest.addBeacon(beaconDeployment);
+    //await manifest.addBeacon(beaconDeployment);
 
     // @ts-ignore Won't be readonly because beaconContract was created through attach.
     beaconContract.deployTransaction = upgradeTx;

@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ContractFactory, Contract, ethers, Signer } from 'ethers';
 
-import { Manifest, logWarning, ProxyDeployment } from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment, getBeaconAddress } from '@openzeppelin/upgrades-core';
 
 import {
   DeployOptions,
@@ -10,6 +10,7 @@ import {
   getBeaconProxyFactory,
   ContractAddressOrInstance,
   getContractAddress,
+  getIBeaconFactory,
 } from './utils';
 import { getInitializerData } from './deploy-proxy';
 import { Interface } from '@ethersproject/abi';
@@ -46,18 +47,23 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     opts.kind = 'beacon';
 
     const beaconAddress = getContractAddress(beacon);
-    let contractInterface: Interface;
+    let contractInterface: Interface | undefined;
     try {
-      contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress);
+      contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress, getSigner(ImplFactoryOrSigner));
     } catch (e: any) {
+      // error expected if the current implementation was not found in manifest
+    }
+    if (contractInterface === undefined) {
       if (ImplFactoryOrSigner instanceof ContractFactory) {
         contractInterface = ImplFactoryOrSigner.interface;
       } else {
         throw new Error(
-          `Beacon at address ${beaconAddress} was not found in the network manifest. Call deployBeaconProxy() with a contract factory for the beacon's current implementation contract.`,
+          // TODO get the impl address and change message?
+          `The implementation for the beacon at address ${beaconAddress} was not found in the network manifest. Call deployBeaconProxy() with a contract factory for the beacon's current implementation.`,
         );
       }
     }
+
     const data = getInitializerData(contractInterface, args, opts.initializer);
 
     if (await manifest.getAdmin()) {
@@ -69,7 +75,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
 
     const BeaconProxyFactory = await getBeaconProxyFactory(
       hre,
-      ImplFactoryOrSigner instanceof ContractFactory ? ImplFactoryOrSigner.signer : ImplFactoryOrSigner,
+      getSigner(ImplFactoryOrSigner),
     );
     const proxyDeployment: Required<ProxyDeployment & DeployTransaction> = Object.assign(
       { kind: opts.kind },
@@ -90,9 +96,23 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
   };
 }
 
-async function getBeaconInterfaceFromManifest(hre: HardhatRuntimeEnvironment, beaconAddress: string) {
+// TODO put this in a common library
+export async function getBeaconInterfaceFromManifest(hre: HardhatRuntimeEnvironment, beaconAddress: string, signer?: Signer) : Promise<ethers.utils.Interface | undefined> {
   const { provider } = hre.network;
   const manifest = await Manifest.forNetwork(provider);
-  const beaconDeployment = await manifest.getBeaconFromAddress(beaconAddress);
-  return new ethers.utils.Interface(beaconDeployment.abi);
+
+  const IBeaconFactory = await getIBeaconFactory(hre, signer);
+  const beaconContract = IBeaconFactory.attach(beaconAddress);
+  const currentImplAddress = await beaconContract.implementation();
+
+  const implDeployment = await manifest.getDeploymentFromAddress(currentImplAddress);
+  if (implDeployment.abi === undefined) {
+    return undefined;
+  }
+  return new ethers.utils.Interface(implDeployment.abi);
+}
+
+// TODO make this a type
+function getSigner(ImplFactoryOrSigner: ContractFactory | Signer) {
+  return ImplFactoryOrSigner instanceof ContractFactory? ImplFactoryOrSigner.signer : ImplFactoryOrSigner;
 }

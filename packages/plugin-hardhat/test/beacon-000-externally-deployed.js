@@ -11,75 +11,7 @@ test.before(async t => {
 const IS_NOT_REGISTERED = 'is not registered';
 const WAS_NOT_FOUND_IN_MANIFEST = 'was not found in the network manifest';
 
-// These tests need to run before the other beacon tests so that the beacon address will not already be in the manifest.
-
-test('deploy proxy using beacon address after external beacon upgrade', async t => {
-  const { Greeter, GreeterV2, Beacon } = t.context;
-
-  // beacon with impl 1
-  const greeterBeacon = await upgrades.deployBeacon(Greeter);
-
-  // external impl 2
-  const greeter2 = await GreeterV2.deploy();
-  await greeter2.deployed();
-
-  // external upgrade beacon to impl 2
-  const beaconContract = Beacon.attach(greeterBeacon.address);
-  await beaconContract.upgradeTo(greeter2.address);
-
-  // deploy beacon proxy to attach to beacon (which points to impl 2)
-  const greeterProxy = await upgrades.deployBeaconProxy(greeterBeacon.address, GreeterV2.signer, ['Hello, Hardhat!']);
-  await greeterProxy.deployed();
-  t.is(await greeterProxy.greet(), 'Hello, Hardhat!');
-  await greeterProxy.resetGreeting();
-  t.is(await greeterProxy.greet(), 'Hello World');
-});
-
-test('deploy proxy using proper contract factory after external beacon upgrade', async t => {
-  const { Greeter, GreeterV2, Beacon } = t.context;
-
-  // beacon with impl 1
-  const greeterBeacon = await upgrades.deployBeacon(Greeter);
-
-  // external impl 2
-  const greeter2 = await GreeterV2.deploy();
-  await greeter2.deployed();
-
-  // external upgrade beacon to impl 2
-  const beaconContract = Beacon.attach(greeterBeacon.address);
-  await beaconContract.upgradeTo(greeter2.address);
-
-  // deploy beacon proxy to attach to beacon (which points to impl 2)
-  const greeterProxy = await upgrades.deployBeaconProxy(greeterBeacon, GreeterV2, ['Hello, Hardhat!']);
-  await greeterProxy.deployed();
-  t.is(await greeterProxy.greet(), 'Hello, Hardhat!');
-  await greeterProxy.resetGreeting();
-  t.is(await greeterProxy.greet(), 'Hello World');
-});
-
-// test('upgrade beacon with plugin after external beacon upgrade', async t => {
-//   const { Greeter, GreeterV2, GreeterV3, Beacon } = t.context;
-
-//   // beacon with impl 1
-//   const greeterBeacon = await upgrades.deployBeacon(Greeter);
-
-//   // impl 2
-//   const greeter2 = await GreeterV2.deploy();
-//   await greeter2.deployed();
-
-//   // upgrade beacon to impl 2
-//   const beaconContract = Beacon.attach(greeterBeacon.address);
-//   await beaconContract.upgradeTo(greeter2.address);
-
-//   await upgrades.upgradeBeacon(beaconContract, GreeterV3);
-
-//   // deploy beacon proxy to attach to beacon (which points to impl 2)
-//   const greeterProxy = await upgrades.deployBeaconProxy(greeterBeacon, GreeterV2, ['Hello, Hardhat!']);
-//   await greeterProxy.deployed();
-//   t.is(await greeterProxy.greet(), 'Hello, Hardhat!');
-//   await greeterProxy.resetGreeting();
-//   t.is(await greeterProxy.greet(), 'Hello World');
-// });
+// These tests need to run before the other deploy beacon tests so that the beacon implementation will not already be in the manifest.
 
 test('block upgrade to unregistered beacon', async t => {
   const { Greeter, GreeterV2, Beacon } = t.context;

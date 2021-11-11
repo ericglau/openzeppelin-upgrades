@@ -1,4 +1,4 @@
-import { getBeaconAddress, getImplementationAddress, Manifest } from '@openzeppelin/upgrades-core';
+import { DeploymentNotFound, getBeaconAddress, getImplementationAddress, Manifest } from '@openzeppelin/upgrades-core';
 import { Contract, ethers, Signer, utils } from 'ethers';
 import { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ContractAddressOrInstance, getIBeaconFactory } from '.';
@@ -44,14 +44,19 @@ export async function getInterfaceFromManifest(hre: HardhatRuntimeEnvironment, i
   if (implAddress === undefined) {
     return undefined;
   }
-
   const { provider } = hre.network;
   const manifest = await Manifest.forNetwork(provider);
-  const implDeployment = await manifest.getDeploymentFromAddress(implAddress);
-
-  if (implDeployment.abi === undefined) {
-    return undefined;
+  try {
+    const implDeployment = await manifest.getDeploymentFromAddress(implAddress);
+    if (implDeployment.abi === undefined) {
+      return undefined;
+    }
+    return new utils.Interface(implDeployment.abi);
+  } catch (e: any) {
+    if (e instanceof DeploymentNotFound) {
+      return undefined;
+    }
+    // otherwise rethrow due to some other error
+    throw e;
   }
-
-  return new utils.Interface(implDeployment.abi);
 }

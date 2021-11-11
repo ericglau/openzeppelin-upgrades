@@ -19,11 +19,11 @@ test('deploy proxy using beacon address after external beacon upgrade', async t 
   // beacon with impl 1
   const greeterBeacon = await upgrades.deployBeacon(Greeter);
 
-  // impl 2
+  // external impl 2
   const greeter2 = await GreeterV2.deploy();
   await greeter2.deployed();
 
-  // upgrade beacon to impl 2
+  // external upgrade beacon to impl 2
   const beaconContract = Beacon.attach(greeterBeacon.address);
   await beaconContract.upgradeTo(greeter2.address);
 
@@ -41,11 +41,11 @@ test('deploy proxy using proper contract factory after external beacon upgrade',
   // beacon with impl 1
   const greeterBeacon = await upgrades.deployBeacon(Greeter);
 
-  // impl 2
+  // external impl 2
   const greeter2 = await GreeterV2.deploy();
   await greeter2.deployed();
 
-  // upgrade beacon to impl 2
+  // external upgrade beacon to impl 2
   const beaconContract = Beacon.attach(greeterBeacon.address);
   await beaconContract.upgradeTo(greeter2.address);
 

@@ -5,7 +5,7 @@ import { Manifest, getBeaconAddress } from '@openzeppelin/upgrades-core';
 
 import { Interface } from '@ethersproject/abi';
 import { ContractAddressOrInstance, getContractAddress } from './utils';
-import { getBeaconInterfaceFromManifest } from './deploy-beacon-proxy';
+import { getImplAddressFromBeaconAddress, getInterfaceFromManifest } from './deploy-beacon-proxy';
 
 export interface LoadProxyFunction {
   (proxy: Contract, signer?: Signer): Promise<Contract>;
@@ -17,10 +17,11 @@ export function makeLoadProxy(hre: HardhatRuntimeEnvironment): LoadProxyFunction
     const { provider } = hre.network;
 
     const proxyAddress = getContractAddress(proxy);
-    const beaconAddress = await getBeaconAddress(provider, proxyAddress);
+    const beaconAddress = await getBeaconAddress(provider, proxyAddress);//TODO support non-beacons
     let contractInterface: Interface | undefined;
     try {
-      contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress, proxy instanceof Contract ? proxy.signer : signer);
+      const currentImplAddress = await getImplAddressFromBeaconAddress(hre, proxy instanceof Contract ? proxy.signer : signer, beaconAddress);
+      contractInterface = await getInterfaceFromManifest(hre, currentImplAddress);
       if (contractInterface === undefined) {
         // TODO combine with the below error
         throw new Error(

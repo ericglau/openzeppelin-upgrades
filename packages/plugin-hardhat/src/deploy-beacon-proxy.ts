@@ -49,7 +49,8 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     const beaconAddress = getContractAddress(beacon);
     let contractInterface: Interface | undefined;
     try {
-      contractInterface = await getBeaconInterfaceFromManifest(hre, beaconAddress, getSigner(ImplFactoryOrSigner));
+      const currentImplAddress = await getImplAddressFromBeaconAddress(hre, getSigner(ImplFactoryOrSigner), beaconAddress);
+      contractInterface = await getInterfaceFromManifest(hre, currentImplAddress);
     } catch (e: any) {
       // error expected if the current implementation was not found in manifest
     }
@@ -97,19 +98,23 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
 }
 
 // TODO put this in a common library
-export async function getBeaconInterfaceFromManifest(hre: HardhatRuntimeEnvironment, beaconAddress: string, signer?: Signer) : Promise<ethers.utils.Interface | undefined> {
+export async function getInterfaceFromManifest(hre: HardhatRuntimeEnvironment, implAddress: string) : Promise<ethers.utils.Interface | undefined> {
   const { provider } = hre.network;
   const manifest = await Manifest.forNetwork(provider);
 
-  const IBeaconFactory = await getIBeaconFactory(hre, signer);
-  const beaconContract = IBeaconFactory.attach(beaconAddress);
-  const currentImplAddress = await beaconContract.implementation();
-
-  const implDeployment = await manifest.getDeploymentFromAddress(currentImplAddress);
+  const implDeployment = await manifest.getDeploymentFromAddress(implAddress);
   if (implDeployment.abi === undefined) {
     return undefined;
   }
   return new ethers.utils.Interface(implDeployment.abi);
+}
+
+// TODO put this in a common library
+export async function getImplAddressFromBeaconAddress(hre: HardhatRuntimeEnvironment, signer: ethers.Signer | undefined, beaconAddress: string) {
+  const IBeaconFactory = await getIBeaconFactory(hre, signer);
+  const beaconContract = IBeaconFactory.attach(beaconAddress);
+  const currentImplAddress = await beaconContract.implementation();
+  return currentImplAddress;
 }
 
 // TODO make this a type

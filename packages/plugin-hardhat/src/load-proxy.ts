@@ -15,8 +15,8 @@ export function makeLoadProxy(hre: HardhatRuntimeEnvironment): LoadProxyFunction
 
     const proxyAddress = getContractAddress(proxy);
 
-    let implAddress = await getImplementationAddressFromProxy(provider, proxyAddress, hre, proxy, signer);
-    const contractInterface = await getInterfaceFromManifest(hre, implAddress);    
+    const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress, hre, proxy, signer);
+    const contractInterface = await getInterfaceFromManifest(hre, implAddress);
     if (contractInterface === undefined) {
       throw new Error(
         `The implementation at address ${implAddress} was not found in the network manifest. Use the implementation's contract factory to attach to the proxy address instead.`,
@@ -29,6 +29,3 @@ export function makeLoadProxy(hre: HardhatRuntimeEnvironment): LoadProxyFunction
     return new Contract(proxyAddress, contractInterface, signer);
   };
 }
-
-
-

@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { ContractFactory, Contract, ethers, Signer } from 'ethers';
+import { ContractFactory, Contract } from 'ethers';
 
-import { Manifest, logWarning, ProxyDeployment, getBeaconAddress } from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment } from '@openzeppelin/upgrades-core';
 
 import {
   DeployOptions,
@@ -10,12 +10,10 @@ import {
   getBeaconProxyFactory,
   ContractAddressOrInstance,
   getContractAddress,
-  getIBeaconFactory,
   ContractFactoryOrSigner,
   getSigner,
 } from './utils';
 import { getInitializerData } from './deploy-proxy';
-import { Interface } from '@ethersproject/abi';
 import { getImplementationAddressFromBeacon, getInterfaceFromManifest } from './utils/impl-address';
 
 export interface DeployBeaconProxyFunction {
@@ -72,10 +70,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
       ]);
     }
 
-    const BeaconProxyFactory = await getBeaconProxyFactory(
-      hre,
-      getSigner(ImplFactoryOrSigner),
-    );
+    const BeaconProxyFactory = await getBeaconProxyFactory(hre, getSigner(ImplFactoryOrSigner));
     const proxyDeployment: Required<ProxyDeployment & DeployTransaction> = Object.assign(
       { kind: opts.kind },
       await deploy(BeaconProxyFactory, beaconAddress, data),
@@ -94,6 +89,3 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     return inst;
   };
 }
-
-
-

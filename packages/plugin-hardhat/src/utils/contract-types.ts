@@ -1,4 +1,4 @@
-import { ContractFactory, Signer } from "ethers";
+import { ContractFactory, Signer } from 'ethers';
 
 export type ContractAddressOrInstance = string | { address: string };
 export type ContractFactoryOrSigner = ContractFactory | Signer;

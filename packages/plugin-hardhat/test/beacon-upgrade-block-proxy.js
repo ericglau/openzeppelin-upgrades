@@ -12,7 +12,6 @@ test.before(async t => {
 
 const BEACON_PROXY_NOT_SUPPORTED = 'Beacon proxies are not supported with the current function';
 const DOESNT_LOOK_LIKE_PROXY = "doesn't look like an administered ERC 1967 proxy";
-const DOESNT_LOOK_LIKE_BEACON_PROXY = "doesn't look like an ERC 1967 beacon proxy";
 const ADDRESS_IS_A_TRANSPARENT_OR_UUPS_PROXY = 'Address is a transparent or uups proxy';
 const ADDRESS_IS_A_BEACON_PROXY = 'Address is a beacon proxy';
 

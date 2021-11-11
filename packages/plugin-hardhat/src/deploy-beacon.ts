@@ -16,7 +16,7 @@ export function makeDeployBeacon(hre: HardhatRuntimeEnvironment): DeployBeaconFu
     const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);
     const beaconDeployment: Required<Deployment & DeployTransaction> = await deploy(UpgradeableBeaconFactory, impl);
     const beaconContract = UpgradeableBeaconFactory.attach(beaconDeployment.address);
-    
+
     // @ts-ignore Won't be readonly because beaconContract was created through attach.
     beaconContract.deployTransaction = beaconDeployment.deployTransaction;
     return beaconContract;

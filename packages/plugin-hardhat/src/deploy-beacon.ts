@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, Contract } from 'ethers';
 
-import { Deployment } from '@openzeppelin/upgrades-core';
+import { Deployment, Manifest } from '@openzeppelin/upgrades-core';
 
 import { Options, deploy, DeployTransaction, getUpgradeableBeaconFactory, deployBeaconImpl } from './utils';
 import { FormatTypes } from 'ethers/lib/utils';
@@ -12,8 +12,8 @@ export interface DeployBeaconFunction {
 
 export function makeDeployBeacon(hre: HardhatRuntimeEnvironment): DeployBeaconFunction {
   return async function deployBeacon(ImplFactory: ContractFactory, opts: Options = {}) {
-    //const { provider } = hre.network;
-    //const manifest = await Manifest.forNetwork(provider);
+    const { provider } = hre.network;
+    const manifest = await Manifest.forNetwork(provider);
 
     const { impl } = await deployBeaconImpl(hre, ImplFactory, opts);
 

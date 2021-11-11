@@ -11,20 +11,23 @@ import {
   ContractAddressOrInstance,
   getContractAddress,
   getIBeaconFactory,
+  ContractFactoryOrSigner,
+  getSigner,
 } from './utils';
 import { getInitializerData } from './deploy-proxy';
 import { Interface } from '@ethersproject/abi';
+import { getImplementationAddressFromBeacon, getInterfaceFromManifest } from './utils/impl-address';
 
 export interface DeployBeaconProxyFunction {
   (
     beacon: ContractAddressOrInstance,
-    ImplFactoryOrSigner: ContractFactory | Signer,
+    ImplFactoryOrSigner: ContractFactoryOrSigner,
     args?: unknown[],
     opts?: DeployOptions,
   ): Promise<Contract>;
   (
     beacon: ContractAddressOrInstance,
-    ImplFactoryOrSigner: ContractFactory | Signer,
+    ImplFactoryOrSigner: ContractFactoryOrSigner,
     opts?: DeployOptions,
   ): Promise<Contract>;
 }
@@ -32,7 +35,7 @@ export interface DeployBeaconProxyFunction {
 export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBeaconProxyFunction {
   return async function deployBeaconProxy(
     beacon: ContractAddressOrInstance,
-    ImplFactoryOrSigner: ContractFactory | Signer,
+    ImplFactoryOrSigner: ContractFactoryOrSigner,
     args: unknown[] | DeployOptions = [],
     opts: DeployOptions = {},
   ) {
@@ -47,20 +50,15 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     opts.kind = 'beacon';
 
     const beaconAddress = getContractAddress(beacon);
-    let contractInterface: Interface | undefined;
-    try {
-      const currentImplAddress = await getImplAddressFromBeaconAddress(hre, getSigner(ImplFactoryOrSigner), beaconAddress);
-      contractInterface = await getInterfaceFromManifest(hre, currentImplAddress);
-    } catch (e: any) {
-      // error expected if the current implementation was not found in manifest
-    }
+    const implAddress = await getImplementationAddressFromBeacon(hre, getSigner(ImplFactoryOrSigner), beaconAddress);
+    let contractInterface = await getInterfaceFromManifest(hre, implAddress);
+
     if (contractInterface === undefined) {
       if (ImplFactoryOrSigner instanceof ContractFactory) {
         contractInterface = ImplFactoryOrSigner.interface;
       } else {
         throw new Error(
-          // TODO get the impl address and change message?
-          `The implementation for the beacon at address ${beaconAddress} was not found in the network manifest. Call deployBeaconProxy() with a contract factory for the beacon's current implementation.`,
+          `The implementation at address ${implAddress} was not found in the network manifest. Call deployBeaconProxy() with a contract factory for the beacon's current implementation.`,
         );
       }
     }
@@ -97,27 +95,5 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
   };
 }
 
-// TODO put this in a common library
-export async function getInterfaceFromManifest(hre: HardhatRuntimeEnvironment, implAddress: string) : Promise<ethers.utils.Interface | undefined> {
-  const { provider } = hre.network;
-  const manifest = await Manifest.forNetwork(provider);
 
-  const implDeployment = await manifest.getDeploymentFromAddress(implAddress);
-  if (implDeployment.abi === undefined) {
-    return undefined;
-  }
-  return new ethers.utils.Interface(implDeployment.abi);
-}
 
-// TODO put this in a common library
-export async function getImplAddressFromBeaconAddress(hre: HardhatRuntimeEnvironment, signer: ethers.Signer | undefined, beaconAddress: string) {
-  const IBeaconFactory = await getIBeaconFactory(hre, signer);
-  const beaconContract = IBeaconFactory.attach(beaconAddress);
-  const currentImplAddress = await beaconContract.implementation();
-  return currentImplAddress;
-}
-
-// TODO make this a type
-function getSigner(ImplFactoryOrSigner: ContractFactory | Signer) {
-  return ImplFactoryOrSigner instanceof ContractFactory? ImplFactoryOrSigner.signer : ImplFactoryOrSigner;
-}

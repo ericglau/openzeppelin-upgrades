@@ -146,32 +146,17 @@ export function isUpgradeSafe(data: ValidationData, version: Version): boolean {
   return getErrors(dataV3, version).length == 0;
 }
 
-export async function inferProxyKind(
+export function inferProxyKind(
   data: ValidationData,
   version: Version,
-  provider: EthereumProvider,
-  proxyAddress?: string,
-): Promise<ProxyDeployment['kind']> {
+): ProxyDeployment['kind'] {
   const dataV3 = normalizeValidationData(data);
   const [contractName, runValidation] = getContractNameAndRunValidation(dataV3, version);
   const methods = getAllMethods(runValidation, contractName);
-  if (await isBeaconProxy(provider, proxyAddress)) {
-    return 'beacon';
-  } else if (methods.includes(upgradeToSignature)) {
+  if (methods.includes(upgradeToSignature)) {
     return 'uups';
   } else {
     return 'transparent';
   }
 }
 
-export async function isBeaconProxy(provider: EthereumProvider, proxyAddress?: string): Promise<boolean> {
-  if (proxyAddress !== undefined) {
-    try {
-      await getBeaconAddress(provider, proxyAddress);
-      return true;
-    } catch (e: any) {
-      return false;
-    }
-  }
-  return false;
-}

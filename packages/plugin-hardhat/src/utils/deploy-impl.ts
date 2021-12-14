@@ -1,9 +1,11 @@
 import {
   assertStorageUpgradeSafe,
   assertUpgradeSafe,
+  EthereumProvider,
   fetchOrDeploy,
   getBeaconAddress,
   getImplementationAddress,
+  getImplementationAddressFromBeacon1,
   getStorageLayout,
   getStorageLayoutForAddress,
   getUnlinkedBytecode,
@@ -91,16 +93,15 @@ export async function deployBeaconImpl(
   let currentImplAddress;
   if (beaconAddress !== undefined) {
     // upgrade scenario
-    currentImplAddress = await getBeaconImplementationAddress(beaconAddress);
+    const { provider } = hre.network;
+    currentImplAddress = await getBeaconImplementationAddress(provider, beaconAddress);
   }
   return deployImpl(deployData, ImplFactory, opts, currentImplAddress);
 
-  async function getBeaconImplementationAddress(beaconAddress: string): Promise<string> {
+  async function getBeaconImplementationAddress(provider: EthereumProvider, beaconAddress: string): Promise<string> {
     await assertNotProxy(beaconAddress);
 
-    const IBeaconFactory = await getIBeaconFactory(hre, ImplFactory.signer);
-    const beaconContract = IBeaconFactory.attach(beaconAddress);
-    return await beaconContract.implementation();
+    return getImplementationAddressFromBeacon1(provider, beaconAddress);
   }
 
   async function assertNotProxy(address: string) {

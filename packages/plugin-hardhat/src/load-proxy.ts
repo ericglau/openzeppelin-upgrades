@@ -4,10 +4,9 @@ import { Contract, Signer } from 'ethers';
 import {
   ContractAddressOrInstance,
   getContractAddress,
-  getImplementationAddressFromProxy,
   getInterfaceFromManifest,
 } from './utils';
-import { UpgradesError } from '@openzeppelin/upgrades-core';
+import { getImplementationAddressFromProxy, UpgradesError } from '@openzeppelin/upgrades-core';
 
 export interface LoadProxyFunction {
   (proxy: Contract, signer?: Signer): Promise<Contract>;
@@ -24,7 +23,7 @@ export function makeLoadProxy(hre: HardhatRuntimeEnvironment): LoadProxyFunction
 
     const proxyAddress = getContractAddress(proxy);
 
-    const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress, hre);
+    const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
     if (implAddress === undefined) {
       throw new UpgradesError(
         `Contract at ${proxyAddress} doesn't look like a supported proxy`,
@@ -35,7 +34,7 @@ export function makeLoadProxy(hre: HardhatRuntimeEnvironment): LoadProxyFunction
     const contractInterface = await getInterfaceFromManifest(hre, implAddress);
     if (contractInterface === undefined) {
       throw new UpgradesError(
-        'Implementation ${implAddress} was not found in the network manifest.',
+        `Implementation ${implAddress} was not found in the network manifest.`,
         () => `Use the implementation's contract factory to attach to the proxy address ${proxyAddress} instead.`,
       );
     }

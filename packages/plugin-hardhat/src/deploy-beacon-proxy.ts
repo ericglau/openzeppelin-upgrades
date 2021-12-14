@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Contract } from 'ethers';
 
-import { Manifest, logWarning, ProxyDeployment, UpgradesError, getImplementationAddressFromBeacon1 } from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment, UpgradesError, getImplementationAddressFromBeacon } from '@openzeppelin/upgrades-core';
 
 import {
   DeployProxyOptions,
@@ -48,7 +48,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     if (opts.implementation !== undefined) {
       contractInterface = opts.implementation.interface;
     } else {
-      const implAddress = await getImplementationAddressFromBeacon1(provider, beaconAddress);
+      const implAddress = await getImplementationAddressFromBeacon(provider, beaconAddress);
       contractInterface = await getInterfaceFromManifest(hre, implAddress);
       if (contractInterface === undefined) {
         throw new UpgradesError(

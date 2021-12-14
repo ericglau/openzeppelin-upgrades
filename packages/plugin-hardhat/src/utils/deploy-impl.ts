@@ -5,7 +5,7 @@ import {
   fetchOrDeploy,
   getBeaconAddress,
   getImplementationAddress,
-  getImplementationAddressFromBeacon1,
+  getImplementationAddressFromBeacon,
   getStorageLayout,
   getStorageLayoutForAddress,
   getUnlinkedBytecode,
@@ -21,7 +21,6 @@ import {
 import type { ContractFactory } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { getIBeaconFactory } from '.';
 import { deploy } from './deploy';
 import { Options, withDefaults } from './options';
 import { readValidations } from './validations';
@@ -101,7 +100,7 @@ export async function deployBeaconImpl(
   async function getBeaconImplementationAddress(provider: EthereumProvider, beaconAddress: string): Promise<string> {
     await assertNotProxy(beaconAddress);
 
-    return getImplementationAddressFromBeacon1(provider, beaconAddress);
+    return getImplementationAddressFromBeacon(provider, beaconAddress);
   }
 
   async function assertNotProxy(address: string) {

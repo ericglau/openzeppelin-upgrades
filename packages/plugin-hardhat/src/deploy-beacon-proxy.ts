@@ -1,7 +1,13 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Contract } from 'ethers';
 
-import { Manifest, logWarning, ProxyDeployment, UpgradesError, getImplementationAddressFromBeacon } from '@openzeppelin/upgrades-core';
+import {
+  Manifest,
+  logWarning,
+  ProxyDeployment,
+  UpgradesError,
+  getImplementationAddressFromBeacon,
+} from '@openzeppelin/upgrades-core';
 
 import {
   DeployProxyOptions,

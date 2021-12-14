@@ -1,8 +1,8 @@
-import { toChecksumAddress } from "ethereumjs-util";
+import { toChecksumAddress } from 'ethereumjs-util';
 
 /**
  * Parses an address from a hex string which may come from storage or a returned address via eth_call.
- * 
+ *
  * @param addressString The address hex string.
  * @returns The parsed checksum address, or undefined if the input string is not an address.
  */

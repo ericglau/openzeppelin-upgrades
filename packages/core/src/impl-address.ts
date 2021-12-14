@@ -1,4 +1,11 @@
-import { call, EIP1967BeaconNotFound, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddress, UpgradesError } from '.';
+import {
+  call,
+  EIP1967BeaconNotFound,
+  EIP1967ImplementationNotFound,
+  getBeaconAddress,
+  getImplementationAddress,
+  UpgradesError,
+} from '.';
 
 import { EthereumProvider } from './provider';
 import { parseAddress } from './utils/address';
@@ -7,11 +14,14 @@ export class InvalidBeaconImplementation extends UpgradesError {}
 
 /**
  * Gets the implementation address from the beacon using its implementation() function.
- * @param provider 
- * @param beaconAddress 
+ * @param provider
+ * @param beaconAddress
  * @returns The implementation address. Throws an InvalidBeaconImplementation error if the implementation() function does not return an address.
  */
-export async function getImplementationAddressFromBeacon(provider: EthereumProvider, beaconAddress: string): Promise<any> {
+export async function getImplementationAddressFromBeacon(
+  provider: EthereumProvider,
+  beaconAddress: string,
+): Promise<any> {
   const implAddress = await call(provider, beaconAddress);
   return parseImplementationAddress(beaconAddress, implAddress);
 }
@@ -29,7 +39,7 @@ function parseImplementationAddress(beaconAddress: string, implAddress: string):
  *
  * @returns a Promise with the implementation address, or undefined if a UUPS/Transparent/Beacon proxy is not located at the address.
  */
- export async function getImplementationAddressFromProxy(
+export async function getImplementationAddressFromProxy(
   provider: EthereumProvider,
   proxyAddress: string,
 ): Promise<string | undefined> {

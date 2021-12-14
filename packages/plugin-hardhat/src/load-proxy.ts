@@ -1,11 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Contract, Signer } from 'ethers';
 
-import {
-  ContractAddressOrInstance,
-  getContractAddress,
-  getInterfaceFromManifest,
-} from './utils';
+import { ContractAddressOrInstance, getContractAddress, getInterfaceFromManifest } from './utils';
 import { getImplementationAddressFromProxy, UpgradesError } from '@openzeppelin/upgrades-core';
 
 export interface LoadProxyFunction {

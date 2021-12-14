@@ -1,6 +1,4 @@
-import {
-  DeploymentNotFound, Manifest
-} from '@openzeppelin/upgrades-core';
+import { DeploymentNotFound, Manifest } from '@openzeppelin/upgrades-core';
 import { utils } from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 

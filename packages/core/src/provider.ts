@@ -55,10 +55,13 @@ export async function getCode(provider: EthereumProvider, address: string, block
 }
 
 export async function call(provider: EthereumProvider, address: string, block = 'latest'): Promise<string> {
-  return provider.send('eth_call', [{
-    to: address,
-    data: '0x5c60da1b',
-  }, block]);
+  return provider.send('eth_call', [
+    {
+      to: address,
+      data: '0x5c60da1b',
+    },
+    block,
+  ]);
 }
 
 export async function hasCode(provider: EthereumProvider, address: string, block?: string): Promise<boolean> {

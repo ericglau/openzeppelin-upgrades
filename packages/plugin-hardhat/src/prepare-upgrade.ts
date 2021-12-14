@@ -1,14 +1,14 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory } from 'ethers';
 
+import { Options, ContractAddressOrInstance, getContractAddress, deployProxyImpl, deployBeaconImpl } from './utils';
 import {
-  Options,
-  ContractAddressOrInstance,
-  getContractAddress,
-  deployProxyImpl,
-  deployBeaconImpl,
-} from './utils';
-import { getBeaconAddress, isBeaconProxy, isTransparentOrUUPSProxy, UpgradesError, isBeacon } from '@openzeppelin/upgrades-core';
+  getBeaconAddress,
+  isBeaconProxy,
+  isTransparentOrUUPSProxy,
+  UpgradesError,
+  isBeacon,
+} from '@openzeppelin/upgrades-core';
 
 export type PrepareUpgradeFunction = (
   proxyOrBeaconAddress: ContractAddressOrInstance,

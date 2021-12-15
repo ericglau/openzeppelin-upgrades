@@ -1,4 +1,4 @@
-import { ContractClass, deployImpl, Options, ContractAddressOrInstance, getContractAddress } from './utils';
+import { ContractClass, deployProxyImpl, Options, ContractAddressOrInstance, getContractAddress } from './utils';
 
 export async function prepareUpgrade(
   proxy: ContractAddressOrInstance,
@@ -6,6 +6,6 @@ export async function prepareUpgrade(
   opts: Options = {},
 ): Promise<string> {
   const proxyAddress = getContractAddress(proxy);
-  const { impl } = await deployImpl(Contract, opts, proxyAddress);
+  const { impl } = await deployProxyImpl(Contract, opts, proxyAddress);
   return impl;
 }

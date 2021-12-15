@@ -54,11 +54,11 @@ export async function getCode(provider: EthereumProvider, address: string, block
   return provider.send('eth_getCode', [address, block]);
 }
 
-export async function call(provider: EthereumProvider, address: string, block = 'latest'): Promise<string> {
+export async function call(provider: EthereumProvider, address: string, data: string, block = 'latest'): Promise<string> {
   return provider.send('eth_call', [
     {
       to: address,
-      data: '0x5c60da1b',
+      data: data,
     },
     block,
   ]);

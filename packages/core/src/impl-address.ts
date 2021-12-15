@@ -22,7 +22,7 @@ export async function getImplementationAddressFromBeacon(
   provider: EthereumProvider,
   beaconAddress: string,
 ): Promise<any> {
-  const implAddress = await call(provider, beaconAddress);
+  const implAddress = await call(provider, beaconAddress, '0x5c60da1b');
   return parseImplementationAddress(beaconAddress, implAddress);
 }
 

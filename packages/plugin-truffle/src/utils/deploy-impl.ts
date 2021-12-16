@@ -60,12 +60,12 @@ export async function deployProxyImpl(Contract: ContractClass, opts: Options, pr
       if (proxyAddress !== undefined && (await isBeaconProxy(deployData.provider, proxyAddress))) {
         opts.kind = 'beacon';
       } else {
-        deployData.fullOpts.kind = inferProxyKind(deployData.validations, deployData.version);
+        opts.kind = inferProxyKind(deployData.validations, deployData.version);
       }
     }
 
     if (proxyAddress !== undefined) {
-      await setProxyKind(deployData.provider, proxyAddress, deployData.fullOpts);
+      await setProxyKind(deployData.provider, proxyAddress, opts);
     }
 
     if (opts.kind === 'beacon') {

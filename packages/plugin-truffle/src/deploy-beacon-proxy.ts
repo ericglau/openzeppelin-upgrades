@@ -71,7 +71,7 @@ export async function deployBeaconProxy(
     ]);
   }
 
-  const BeaconProxyFactory = await getBeaconProxyFactory(contractInterface);
+  const BeaconProxyFactory = getBeaconProxyFactory(contractInterface);
 
   let proxyDeployment: Required<ProxyDeployment> = Object.assign({ kind: opts.kind }, await deploy(deployer, BeaconProxyFactory, beaconAddress, data));
 

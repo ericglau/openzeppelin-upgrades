@@ -1,5 +1,6 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Contract } from 'ethers';
+import { Interface } from 'ethers/lib/utils';
 
 import {
   Manifest,
@@ -50,7 +51,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
 
     const beaconAddress = getContractAddress(beacon);
 
-    let contractInterface;
+    let contractInterface: Interface | undefined;
     if (opts.implementation !== undefined) {
       contractInterface = opts.implementation.interface;
     } else {

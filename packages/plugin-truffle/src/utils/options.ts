@@ -18,11 +18,10 @@ export interface DeployProxyOptions extends Options {
   initializer?: string | false;
 }
 
-// export interface DeployBeaconProxyOptions extends DeployProxyOptions {
-//   initializer?: string | false;
-//   implementation?: ContractFactory;
-//   signer?: Signer;
-// }
+export interface DeployBeaconProxyOptions extends DeployProxyOptions {
+  initializer?: string | false;
+  implementation?: ContractClass;
+}
 
 export interface UpgradeOptions extends Options {
   call?: { fn: string; args?: unknown[] } | string;

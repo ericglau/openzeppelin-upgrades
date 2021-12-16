@@ -33,5 +33,7 @@ function getContract(template: ContractClass | undefined, abi: string[]) {
   });
   contract.setProvider(template?.currentProvider ?? getTruffleProvider());
   contract.defaults(template?.class_defaults ?? getTruffleDefaults());
+  // TODO see if there is a better way
+  (contract as any).detectNetwork();
   return contract;
 }

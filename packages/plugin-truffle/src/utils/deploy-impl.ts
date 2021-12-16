@@ -111,7 +111,8 @@ async function deployImpl(
   }
 
   const impl = await fetchOrDeploy(deployData.version, deployData.provider, async () => {
-    const deployment = await deploy(deployData.fullOpts.deployer, Contract, ...deployData.fullOpts.constructorArgs);
+    const abi = (Contract as any).abi;
+    const deployment = Object.assign({ abi }, await deploy(deployData.fullOpts.deployer, Contract, ...deployData.fullOpts.constructorArgs));
     return { ...deployment, layout };
   });
 

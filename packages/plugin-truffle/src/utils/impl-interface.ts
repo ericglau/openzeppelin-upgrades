@@ -1,5 +1,4 @@
 import { DeploymentNotFound, EthereumProvider, Manifest } from '@openzeppelin/upgrades-core';
-import { utils } from 'ethers';
 import { ContractClass, getTruffleDefaults, getTruffleProvider, TruffleContract } from '.';
 
 /**
@@ -18,7 +17,6 @@ export async function getInterfaceFromManifest(
     if (implDeployment.abi === undefined) {
       return undefined;
     }
-
     return getContract(template, implDeployment.abi);
   } catch (e: any) {
     if (e instanceof DeploymentNotFound) {

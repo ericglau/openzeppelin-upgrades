@@ -60,8 +60,8 @@ contract('Greeter', function () {
 
     const greeter = await deployBeaconProxy(greeterBeacon, ['Hello Truffle']);
     assert.ok(greeter.transactionHash, 'transaction hash is missing');
-    if (version3 !== 'V3') {
-      throw new Error(`expected V3 but got ${version3}`);
+    if (await greeter.greet() !== 'Hello Truffle') {
+      throw new Error(`expected Hello Truffle but got ${await greeter.greet()}`);
     }
 
     await upgradeBeacon(greeterBeacon, GreeterV2);

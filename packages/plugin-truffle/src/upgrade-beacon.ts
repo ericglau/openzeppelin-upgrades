@@ -16,13 +16,17 @@ export async function upgradeBeacon(beacon: ContractAddressOrInstance, Contract:
 
   const UpgradeableBeaconFactory = getUpgradeableBeaconFactory(Contract);
 // TODO just copy from Contract
-  UpgradeableBeaconFactory.detectNetwork();
-  UpgradeableBeaconFactory.address = beaconAddress;
-  const beaconContract = await UpgradeableBeaconFactory.deployed();
+  const beaconContract = new UpgradeableBeaconFactory(beaconAddress);
+//  UpgradeableBeaconFactory.detectNetwork();
+//  UpgradeableBeaconFactory.address = beaconAddress;
+//  const beaconContract = await UpgradeableBeaconFactory.deployed();
   await beaconContract.upgradeTo(nextImpl);
   
-  Contract.address = beaconAddress;
+  //Contract.address = beaconAddress;
+  
   //const beaconContract = new Contract(beaconDeployment.address);
   //beaconContract.transactionHash = beaconDeployment.txHash;
-  return new Contract(beaconAddress);
+  
+  //return new Contract(beaconAddress);
+  return beaconContract;
 }

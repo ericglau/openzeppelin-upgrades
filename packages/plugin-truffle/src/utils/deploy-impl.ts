@@ -13,6 +13,7 @@ import {
   isBeaconProxy,
   BeaconProxyUnsupportedError,
   assertNotProxy,
+  getImplementationAddressFromBeacon,
 } from '@openzeppelin/upgrades-core';
 
 import { deploy } from './deploy';
@@ -81,7 +82,7 @@ export async function deployBeaconImpl(Contract: ContractClass, opts: Options, b
   if (beaconAddress !== undefined) {
     // upgrade scenario
     await assertNotProxy(deployData.provider, beaconAddress);
-    currentImplAddress = await getImplementationAddress(deployData.provider, beaconAddress);
+    currentImplAddress = await getImplementationAddressFromBeacon(deployData.provider, beaconAddress);
   }
   return deployImpl(deployData, Contract, opts, currentImplAddress);
 }

@@ -9,6 +9,15 @@ export class BeaconProxyUnsupportedError extends UpgradesError {
   }
 }
 
+export class PrepareUpgradeUnsupportedError extends UpgradesError {
+  constructor(proxyOrBeaconAddress: string) {
+    super(
+      `Contract at address ${proxyOrBeaconAddress} doesn't look like a supported proxy or beacon`,
+      () => `Only transparent, UUPS, or beacon proxies or beacons can be used with the prepareUpgrade() function.`
+    );
+  }
+}
+
 export async function assertNotProxy(provider: EthereumProvider, address: string) {
   if (await isTransparentOrUUPSProxy(provider, address)) {
     throw new UpgradesError(

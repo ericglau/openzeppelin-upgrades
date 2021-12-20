@@ -1,26 +1,22 @@
-import { getImplementationAddressFromProxy, UpgradesError } from '@openzeppelin/upgrades-core';
-import { LoadProxyUnsupportedError } from '@openzeppelin/upgrades-core/src/usage-error';
+import { getImplementationAddressFromProxy, LoadProxyUnsupportedError, UpgradesError } from '@openzeppelin/upgrades-core';
 
-import { ContractClass, ContractInstance, wrapProvider, withDefaults } from './utils';
+import { ContractInstance, wrapProvider, withDefaults, ContractAddressOrInstance, getContractAddress } from './utils';
 import { getInterfaceFromManifest } from './utils/impl-interface';
 
-export async function loadProxy(proxy: ContractClass): Promise<ContractInstance> {
+export async function loadProxy(proxy: ContractAddressOrInstance): Promise<ContractInstance> {
   const { deployer } = withDefaults();
   const provider = wrapProvider(deployer.provider);
 
-  // TODO see if "contract class" is the right terminology here.
-  if (proxy.address === undefined) {
-    throw new Error('loadProxy() must be called with a contract class that includes the proxy address.');
-  }
-
-  const proxyAddress = proxy.address;
+  const proxyAddress = getContractAddress(proxy);
 
   const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
   if (implAddress === undefined) {
     throw new LoadProxyUnsupportedError(proxyAddress);
   }
 
-  const contractInterface = await getInterfaceFromManifest(provider, proxy, implAddress);
+  //const template = (typeof proxy === 'string') ? undefined : proxy;
+  // TODO pass in (template as ContractClass) ?
+  const contractInterface = await getInterfaceFromManifest(provider, undefined, implAddress);
   if (contractInterface === undefined) {
     throw new UpgradesError(
       `Implementation ${implAddress} was not found in the network manifest.`,

@@ -2,8 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Contract, Signer } from 'ethers';
 
 import { ContractAddressOrInstance, getContractAddress, getInterfaceFromManifest } from './utils';
-import { getImplementationAddressFromProxy, UpgradesError } from '@openzeppelin/upgrades-core';
-import { LoadProxyUnsupportedError } from '@openzeppelin/upgrades-core/src/usage-error';
+import { getImplementationAddressFromProxy, LoadProxyUnsupportedError, UpgradesError } from '@openzeppelin/upgrades-core';
 
 export interface LoadProxyFunction {
   (proxy: Contract, signer?: Signer): Promise<Contract>;

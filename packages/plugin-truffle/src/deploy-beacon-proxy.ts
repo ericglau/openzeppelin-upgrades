@@ -30,7 +30,7 @@ export async function deployBeaconProxy(
   opts?: DeployBeaconProxyOptions,
 ): Promise<ContractInstance>;
 export async function deployBeaconProxy(
-  Contract: ContractAddressOrInstance,
+  beacon: ContractAddressOrInstance,
   args: unknown[] | DeployBeaconProxyOptions = [],
   opts: DeployBeaconProxyOptions = {},
 ): Promise<ContractInstance> {
@@ -50,7 +50,7 @@ export async function deployBeaconProxy(
   }
   opts.kind = 'beacon';
 
-  const beaconAddress = getContractAddress(Contract);
+  const beaconAddress = getContractAddress(beacon);
 
   let contractInterface: ContractClass | undefined;
   if (opts.implementation !== undefined) {

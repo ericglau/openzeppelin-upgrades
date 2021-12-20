@@ -57,7 +57,7 @@ export async function deployBeaconProxy(
     contractInterface = opts.implementation;
   } else {
     const implAddress = await getImplementationAddressFromBeacon(provider, beaconAddress);
-    contractInterface = await getInterfaceFromManifest(provider, opts.implementation, implAddress);
+    contractInterface = await getInterfaceFromManifest(provider, implAddress);
     if (contractInterface === undefined) {
       throw new UpgradesError(
         `Beacon's current implementation at ${implAddress} is unknown`,

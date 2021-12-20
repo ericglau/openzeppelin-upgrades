@@ -14,9 +14,7 @@ export async function loadProxy(proxy: ContractAddressOrInstance): Promise<Contr
     throw new LoadProxyUnsupportedError(proxyAddress);
   }
 
-  //const template = (typeof proxy === 'string') ? undefined : proxy;
-  // TODO pass in (template as ContractClass) ?
-  const contractInterface = await getInterfaceFromManifest(provider, undefined, implAddress);
+  const contractInterface = await getInterfaceFromManifest(provider, implAddress);
   if (contractInterface === undefined) {
     throw new UpgradesError(
       `Implementation ${implAddress} was not found in the network manifest.`,
@@ -25,6 +23,5 @@ export async function loadProxy(proxy: ContractAddressOrInstance): Promise<Contr
     );
   }
 
-  // TODO make this part of the interface
-  return (contractInterface as any).at(proxyAddress);
+  return contractInterface.at(proxyAddress);
 }

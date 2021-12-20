@@ -8,7 +8,6 @@ import { ContractClass, getTruffleDefaults, getTruffleProvider, TruffleContract 
  */
 export async function getInterfaceFromManifest(
   provider: EthereumProvider,
-  template: ContractClass | undefined,
   implAddress: string,
 ): Promise<ContractClass | undefined> {
   const manifest = await Manifest.forNetwork(provider);
@@ -17,7 +16,7 @@ export async function getInterfaceFromManifest(
     if (implDeployment.abi === undefined) {
       return undefined;
     }
-    return getContract(template, implDeployment.abi);
+    return getContract(implDeployment.abi);
   } catch (e: any) {
     if (e instanceof DeploymentNotFound) {
       return undefined;
@@ -27,12 +26,12 @@ export async function getInterfaceFromManifest(
   }
 }
 
-function getContract(template: ContractClass | undefined, abi: string[]) {
+function getContract(abi: string[]) {
   const contract = TruffleContract({
     abi: abi,
   });
-  contract.setProvider(template?.currentProvider ?? getTruffleProvider());
-  contract.defaults(template?.class_defaults ?? getTruffleDefaults());
+  contract.setProvider(getTruffleProvider());
+  contract.defaults(getTruffleDefaults());
   contract.detectNetwork();
   return contract;
 }

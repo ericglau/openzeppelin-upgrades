@@ -28,5 +28,8 @@ export {
   BeaconProxyUnsupportedError,
   LoadProxyUnsupportedError,
   PrepareUpgradeUnsupportedError,
+  DeployBeaconProxyUnsupportedError,
+  DeployBeaconProxyImplUnknownError,
+  DeployBeaconProxyKindError,
   assertNotProxy,
 } from './usage-error';

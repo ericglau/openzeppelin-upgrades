@@ -2,8 +2,11 @@ import {
   Manifest,
   logWarning,
   ProxyDeployment,
-  UpgradesError,
   getImplementationAddressFromBeacon,
+  isBeacon,
+  DeployBeaconProxyUnsupportedError,
+  DeployBeaconProxyImplUnknownError,
+  DeployBeaconProxyKindError,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -43,14 +46,14 @@ export async function deployBeaconProxy(
   const manifest = await Manifest.forNetwork(provider);
 
   if (opts.kind !== undefined && opts.kind !== 'beacon') {
-    throw new UpgradesError(
-      `Unsupported proxy kind '${opts.kind}'`,
-      () => `deployBeaconProxy() is only supported with proxy kind undefined or 'beacon'`,
-    );
+    throw new DeployBeaconProxyKindError(opts.kind);
   }
   opts.kind = 'beacon';
 
   const beaconAddress = getContractAddress(beacon);
+  if (!isBeacon(provider, beaconAddress)) {
+    throw new DeployBeaconProxyUnsupportedError(beaconAddress);
+  }
 
   let contractInterface: ContractClass | undefined;
   if (opts.implementation !== undefined) {
@@ -59,10 +62,7 @@ export async function deployBeaconProxy(
     const implAddress = await getImplementationAddressFromBeacon(provider, beaconAddress);
     contractInterface = await getInterfaceFromManifest(provider, implAddress);
     if (contractInterface === undefined) {
-      throw new UpgradesError(
-        `Beacon's current implementation at ${implAddress} is unknown`,
-        () => `Call deployBeaconProxy() with the implementation option providing the beacon's current implementation.`,
-      );
+      throw new DeployBeaconProxyImplUnknownError(implAddress);
     }
   }
 

@@ -9,6 +9,31 @@ export class BeaconProxyUnsupportedError extends UpgradesError {
   }
 }
 
+export class DeployBeaconProxyKindError extends UpgradesError {
+  constructor(kind: string) {
+    super(
+      `Unsupported proxy kind '${kind}'`,
+      () => `deployBeaconProxy() is only supported with proxy kind undefined or 'beacon'`);
+  }
+}
+
+export class DeployBeaconProxyUnsupportedError extends UpgradesError {
+  constructor(beaconAddress: string) {
+    super(
+      `Contract at ${beaconAddress} doesn't look like a beacon`,
+      () => 'The address parameter for the deployBeaconProxy() function must be the address of a previously deployed beacon.',
+    );
+  }
+}
+
+export class DeployBeaconProxyImplUnknownError extends UpgradesError {
+  constructor(implAddress: string) {
+    super(`Beacon's current implementation at ${implAddress} is unknown`,
+      () => `Call deployBeaconProxy() with the implementation option providing the beacon's current implementation.`,
+    );
+  }
+}
+
 export class LoadProxyUnsupportedError extends UpgradesError {
   constructor(proxyAddress: string) {
     super(

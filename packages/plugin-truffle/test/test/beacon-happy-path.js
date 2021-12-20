@@ -45,13 +45,13 @@ contract('Greeter', function () {
     assert.equal(await greeterSecond2.greet(), 'Hello World');
 
     // prepare upgrade from beacon proxy
-    const greeter3ImplAddr = await prepareUpgrade(greeter.address, GreeterV3); // await prepareUpgrade(greeter, GreeterV3); //
+    const greeter3ImplAddr = await prepareUpgrade(greeter.address, GreeterV3);
     const greeter3 = await GreeterV3.at(greeter3ImplAddr);
     const version3 = await greeter3.version();
     assert.equal(version3, 'V3');
 
     // prepare upgrade from beacon itself
-    const greeter3ImplAddrFromBeacon = await prepareUpgrade(greeterBeacon.address, GreeterV3); // await prepareUpgrade(greeter, GreeterV3); //
+    const greeter3ImplAddrFromBeacon = await prepareUpgrade(greeterBeacon.address, GreeterV3);
     const greeter3FromBeacon = await GreeterV3.at(greeter3ImplAddrFromBeacon);
     const version3FromBeacon = await greeter3FromBeacon.version();
     assert.equal(version3FromBeacon, 'V3');

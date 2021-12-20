@@ -14,6 +14,8 @@ export async function upgradeBeacon(beacon: ContractAddressOrInstance, Contract:
 
   const UpgradeableBeaconFactory = getUpgradeableBeaconFactory(Contract);
   const beaconContract = new UpgradeableBeaconFactory(beaconAddress);
-  await beaconContract.upgradeTo(nextImpl);
+  const { tx: upgradeTx } = await beaconContract.upgradeTo(nextImpl);
+
+  beaconContract.transactionHash = upgradeTx;
   return beaconContract;
 }

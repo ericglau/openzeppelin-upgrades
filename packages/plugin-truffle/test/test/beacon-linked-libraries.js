@@ -45,7 +45,10 @@ contract('Token with flag', function (accounts) {
 
     const safeMathLib2 = await SafeMathV2.deployed();
     Token.link('SafeMath', safeMathLib2.address);
-    const tokenNew = await deployBeaconProxy(Token, ['TKN', 5000]); // TODO this should give an error
+    const tokenNew1 = await deployBeaconProxy(beacon, ['TKN', 5000]);
+
+    // TODO remove this
+    const tokenNew = loadProxy(tokenNew1.address);
 
     assert.strictEqual('5000', (await tokenNew.totalSupply()).toString());
     assert.strictEqual('V2', await tokenNew.getLibraryVersion());
@@ -59,7 +62,8 @@ contract('Token with flag', function (accounts) {
 
     const safeMathLib2 = await SafeMathV2.deployed();
     TokenV2.link('SafeMath', safeMathLib2.address);
-    const token2 = await upgradeBeaconProxy(beacon, TokenV2);
+    await upgradeBeacon(beacon, TokenV2, { unsafeAllow: ['external-library-linking'] });
+    const token2 = loadProxy(token);
 
     assert.strictEqual(token.address, token2.address);
     assert.strictEqual('10000', (await token2.totalSupply()).toString());
@@ -78,8 +82,8 @@ contract('Token with flag', function (accounts) {
     });
     const token = await deployBeaconProxy(beacon, ['TKN', 10000]);
 
-    await upgradeBeacon(beacon, TokenV2);
-    await upgradeBeacon(beacon, TokenV3);
+    await upgradeBeacon(beacon, TokenV2, { unsafeAllow: ['external-library-linking'] });
+    await upgradeBeacon(beacon, TokenV3, { unsafeAllow: ['external-library-linking'] });
     const token3 = await loadProxy(token);
 
     assert.strictEqual(token.address, token3.address);

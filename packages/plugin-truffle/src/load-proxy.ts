@@ -1,4 +1,8 @@
-import { getImplementationAddressFromProxy, LoadProxyUnsupportedError, UpgradesError } from '@openzeppelin/upgrades-core';
+import {
+  getImplementationAddressFromProxy,
+  LoadProxyUnsupportedError,
+  UpgradesError,
+} from '@openzeppelin/upgrades-core';
 
 import { ContractInstance, wrapProvider, withDefaults, ContractAddressOrInstance, getContractAddress } from './utils';
 import { getInterfaceFromManifest } from './utils/impl-interface';

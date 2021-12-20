@@ -77,7 +77,7 @@ contract('Greeter', function () {
     }
 
     // reload proxy to work with the new contract
-    const greeter2 = await GreeterV2.at(greeter.address);//await loadProxy(greeter);
+    const greeter2 = await loadProxy(greeter); //await GreeterV2.at(greeter.address);//await loadProxy(greeter);
     if (await greeter2.greet() !== 'Hello Truffle') {
       throw new Error(`expected Hello Truffle but got ${await greeter.greet()}`);
     }

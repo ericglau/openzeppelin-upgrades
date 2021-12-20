@@ -45,10 +45,11 @@ export async function loadProxy(
     );
   }
 
+  return (contractInterface as any).at(proxyAddress);
 
-  contractInterface.address = proxy.address;
-  const contract = new contractInterface(proxy.address);
-  return contract;
+//  contractInterface.address = proxy.address;
+  //const contract = new contractInterface(proxy.address);
+  //return contract;
 
 //  return new Contract(proxyAddress, contractInterface, signer);
 /*

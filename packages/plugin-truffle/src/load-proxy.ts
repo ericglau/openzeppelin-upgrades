@@ -1,4 +1,5 @@
 import { getImplementationAddressFromProxy, UpgradesError } from '@openzeppelin/upgrades-core';
+import { LoadProxyUnsupportedError } from '@openzeppelin/upgrades-core/src/usage-error';
 
 import { ContractClass, ContractInstance, wrapProvider, withDefaults } from './utils';
 import { getInterfaceFromManifest } from './utils/impl-interface';
@@ -14,21 +15,17 @@ export async function loadProxy(proxy: ContractClass): Promise<ContractInstance>
 
   const proxyAddress = proxy.address;
 
-  // TODO see if this should be moved to core
   const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
   if (implAddress === undefined) {
-    throw new UpgradesError(
-      `Contract at ${proxyAddress} doesn't look like a supported proxy`,
-      () => 'Only transparent, UUPS, or beacon proxies can be loaded with the loadProxy() function.',
-    );
+    throw new LoadProxyUnsupportedError(proxyAddress);
   }
 
-  // TODO see if we can provide an example based on the testcase to be created
   const contractInterface = await getInterfaceFromManifest(provider, proxy, implAddress);
   if (contractInterface === undefined) {
     throw new UpgradesError(
       `Implementation ${implAddress} was not found in the network manifest.`,
-      () => `Instantiate the implementation's contract class with the proxy address ${proxyAddress} instead.`,
+      () =>
+        `Create an instance of the implementation contract at the proxy address instead. For example, if your Truffle contract object is called MyContract, use MyContract.at(${proxyAddress})`,
     );
   }
 

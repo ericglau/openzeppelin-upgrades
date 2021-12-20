@@ -9,6 +9,15 @@ export class BeaconProxyUnsupportedError extends UpgradesError {
   }
 }
 
+export class LoadProxyUnsupportedError extends UpgradesError {
+  constructor(proxyAddress: string) {
+    super(
+      `Contract at ${proxyAddress} doesn't look like a supported proxy`,
+      () => 'Only transparent, UUPS, or beacon proxies can be loaded with the loadProxy() function.',
+    );
+  }
+}
+
 export class PrepareUpgradeUnsupportedError extends UpgradesError {
   constructor(proxyOrBeaconAddress: string) {
     super(

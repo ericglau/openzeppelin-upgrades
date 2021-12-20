@@ -24,4 +24,9 @@ export { isTransparentOrUUPSProxy, isBeaconProxy } from './eip-1967-type';
 export { getImplementationAddressFromBeacon, getImplementationAddressFromProxy } from './impl-address';
 export { isBeacon } from './beacon';
 
-export { BeaconProxyUnsupportedError, PrepareUpgradeUnsupportedError, assertNotProxy } from './usage-error';
+export {
+  BeaconProxyUnsupportedError,
+  LoadProxyUnsupportedError,
+  PrepareUpgradeUnsupportedError,
+  assertNotProxy,
+} from './usage-error';

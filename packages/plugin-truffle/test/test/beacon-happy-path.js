@@ -60,39 +60,27 @@ contract('Greeter', function () {
 
     const greeter = await deployBeaconProxy(greeterBeacon, ['Hello Truffle']);
     assert.ok(greeter.transactionHash, 'transaction hash is missing');
-    if (await greeter.greet() !== 'Hello Truffle') {
-      throw new Error(`expected Hello Truffle but got ${await greeter.greet()}`);
-    }
+    assert.equal(await greeter.greet(), 'Hello Truffle');
 
     const greeterSecond = await deployBeaconProxy(greeterBeacon, ['Hello Truffle second']);
     assert.ok(greeterSecond.transactionHash, 'transaction hash is missing');
-    if (await greeterSecond.greet() !== 'Hello Truffle second') {
-      throw new Error(`expected Hello Truffle second but got ${await greeterSecond.greet()}`);
-    }
+    assert.equal(await greeterSecond.greet(), 'Hello Truffle second');
 
     //  new impl
     await upgradeBeacon(greeterBeacon, GreeterV2);
-    if (await greeter.greet() !== 'Hello Truffle') {
-      throw new Error(`expected Hello Truffle but got ${await greeter.greet()}`);
-    }
+    assert.equal(await greeter.greet(), 'Hello Truffle');
 
     // reload proxy to work with the new contract
     const greeter2 = await loadProxy(greeter); //await GreeterV2.at(greeter.address);//await loadProxy(greeter);
-    if (await greeter2.greet() !== 'Hello Truffle') {
-      throw new Error(`expected Hello Truffle but got ${await greeter.greet()}`);
-    }
+    assert.equal(await greeter2.greet(), 'Hello Truffle');
 
     await greeter2.resetGreeting();
-    if (await greeter2.greet() !== 'Hello World') {
-      throw new Error(`expected Hello World but got ${await greeter2.greet()}`);
-    }
+    assert.equal(await greeter2.greet(), 'Hello World');
 
     // prepare upgrade from beacon proxy
     const greeter3ImplAddr = await prepareUpgrade(greeterBeacon.address, GreeterV3);
     const greeter3 = await GreeterV3.at(greeter3ImplAddr);
     const version3 = await greeter3.version();
-    if (version3 !== 'V3') {
-      throw new Error(`expected V3 but got ${version3}`);
-    }
+    assert.equal(version3, 'V3');
   });
 });

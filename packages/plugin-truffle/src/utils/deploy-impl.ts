@@ -43,7 +43,11 @@ async function getDeployData(opts: Options, Contract: ContractClass) {
   return { fullOpts, validations, version, provider, layout };
 }
 
-export async function deployProxyImpl(Contract: ContractClass, opts: Options, proxyAddress?: string): Promise<DeployedImpl> {
+export async function deployProxyImpl(
+  Contract: ContractClass,
+  opts: Options,
+  proxyAddress?: string,
+): Promise<DeployedImpl> {
   const deployData = await getDeployData(opts, Contract);
 
   await processProxyKind();
@@ -75,7 +79,11 @@ export async function deployProxyImpl(Contract: ContractClass, opts: Options, pr
   }
 }
 
-export async function deployBeaconImpl(Contract: ContractClass, opts: Options, beaconAddress?: string): Promise<DeployedImpl> {
+export async function deployBeaconImpl(
+  Contract: ContractClass,
+  opts: Options,
+  beaconAddress?: string,
+): Promise<DeployedBeaconImpl> {
   const deployData = await getDeployData(opts, Contract);
 
   let currentImplAddress;
@@ -113,7 +121,10 @@ async function deployImpl(
 
   const impl = await fetchOrDeploy(deployData.version, deployData.provider, async () => {
     const abi = (Contract as any).abi;
-    const deployment = Object.assign({ abi }, await deploy(deployData.fullOpts.deployer, Contract, ...deployData.fullOpts.constructorArgs));
+    const deployment = Object.assign(
+      { abi },
+      await deploy(deployData.fullOpts.deployer, Contract, ...deployData.fullOpts.constructorArgs),
+    );
     return { ...deployment, layout };
   });
 

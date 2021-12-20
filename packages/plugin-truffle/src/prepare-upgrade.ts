@@ -1,5 +1,20 @@
-import { getBeaconAddress, isBeacon, isBeaconProxy, isTransparentOrUUPSProxy, PrepareUpgradeUnsupportedError } from '@openzeppelin/upgrades-core';
-import { ContractClass, deployProxyImpl, Options, ContractAddressOrInstance, getContractAddress, withDefaults, wrapProvider, deployBeaconImpl } from './utils';
+import {
+  getBeaconAddress,
+  isBeacon,
+  isBeaconProxy,
+  isTransparentOrUUPSProxy,
+  PrepareUpgradeUnsupportedError,
+} from '@openzeppelin/upgrades-core';
+import {
+  ContractClass,
+  deployProxyImpl,
+  Options,
+  ContractAddressOrInstance,
+  getContractAddress,
+  withDefaults,
+  wrapProvider,
+  deployBeaconImpl,
+} from './utils';
 
 export async function prepareUpgrade(
   proxyOrBeacon: ContractAddressOrInstance,

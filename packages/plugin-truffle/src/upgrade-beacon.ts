@@ -8,7 +8,11 @@ import {
   Options,
 } from './utils';
 
-export async function upgradeBeacon(beacon: ContractAddressOrInstance, Contract: ContractClass, opts: Options = {}): Promise<ContractInstance> {
+export async function upgradeBeacon(
+  beacon: ContractAddressOrInstance,
+  Contract: ContractClass,
+  opts: Options = {},
+): Promise<ContractInstance> {
   const beaconAddress = getContractAddress(beacon);
   const { impl: nextImpl } = await deployBeaconImpl(Contract, opts);
 

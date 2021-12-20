@@ -29,7 +29,7 @@ export async function getInterfaceFromManifest(
 
 function getContract(template: ContractClass | undefined, abi: string[]) {
   const contract = TruffleContract({
-    abi: abi
+    abi: abi,
   });
   contract.setProvider(template?.currentProvider ?? getTruffleProvider());
   contract.defaults(template?.class_defaults ?? getTruffleDefaults());

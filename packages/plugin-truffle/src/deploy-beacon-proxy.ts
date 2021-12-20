@@ -1,14 +1,16 @@
-import { Manifest, fetchOrDeployAdmin, logWarning, ProxyDeployment, BeaconProxyUnsupportedError, UpgradesError, getImplementationAddressFromBeacon } from '@openzeppelin/upgrades-core';
+import {
+  Manifest,
+  logWarning,
+  ProxyDeployment,
+  UpgradesError,
+  getImplementationAddressFromBeacon,
+} from '@openzeppelin/upgrades-core';
 
 import {
   ContractClass,
   ContractInstance,
   wrapProvider,
   deploy,
-  deployProxyImpl,
-  getProxyFactory,
-  getTransparentUpgradeableProxyFactory,
-  getProxyAdminFactory,
   DeployBeaconProxyOptions,
   withDefaults,
   getContractAddress,
@@ -18,7 +20,10 @@ import {
 import { getInterfaceFromManifest } from './utils/impl-interface';
 import { getInitializerData } from './utils/initializer-data';
 
-export async function deployBeaconProxy(beacon: ContractAddressOrInstance, opts?: DeployBeaconProxyOptions): Promise<ContractInstance>;
+export async function deployBeaconProxy(
+  beacon: ContractAddressOrInstance,
+  opts?: DeployBeaconProxyOptions,
+): Promise<ContractInstance>;
 export async function deployBeaconProxy(
   beacon: ContractAddressOrInstance,
   args?: unknown[],
@@ -47,7 +52,7 @@ export async function deployBeaconProxy(
 
   const beaconAddress = getContractAddress(Contract);
 
-  let contractInterface : ContractClass | undefined;
+  let contractInterface: ContractClass | undefined;
   if (opts.implementation !== undefined) {
     contractInterface = opts.implementation;
   } else {
@@ -56,8 +61,7 @@ export async function deployBeaconProxy(
     if (contractInterface === undefined) {
       throw new UpgradesError(
         `Beacon's current implementation at ${implAddress} is unknown`,
-        () =>
-          `Call deployBeaconProxy() with the implementation option providing the beacon's current implementation.`,
+        () => `Call deployBeaconProxy() with the implementation option providing the beacon's current implementation.`,
       );
     }
   }
@@ -73,7 +77,10 @@ export async function deployBeaconProxy(
 
   const BeaconProxyFactory = getBeaconProxyFactory(contractInterface);
 
-  let proxyDeployment: Required<ProxyDeployment> = Object.assign({ kind: opts.kind }, await deploy(deployer, BeaconProxyFactory, beaconAddress, data));
+  const proxyDeployment: Required<ProxyDeployment> = Object.assign(
+    { kind: opts.kind },
+    await deploy(deployer, BeaconProxyFactory, beaconAddress, data),
+  );
 
   await manifest.addProxy(proxyDeployment);
 

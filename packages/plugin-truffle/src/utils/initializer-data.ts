@@ -1,4 +1,4 @@
-import { ContractClass } from ".";
+import { ContractClass } from '.';
 
 export function getInitializerData(Contract: ContractClass, args: unknown[], initializer?: string | false): string {
   if (initializer === false) {

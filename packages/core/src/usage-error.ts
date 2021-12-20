@@ -1,4 +1,4 @@
-import { EthereumProvider, getBeaconAddress, isBeaconProxy, isTransparentOrUUPSProxy, UpgradesError } from ".";
+import { EthereumProvider, getBeaconAddress, isBeaconProxy, isTransparentOrUUPSProxy, UpgradesError } from '.';
 
 export class BeaconProxyUnsupportedError extends UpgradesError {
   constructor() {
@@ -13,7 +13,7 @@ export class PrepareUpgradeUnsupportedError extends UpgradesError {
   constructor(proxyOrBeaconAddress: string) {
     super(
       `Contract at address ${proxyOrBeaconAddress} doesn't look like a supported proxy or beacon`,
-      () => `Only transparent, UUPS, or beacon proxies or beacons can be used with the prepareUpgrade() function.`
+      () => `Only transparent, UUPS, or beacon proxies or beacons can be used with the prepareUpgrade() function.`,
     );
   }
 }

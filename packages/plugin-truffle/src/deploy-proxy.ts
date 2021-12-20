@@ -1,4 +1,10 @@
-import { Manifest, fetchOrDeployAdmin, logWarning, ProxyDeployment, BeaconProxyUnsupportedError } from '@openzeppelin/upgrades-core';
+import {
+  Manifest,
+  fetchOrDeployAdmin,
+  logWarning,
+  ProxyDeployment,
+  BeaconProxyUnsupportedError,
+} from '@openzeppelin/upgrades-core';
 
 import {
   ContractClass,

@@ -14,7 +14,7 @@ export async function upgradeBeacon(
   opts: Options = {},
 ): Promise<ContractInstance> {
   const beaconAddress = getContractAddress(beacon);
-  const { impl: nextImpl } = await deployBeaconImpl(Contract, opts);
+  const { impl: nextImpl } = await deployBeaconImpl(Contract, opts, beaconAddress);
 
   const UpgradeableBeaconFactory = getUpgradeableBeaconFactory(Contract);
   const beaconContract = new UpgradeableBeaconFactory(beaconAddress);

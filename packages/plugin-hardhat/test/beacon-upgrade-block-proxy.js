@@ -7,7 +7,6 @@ test.before(async t => {
   t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
   t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable');
-  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
   t.context.GreeterFallback = await ethers.getContractFactory('GreeterFallback');
 });
 

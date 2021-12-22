@@ -12,7 +12,11 @@ export async function isBeacon(provider: EthereumProvider, beaconAddress: string
     await getImplementationAddressFromBeacon(provider, beaconAddress);
     return true;
   } catch (e: any) {
-    if (e.message.includes('function selector was not recognized') || e instanceof InvalidBeaconImplementation) {
+    if (
+      e.message.includes('function selector was not recognized') ||
+      e.message.includes('invalid opcode') ||
+      e instanceof InvalidBeaconImplementation
+    ) {
       return false;
     } else {
       throw e;

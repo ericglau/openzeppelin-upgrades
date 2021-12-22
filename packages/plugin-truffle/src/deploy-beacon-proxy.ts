@@ -51,7 +51,7 @@ export async function deployBeaconProxy(
   opts.kind = 'beacon';
 
   const beaconAddress = getContractAddress(beacon);
-  if (!await isBeacon(provider, beaconAddress)) {
+  if (!(await isBeacon(provider, beaconAddress))) {
     throw new DeployBeaconProxyUnsupportedError(beaconAddress);
   }
 

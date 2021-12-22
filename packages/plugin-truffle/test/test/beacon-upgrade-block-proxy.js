@@ -1,11 +1,17 @@
 const assert = require('assert');
-const { deployProxy, upgradeProxy, deployBeacon, deployBeaconProxy, upgradeBeacon } = require('@openzeppelin/truffle-upgrades');
+const {
+  deployProxy,
+  upgradeProxy,
+  prepareUpgrade,
+  deployBeacon,
+  deployBeaconProxy,
+  upgradeBeacon,
+} = require('@openzeppelin/truffle-upgrades');
 
 const Greeter = artifacts.require('Greeter');
 const GreeterProxiable = artifacts.require('GreeterProxiable');
 const GreeterV2 = artifacts.require('GreeterV2');
 const GreeterV2Proxiable = artifacts.require('GreeterV2Proxiable');
-const GreeterV3 = artifacts.require('GreeterV3');
 //const GreeterFallback = artifacts.require('GreeterFallback');
 
 const BEACON_PROXY_NOT_SUPPORTED = 'Beacon proxies are not supported with the current function';
@@ -26,18 +32,14 @@ contract('Greeter', function () {
     const beacon = await deployBeacon(Greeter);
     const greeter = await deployBeaconProxy(beacon, ['Hello Truffle']);
 
-    await assert.rejects(upgradeProxy(greeter, GreeterV2), error =>
-      error.message.includes(BEACON_PROXY_NOT_SUPPORTED),
-    );
+    await assert.rejects(upgradeProxy(greeter, GreeterV2), error => error.message.includes(BEACON_PROXY_NOT_SUPPORTED));
   });
 
   it('block beacon proxy upgrade via upgradeBeacon', async function () {
     const beacon = await deployBeacon(Greeter);
     const greeter = await deployBeaconProxy(beacon, ['Hello Truffle']);
 
-    await assert.rejects(upgradeBeacon(greeter, GreeterV2), error =>
-      error.message.includes(ADDRESS_IS_A_BEACON_PROXY),
-    );
+    await assert.rejects(upgradeBeacon(greeter, GreeterV2), error => error.message.includes(ADDRESS_IS_A_BEACON_PROXY));
   });
 
   it('block transparent proxy upgrade via upgradeBeacon', async function () {
@@ -49,9 +51,9 @@ contract('Greeter', function () {
   });
 
   it('block uups proxy upgrade via upgradeBeacon', async function () {
-    const greeter = await deployProxy(Greeter, ['Hello Truffle'], { kind: 'uups' });
+    const greeter = await deployProxy(GreeterProxiable, ['Hello Truffle'], { kind: 'uups' });
 
-    await assert.rejects(upgradeBeacon(greeter, GreeterV2), error =>
+    await assert.rejects(upgradeBeacon(greeter, GreeterV2Proxiable), error =>
       error.message.includes(ADDRESS_IS_A_TRANSPARENT_OR_UUPS_PROXY),
     );
   });
@@ -75,7 +77,7 @@ contract('Greeter', function () {
   it('block deployBeaconProxy with non-beacon address', async function () {
     const genericContract = Greeter.deployed();
 
-    await assert.rejects(prepareUpgrade(genericContract, ['Hello Truffle']), error =>
+    await assert.rejects(prepareUpgrade(genericContract, GreeterV2), error =>
       NOT_PROXY_OR_BEACON_REGEX.test(error.message),
     );
   });

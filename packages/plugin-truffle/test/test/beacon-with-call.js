@@ -1,6 +1,6 @@
 const assert = require('assert');
 
-const {  deployBeacon, deployBeaconProxy, upgradeBeacon  } = require('@openzeppelin/truffle-upgrades');
+const { deployBeacon, deployBeaconProxy, upgradeBeacon } = require('@openzeppelin/truffle-upgrades');
 
 const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');

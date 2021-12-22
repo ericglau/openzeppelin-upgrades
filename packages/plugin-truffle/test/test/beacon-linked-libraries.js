@@ -1,9 +1,5 @@
 const assert = require('assert');
-const { deployBeacon,
-  deployBeaconProxy,
-  upgradeBeacon,
-  loadProxy,
- } = require('@openzeppelin/truffle-upgrades');
+const { deployBeacon, deployBeaconProxy, upgradeBeacon, loadProxy } = require('@openzeppelin/truffle-upgrades');
 
 const SafeMathV2 = artifacts.require('SafeMathV2');
 const Token = artifacts.require('Token');
@@ -28,7 +24,7 @@ contract('Token with flag', function (accounts) {
 
   it('Deploy Beacon and Beacon Proxy, Upgrade Beacon', async function () {
     const beacon = await deployBeacon(Token, {
-      unsafeAllow: ['external-library-linking']
+      unsafeAllow: ['external-library-linking'],
     });
     const token = await deployBeaconProxy(beacon, ['TKN', 10000]);
     await upgradeBeacon(beacon, TokenV2, { unsafeAllow: ['external-library-linking'] });
@@ -39,14 +35,14 @@ contract('Token with flag', function (accounts) {
 
   it('Redeploy Beacon Proxy again with different Library', async function () {
     const beacon = await deployBeacon(Token, {
-      unsafeAllow: ['external-library-linking']
+      unsafeAllow: ['external-library-linking'],
     });
     await deployBeaconProxy(beacon, ['TKN', 10000]);
 
     const safeMathLib2 = await SafeMathV2.deployed();
     Token.link('SafeMath', safeMathLib2.address);
     const beaconNew = await deployBeacon(Token, {
-      unsafeAllow: ['external-library-linking']
+      unsafeAllow: ['external-library-linking'],
     });
     const tokenNew = await deployBeaconProxy(beaconNew, ['TKN', 5000]);
 
@@ -56,7 +52,7 @@ contract('Token with flag', function (accounts) {
 
   it('Upgrade Beacon with different Library', async function () {
     const beacon = await deployBeacon(Token, {
-      unsafeAllow: ['external-library-linking']
+      unsafeAllow: ['external-library-linking'],
     });
     const token = await deployBeaconProxy(beacon, ['TKN', 10000]);
 
@@ -78,7 +74,7 @@ contract('Token with flag', function (accounts) {
 
   it('Upgrade Proxy with multiple Libraries', async function () {
     const beacon = await deployBeacon(Token, {
-      unsafeAllow: ['external-library-linking']
+      unsafeAllow: ['external-library-linking'],
     });
     const token = await deployBeaconProxy(beacon, ['TKN', 10000]);
 

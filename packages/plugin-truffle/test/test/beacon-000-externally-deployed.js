@@ -36,7 +36,7 @@ contract('Greeter', function () {
     const greeter = await Greeter.deployed();
     const beacon = await Beacon.new(greeter.address);
 
-    // upgrade beacon to new impl
+    // add proxy to beacon
     const greeterProxy = await deployBeaconProxy(beacon.address, ['Hello, proxy!'], {
       implementation: Greeter,
     });
@@ -48,7 +48,7 @@ contract('Greeter', function () {
     const greeter = await Greeter.deployed();
     const beacon = await Beacon.new(greeter.address);
 
-    // upgrade beacon to new impl
+    // add proxy to beacon
     await assert.rejects(deployBeaconProxy(beacon.address, ['Hello, proxy!']), error =>
     BEACON_IMPL_UNKNOWN_REGEX.test(error.message),
     );

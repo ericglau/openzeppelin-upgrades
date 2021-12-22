@@ -42,4 +42,15 @@ contract('Greeter', function () {
     });
     assert.equal(await greeterProxy.greet(), 'Hello, proxy!');
   });
+
+  it('add proxy to unregistered beacon without contract implementation', async function () {
+    // deploy beacon without upgrades plugin
+    const greeter = await Greeter.deployed();
+    const beacon = await Beacon.new(greeter.address);
+
+    // upgrade beacon to new impl
+    await assert.rejects(deployBeaconProxy(beacon.address, ['Hello, proxy!']), error =>
+    BEACON_IMPL_UNKNOWN_REGEX.test(error.message),
+    );
+  });
 });

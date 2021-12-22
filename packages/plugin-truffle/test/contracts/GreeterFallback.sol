@@ -1,4 +1,4 @@
-pragma solidity >= 0.4.22 <0.8.0;
+pragma solidity >= 0.4.22 <0.6.0;
 
 contract GreeterFallback {
 
@@ -16,4 +16,5 @@ contract GreeterFallback {
         greeting = _greeting;
     }
 
+    function() external {}
 }

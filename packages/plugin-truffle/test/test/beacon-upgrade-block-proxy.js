@@ -82,12 +82,12 @@ contract('Greeter', function () {
     );
   });
 
-  // it('block prepareUpgrade on generic contract with fallback', async function () {
-  //   const genericContract = GreeterFallback.deployed();
+  it('block prepareUpgrade on generic contract with fallback', async function () {
+    const genericContract = GreeterFallback.deployed();
 
-  //   await assert.rejects(prepareUpgrade(genericContract, GreeterV2), error =>
-  //     NOT_PROXY_OR_BEACON_REGEX.test(error.message),
-  //   );
-  // });
+    await assert.rejects(prepareUpgrade(genericContract, GreeterV2), error =>
+      NOT_PROXY_OR_BEACON_REGEX.test(error.message),
+    );
+  });
 
 });

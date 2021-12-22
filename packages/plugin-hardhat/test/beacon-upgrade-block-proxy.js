@@ -109,10 +109,10 @@ test('block deployBeaconProxy with non-beacon address', async t => {
 
 test('block prepareUpgrade on generic contract', async t => {
   const { Greeter, GreeterV2 } = t.context;
-  const greeter = await Greeter.deploy();
+  const genericContract = await Greeter.deploy();
 
   try {
-    await upgrades.prepareUpgrade(greeter, GreeterV2);
+    await upgrades.prepareUpgrade(genericContract, GreeterV2);
     t.fail('prepareUpgrade() should not allow generic contract');
   } catch (e) {
     t.true(NOT_PROXY_OR_BEACON_REGEX.test(e.message), e.message);
@@ -121,11 +121,11 @@ test('block prepareUpgrade on generic contract', async t => {
 
 test('block prepareUpgrade on generic contract with fallback', async t => {
   const { GreeterFallback, GreeterV2 } = t.context;
-  const greeter = await GreeterFallback.deploy();
-  await greeter.deployed();
+  const genericContract = await GreeterFallback.deploy();
+  await genericContract.deployed();
 
   try {
-    await upgrades.prepareUpgrade(greeter, GreeterV2);
+    await upgrades.prepareUpgrade(genericContract, GreeterV2);
     t.fail('prepareUpgrade() should not allow generic contract with fallback');
   } catch (e) {
     t.true(NOT_PROXY_OR_BEACON_REGEX.test(e.message), e.message);

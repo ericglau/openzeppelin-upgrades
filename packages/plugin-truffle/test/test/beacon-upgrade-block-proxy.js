@@ -12,7 +12,7 @@ const Greeter = artifacts.require('Greeter');
 const GreeterProxiable = artifacts.require('GreeterProxiable');
 const GreeterV2 = artifacts.require('GreeterV2');
 const GreeterV2Proxiable = artifacts.require('GreeterV2Proxiable');
-//const GreeterFallback = artifacts.require('GreeterFallback');
+const GreeterFallback = artifacts.require('GreeterFallback');
 
 const BEACON_PROXY_NOT_SUPPORTED = 'Beacon proxies are not supported with the current function';
 const ADDRESS_IS_A_TRANSPARENT_OR_UUPS_PROXY = 'Address is a transparent or UUPS proxy';
@@ -74,7 +74,7 @@ contract('Greeter', function () {
     );
   });
 
-  it('block deployBeaconProxy with non-beacon address', async function () {
+  it('block prepareUpgrade on generic contract', async function () {
     const genericContract = Greeter.deployed();
 
     await assert.rejects(prepareUpgrade(genericContract, GreeterV2), error =>
@@ -82,5 +82,12 @@ contract('Greeter', function () {
     );
   });
 
-  // TODO fallback test
+  // it('block prepareUpgrade on generic contract with fallback', async function () {
+  //   const genericContract = GreeterFallback.deployed();
+
+  //   await assert.rejects(prepareUpgrade(genericContract, GreeterV2), error =>
+  //     NOT_PROXY_OR_BEACON_REGEX.test(error.message),
+  //   );
+  // });
+
 });

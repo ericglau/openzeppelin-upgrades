@@ -1,12 +1,6 @@
 const assert = require('assert');
 
-const {
-  deployBeacon,
-  deployBeaconProxy,
-  upgradeBeacon,
-  loadProxy,
-  prepareUpgrade,
-} = require('@openzeppelin/truffle-upgrades');
+const { deployBeacon, deployBeaconProxy, loadProxy } = require('@openzeppelin/truffle-upgrades');
 
 const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');
@@ -19,7 +13,6 @@ const BEACON_IMPL_UNKNOWN_REGEX = /Beacon's current implementation at \S+ is unk
 
 contract('Greeter', function () {
   it('deploy proxy using beacon address after external beacon upgrade', async function () {
-
     // beacon with impl 1
     const greeterBeacon = await deployBeacon(Greeter);
 
@@ -32,7 +25,7 @@ contract('Greeter', function () {
 
     // upgrade beacon to new impl
     await assert.rejects(deployBeaconProxy(greeterBeacon.address, ['Hello Truffle']), error =>
-    BEACON_IMPL_UNKNOWN_REGEX.test(error.message),
+      BEACON_IMPL_UNKNOWN_REGEX.test(error.message),
     );
   });
 
@@ -70,9 +63,7 @@ contract('Greeter', function () {
     const beaconContract = await Beacon.at(greeterBeacon.address);
     await beaconContract.upgradeTo(greeter2.address);
 
-    await assert.rejects(loadProxy(greeterProxy.address), error =>
-    error.message.includes(WAS_NOT_FOUND_IN_MANIFEST),
-    );
+    await assert.rejects(loadProxy(greeterProxy.address), error => error.message.includes(WAS_NOT_FOUND_IN_MANIFEST));
   });
 
   it('load proxy with contract instance after external beacon upgrade', async function () {
@@ -89,9 +80,7 @@ contract('Greeter', function () {
     const beaconContract = await Beacon.at(greeterBeacon.address);
     await beaconContract.upgradeTo(greeter2.address);
 
-    await assert.rejects(loadProxy(greeterProxy), error =>
-    error.message.includes(WAS_NOT_FOUND_IN_MANIFEST),
-    );
+    await assert.rejects(loadProxy(greeterProxy), error => error.message.includes(WAS_NOT_FOUND_IN_MANIFEST));
   });
 
   it('manually attach to proxy after external beacon upgrade', async function () {

@@ -1,18 +1,10 @@
 const assert = require('assert');
 
-const {
-  deployBeacon,
-  deployBeaconProxy,
-  upgradeBeacon,
-  loadProxy,
-  prepareUpgrade,
-} = require('@openzeppelin/truffle-upgrades');
+const { deployBeaconProxy, upgradeBeacon } = require('@openzeppelin/truffle-upgrades');
 
 const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');
 const Beacon = artifacts.require('Beacon');
-
-const TX_HASH_MISSING = 'transaction hash is missing';
 
 const IS_NOT_REGISTERED = 'is not registered';
 const BEACON_IMPL_UNKNOWN_REGEX = /Beacon's current implementation at \S+ is unknown/;
@@ -26,9 +18,7 @@ contract('Greeter', function () {
     const beacon = await Beacon.new(greeter.address);
 
     // upgrade beacon to new impl
-    await assert.rejects(upgradeBeacon(beacon.address, GreeterV2), error =>
-    error.message.includes(IS_NOT_REGISTERED),
-    );
+    await assert.rejects(upgradeBeacon(beacon.address, GreeterV2), error => error.message.includes(IS_NOT_REGISTERED));
   });
 
   it('add proxy to unregistered beacon using contract implementation', async function () {
@@ -50,7 +40,7 @@ contract('Greeter', function () {
 
     // add proxy to beacon
     await assert.rejects(deployBeaconProxy(beacon.address, ['Hello, proxy!']), error =>
-    BEACON_IMPL_UNKNOWN_REGEX.test(error.message),
+      BEACON_IMPL_UNKNOWN_REGEX.test(error.message),
     );
   });
 });

@@ -89,5 +89,4 @@ contract('Greeter', function () {
       NOT_PROXY_OR_BEACON_REGEX.test(error.message),
     );
   });
-
 });

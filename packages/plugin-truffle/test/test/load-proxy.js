@@ -1,12 +1,6 @@
 const assert = require('assert');
 
-const {
-  deployProxy,
-  deployBeaconProxy,
-  upgradeBeacon,
-  loadProxy,
-  prepareUpgrade,
-} = require('@openzeppelin/truffle-upgrades');
+const { deployProxy, loadProxy } = require('@openzeppelin/truffle-upgrades');
 
 const Greeter = artifacts.require('Greeter');
 const GreeterProxiable = artifacts.require('GreeterProxiable');
@@ -40,7 +34,7 @@ contract('Greeter', function () {
     const greeter = await GreeterProxiable.deployed();
 
     await assert.rejects(loadProxy(greeter.address), error =>
-    /Contract at \S+ doesn't look like a supported proxy/.test(error.message),
+      /Contract at \S+ doesn't look like a supported proxy/.test(error.message),
     );
   });
 });

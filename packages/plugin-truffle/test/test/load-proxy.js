@@ -31,7 +31,7 @@ contract('Greeter', function () {
   });
 
   it('load non-proxy address with loadProxy', async function () {
-    const greeter = await GreeterProxiable.deployed();
+    const greeter = await Greeter.new();
 
     await assert.rejects(loadProxy(greeter.address), error =>
       /Contract at \S+ doesn't look like a supported proxy/.test(error.message),

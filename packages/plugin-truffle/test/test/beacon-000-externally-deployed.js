@@ -14,7 +14,7 @@ const BEACON_IMPL_UNKNOWN_REGEX = /Beacon's current implementation at \S+ is unk
 contract('Greeter', function () {
   it('block upgrade to unregistered beacon', async function () {
     // deploy beacon without upgrades plugin
-    const greeter = await Greeter.deployed();
+    const greeter = await Greeter.new();
     const beacon = await Beacon.new(greeter.address);
 
     // upgrade beacon to new impl
@@ -23,7 +23,7 @@ contract('Greeter', function () {
 
   it('add proxy to unregistered beacon using contract implementation', async function () {
     // deploy beacon without upgrades plugin
-    const greeter = await Greeter.deployed();
+    const greeter = await Greeter.new();
     const beacon = await Beacon.new(greeter.address);
 
     // add proxy to beacon
@@ -35,7 +35,7 @@ contract('Greeter', function () {
 
   it('add proxy to unregistered beacon without contract implementation', async function () {
     // deploy beacon without upgrades plugin
-    const greeter = await Greeter.deployed();
+    const greeter = await Greeter.new();
     const beacon = await Beacon.new(greeter.address);
 
     // add proxy to beacon

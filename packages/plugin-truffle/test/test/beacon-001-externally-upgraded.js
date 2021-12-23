@@ -17,7 +17,7 @@ contract('Greeter', function () {
     const greeterBeacon = await deployBeacon(Greeter);
 
     // external impl 2
-    const greeter2 = await GreeterV2.deployed();
+    const greeter2 = await GreeterV2.new();
 
     // external upgrade beacon to impl 2
     const beaconContract = await Beacon.at(greeterBeacon.address);
@@ -34,7 +34,7 @@ contract('Greeter', function () {
     const greeterBeacon = await deployBeacon(Greeter);
 
     // external impl 2
-    const greeter2 = await GreeterV2.deployed();
+    const greeter2 = await GreeterV2.new();
 
     // external upgrade beacon to impl 2
     const beaconContract = await Beacon.at(greeterBeacon.address);
@@ -57,7 +57,7 @@ contract('Greeter', function () {
     const greeterProxy = await deployBeaconProxy(greeterBeacon, ['Hello Truffle']);
 
     // external impl 2
-    const greeter2 = await GreeterV2.deployed();
+    const greeter2 = await GreeterV2.new();
 
     // external upgrade beacon to impl 2
     const beaconContract = await Beacon.at(greeterBeacon.address);
@@ -74,7 +74,7 @@ contract('Greeter', function () {
     const greeterProxy = await deployBeaconProxy(greeterBeacon, ['Hello Truffle']);
 
     // external impl 2
-    const greeter2 = await GreeterV2.deployed();
+    const greeter2 = await GreeterV2.new();
 
     // external upgrade beacon to impl 2
     const beaconContract = await Beacon.at(greeterBeacon.address);
@@ -91,7 +91,7 @@ contract('Greeter', function () {
     const greeterProxy = await deployBeaconProxy(greeterBeacon, ['Hello Truffle']);
 
     // external impl 2
-    const greeter2 = await GreeterV2.deployed();
+    const greeter2 = await GreeterV2.new();
 
     // external upgrade beacon to impl 2
     const beaconContract = await Beacon.at(greeterBeacon.address);

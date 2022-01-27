@@ -1,5 +1,5 @@
 export default {
-  files: ['test/*.js'],
+  files: ['test/*-timeout.js'],
   ignoredByWatcher: ['**/*.ts', '.openzeppelin'],
   verbose: true,
   serial: true,

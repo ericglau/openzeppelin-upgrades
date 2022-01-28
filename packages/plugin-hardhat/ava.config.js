@@ -1,5 +1,5 @@
 export default {
-  files: ['test/*.js'],
+  files: ['test/read-proxy.js'],
   ignoredByWatcher: ['**/*.ts', '.openzeppelin'],
   verbose: true,
   serial: true,

@@ -71,7 +71,7 @@ export async function fetchOrDeploy(
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy);
 }
 
-const implLens = (versionWithoutMetadata: string) =>
+export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, data => ({
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => (data.impls[versionWithoutMetadata] = value),

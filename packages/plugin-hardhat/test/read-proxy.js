@@ -19,9 +19,11 @@ test('happy path', async t => {
   // manually deploy an impl and proxy
   const impl = await Greeter.deploy();
   await impl.deployed();
+  console.log("Deployed impl " + impl.address);
 
   const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!'], undefined));
   await proxy.deployed();
+  console.log("Deployed proxy " + proxy.address);
 
   const greeter = Greeter.attach(proxy.address);
   t.is(await greeter.greet(), 'Hello, Hardhat!');
@@ -29,7 +31,7 @@ test('happy path', async t => {
 
 
 
-  const read = await upgrades.readProxy(Greeter, { kind: 'uups' });
+  const read = await upgrades.readProxy(proxy.address, Greeter, { kind: 'uups' });
 
 
 

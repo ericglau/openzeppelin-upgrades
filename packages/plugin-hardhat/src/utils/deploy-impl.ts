@@ -42,7 +42,7 @@ interface DeployData {
   fullOpts: Required<Options>;
 }
 
-async function getDeployData(
+export async function getDeployData(
   hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,
   opts: Options,

@@ -23,18 +23,21 @@ test('happy path', async t => {
   const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!'], undefined));
   await proxy.deployed();
 
-  const inst = Greeter.attach(proxy.address);
-  t.is(await inst.greet(), 'Hello, Hardhat!');
+  const greeter = Greeter.attach(proxy.address);
+  t.is(await greeter.greet(), 'Hello, Hardhat!');
 
 
 
-  //const impl = await ethers.deploy(Greeter, ['Hello, Hardhat!'], { kind: 'uups' });
 
-  //const greeter = await upgrades.readProxy(Greeter, ['Hello, Hardhat!'], { kind: 'uups' });
+  const read = await upgrades.readProxy(Greeter, { kind: 'uups' });
 
-  // const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
-  // await greeter2.deployed();
-  // await greeter2.resetGreeting();
+
+
+  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
+  await greeter2.deployed();
+  t.is(await greeter2.greet(), 'Hello, Hardhat!');
+  await greeter2.resetGreeting();
+  t.is(await greeter2.greet(), 'Hello World');
 
   // const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
   // const greeter3 = GreeterV3.attach(greeter3ImplAddr);

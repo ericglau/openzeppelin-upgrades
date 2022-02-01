@@ -25,12 +25,12 @@ import {
 } from './utils';
 import { FormatTypes } from 'ethers/lib/utils';
 
-export interface ReadProxyFunction {
+export interface ImportProxyFunction {
   (proxyAddress: string, ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<void>;
 }
 
-export function makeReadProxy(hre: HardhatRuntimeEnvironment): ReadProxyFunction {
-  return async function readProxy(
+export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
+  return async function importProxy(
     proxyAddress: string,
     ImplFactory: ContractFactory,
     opts: DeployProxyOptions = {},

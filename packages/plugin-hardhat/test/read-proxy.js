@@ -31,7 +31,7 @@ test('happy path', async t => {
 
 
 
-  const read = await upgrades.readProxy(proxy.address, Greeter, { kind: 'uups' });
+  const read = await upgrades.importProxy(proxy.address, Greeter, { kind: 'uups' }); // TODO read is undefined :(
 
 
 

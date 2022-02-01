@@ -26,7 +26,7 @@ import {
 import { FormatTypes } from 'ethers/lib/utils';
 
 export interface ImportProxyFunction {
-  (proxyAddress: string, ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<void>;
+  (proxyAddress: string, ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<Contract>;
 }
 
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
@@ -49,7 +49,7 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     const deployTx = async () => {
       const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
       const deployment = Object.assign({ abi });//, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
-      return { ...deployment, layout };
+      return { ...deployment, layout, address: impl }; // TODO check where we should actually put this address part
     }
 
     //const proxyDeployment: ProxyDeployment & DeployTransaction = { kind: 'uups', address: proxyAddress, /*, txHash: '0x'*/ deployTransaction: deployment };
@@ -72,6 +72,11 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
         return updated;
       });
       
+
+    // basically return Greeter.attach(proxy.address);
+    return ImplFactory.attach(proxyAddress);
+
+
     // TODO write impl to manifest
     // TODO the below is from impl-store.ts
     // try {

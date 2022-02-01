@@ -25,13 +25,10 @@ test('happy path', async t => {
   await proxy.deployed();
   console.log("Deployed proxy " + proxy.address);
 
-  const greeter = Greeter.attach(proxy.address);
+
+
+  const greeter = await upgrades.importProxy(proxy.address, Greeter, { kind: 'uups' });
   t.is(await greeter.greet(), 'Hello, Hardhat!');
-
-
-
-
-  const read = await upgrades.importProxy(proxy.address, Greeter, { kind: 'uups' }); // TODO read is undefined :(
 
 
 
@@ -41,10 +38,10 @@ test('happy path', async t => {
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
 
-  // const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
-  // const greeter3 = GreeterV3.attach(greeter3ImplAddr);
-  // const version3 = await greeter3.version();
-  // t.is(version3, 'V3');
+  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
+  const greeter3 = GreeterV3.attach(greeter3ImplAddr);
+  const version3 = await greeter3.version();
+  t.is(version3, 'V3');
 });
 
 /**

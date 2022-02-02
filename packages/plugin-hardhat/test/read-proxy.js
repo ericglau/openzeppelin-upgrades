@@ -11,10 +11,12 @@ test.before(async t => {
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable');
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3Proxiable');
   t.context.ERC1967Proxy = await ethers.getContractFactory(ERC1967Proxy.abi, ERC1967Proxy.bytecode);
+  t.context.Adder = await ethers.getContractFactory('Adder');
+
 });
 
 test('happy path', async t => {
-  const { Greeter, GreeterV2, GreeterV3, ERC1967Proxy } = t.context;
+  const { Adder, Greeter, GreeterV2, GreeterV3, ERC1967Proxy } = t.context;
 
   // manually deploy an impl and proxy
   const impl = await Greeter.deploy();
@@ -29,6 +31,7 @@ test('happy path', async t => {
 
   const greeter = await upgrades.importProxy(proxy.address, Greeter, { kind: 'uups' });
   t.is(await greeter.greet(), 'Hello, Hardhat!');
+ // t.is(await greeter.add(5), 'Hello, Hardhat!'); //negative test
 
 
 

@@ -31,6 +31,12 @@ export interface ImportProxyFunction {
   (proxyAddress: string, ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<Contract>;
 }
 
+function isProbableMatch(creationCode: string, deployedBytecode: string) {
+  const creationCodeWithoutPrefix = creationCode.replace(/^0x/, '');
+  const deployedBytecodeWithoutPrefix = deployedBytecode.replace(/^0x/, '');
+  return creationCodeWithoutPrefix.endsWith(deployedBytecodeWithoutPrefix);
+}
+
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
     proxyAddress: string,
@@ -62,19 +68,28 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     const proxyDeployment: ProxyDeployment & DeployTransaction = { kind: 'uups', address: proxyAddress, deployTransaction: await deployTx() };
     
 
+
+
     // check if bytecode matches
     console.log("Input CF bytecode:\n" + ImplFactory.bytecode);
-    console.log("Input version withMetadata:\n" + deployData.version.withMetadata);
-    console.log("Input version withoutMetadata:\n" + deployData.version.withoutMetadata);
-    console.log("Input version linkedWithoutMetadata:\n" + deployData.version.linkedWithoutMetadata);
+    // console.log("Input version withMetadata:\n" + deployData.version.withMetadata);
+    // console.log("Input version withoutMetadata:\n" + deployData.version.withoutMetadata);
+    // console.log("Input version linkedWithoutMetadata:\n" + deployData.version.linkedWithoutMetadata);
 
     const implBytecode = await getCode(provider, impl);
     console.log("Read deployed bytecode:\n" + implBytecode);
 
-    const deployedVersion = getVersion(implBytecode, deployData.encodedArgs);
-    console.log("Read deployed version withMetadata:\n" + deployedVersion.withMetadata);
-    console.log("Read deployed version withoutMetadata:\n" + deployedVersion.withoutMetadata);
-    console.log("Read deployed version linkedWithoutMetadata:\n" + deployedVersion.linkedWithoutMetadata);
+    const probableMatch = isProbableMatch(ImplFactory.bytecode, implBytecode);
+    console.log("probable match?:\n" + probableMatch);
+
+    if (!probableMatch) {
+      throw new Error("Contract does not match with implementation bytecode deployed at " + impl);
+    }
+
+    // const deployedVersion = getVersion(implBytecode, deployData.encodedArgs);
+    // console.log("Read deployed version withMetadata:\n" + deployedVersion.withMetadata);
+    // console.log("Read deployed version withoutMetadata:\n" + deployedVersion.withoutMetadata);
+    // console.log("Read deployed version linkedWithoutMetadata:\n" + deployedVersion.linkedWithoutMetadata);
 
     await manifest.addProxy(proxyDeployment);
 

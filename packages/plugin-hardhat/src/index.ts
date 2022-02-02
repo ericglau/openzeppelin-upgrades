@@ -15,7 +15,6 @@ import type { DeployBeaconProxyFunction } from './deploy-beacon-proxy';
 import type { UpgradeBeaconFunction } from './upgrade-beacon';
 import type { ImportProxyFunction } from './import-proxy';
 import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInstanceFunction } from './admin';
-import { deploy } from './utils';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;

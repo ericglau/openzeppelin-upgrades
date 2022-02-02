@@ -10,6 +10,8 @@ import {
   getImplementationAddress,
   getImplementationAddressFromProxy,
   implLens,
+  getCode,
+  getVersion,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -40,6 +42,9 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
 
     const impl = await getImplementationAddressFromProxy(provider, proxyAddress);
     console.log("FOUND IMPL ADDRESS " + impl + " FOR PROXY " + proxyAddress);
+    if (!!!impl) {
+      throw new Error("address does not look like proxy"); // TODO cleanup
+    }
 
 
 
@@ -56,6 +61,21 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     //const proxyDeployment: ProxyDeployment = { kind: 'uups', address: proxyAddress };
     const proxyDeployment: ProxyDeployment & DeployTransaction = { kind: 'uups', address: proxyAddress, deployTransaction: await deployTx() };
     
+
+    // check if bytecode matches
+    console.log("Input CF bytecode:\n" + ImplFactory.bytecode);
+    console.log("Input version withMetadata:\n" + deployData.version.withMetadata);
+    console.log("Input version withoutMetadata:\n" + deployData.version.withoutMetadata);
+    console.log("Input version linkedWithoutMetadata:\n" + deployData.version.linkedWithoutMetadata);
+
+    const implBytecode = await getCode(provider, impl);
+    console.log("Read deployed bytecode:\n" + implBytecode);
+
+    const deployedVersion = getVersion(implBytecode, deployData.encodedArgs);
+    console.log("Read deployed version withMetadata:\n" + deployedVersion.withMetadata);
+    console.log("Read deployed version withoutMetadata:\n" + deployedVersion.withoutMetadata);
+    console.log("Read deployed version linkedWithoutMetadata:\n" + deployedVersion.linkedWithoutMetadata);
+
     await manifest.addProxy(proxyDeployment);
 
     const lens = implLens(deployData.version.linkedWithoutMetadata);
@@ -72,6 +92,7 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
         return updated;
       });
       
+
 
     // basically return Greeter.attach(proxy.address);
     return ImplFactory.attach(proxyAddress);

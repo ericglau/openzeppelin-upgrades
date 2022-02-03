@@ -15,6 +15,7 @@ import {
   EthereumProvider,
   UpgradesError,
   getAdminAddress,
+  fetchOrDeploy,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -44,13 +45,11 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
-    const impl = await getImplementationAddressFromProxy(provider, proxyAddress);
-    if (impl === undefined) {
+    const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
+    if (implAddress === undefined) {
       throw new UpgradesError(`Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`);
     }
 
-    // from deploy-impl
-    const { deployTx, deployData } = await getDeploymentFromImpl(hre, ImplFactory, opts, impl);
 
     // get proxy type from bytecode
     let kind : ProxyDeployment["kind"];
@@ -79,11 +78,11 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
 
     const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
 
-    const implMatch = await isBytecodeMatch(provider, impl, ImplFactory);
+    const implMatch = await isBytecodeMatch(provider, implAddress, ImplFactory);
     if (!implMatch) {
-      throw new Error("Contract does not match with implementation bytecode deployed at " + impl);
+      throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
     }
-    await updateManifest();
+    await updateManifest(implAddress);
 
     if (kind === 'uups') {
       if (await manifest.getAdmin()) {
@@ -97,23 +96,40 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     return ImplFactory.attach(proxyAddress);
 
     // TODO the below is from impl-store.ts
-    async function updateManifest() {
+    async function updateManifest(implAddress: string) {
       await manifest.addProxy(proxyToImport);
-      const lens = implLens(deployData.version.linkedWithoutMetadata);
-      await manifest.lockedRun(async () => {
-        const data = await manifest.read();
-        const deployment = lens(data);
-        const stored = deployment.get();
-        const updated = await deployTx(); //await resumeOrDeploy(provider, stored, deploy);
 
-        if (updated !== stored) {
-          //await checkForAddressClash(provider, data, updated); // TODO not sure if we need this
-          // TODO if there is an existing impl version at different address, we should use that one (?)
-          deployment.set(updated);
-          await manifest.write(data);
-        }
-        return updated;
-      });
+      // from deploy-impl
+      const deployData = await getDeployData(hre, ImplFactory, opts); // TODO move this stuff to deploy-impl so this function doesn't need to be exported
+      const layout = deployData.layout;
+      const simulateDeploy = async () => {
+        const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
+        const deployment = Object.assign({ abi }); //, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
+        return { ...deployment, layout, address: implAddress }; // TODO check where we should actually put this address part
+      };
+
+      // simulate a deployment
+      await fetchOrDeploy(
+        deployData.version,
+        deployData.provider,
+        simulateDeploy,
+      );
+
+      // const lens = implLens(deployData.version.linkedWithoutMetadata);
+      // await manifest.lockedRun(async () => {
+      //   const data = await manifest.read();
+      //   const deployment = lens(data);
+      //   const stored = deployment.get();
+      //   const updated = await deployTx(); //await resumeOrDeploy(provider, stored, deploy);
+
+      //   if (updated !== stored) {
+      //     //await checkForAddressClash(provider, data, updated); // TODO not sure if we need this
+      //     // TODO if there is an existing impl version at different address, we should use that one (?)
+      //     deployment.set(updated);
+      //     await manifest.write(data);
+      //   }
+      //   return updated;
+      // });
     }
   };
 }
@@ -128,15 +144,3 @@ async function isBytecodeMatch(provider: EthereumProvider, addr: string, Factory
   const implBytecode = await getCode(provider, addr);
   return isProbableMatch(Factory.bytecode, implBytecode);
 }
-
-async function getDeploymentFromImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: ImportProxyOptions, impl: string) {
-  const deployData = await getDeployData(hre, ImplFactory, opts); // TODO move this stuff to deploy-impl so this function doesn't need to be exported
-  const layout = deployData.layout;
-  const deployTx = async () => {
-    const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
-    const deployment = Object.assign({ abi }); //, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
-    return { ...deployment, layout, address: impl }; // TODO check where we should actually put this address part
-  };
-  return { deployTx, deployData };
-}
-

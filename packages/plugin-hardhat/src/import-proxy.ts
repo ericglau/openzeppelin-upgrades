@@ -13,10 +13,11 @@ import {
   getCode,
   getVersion,
   EthereumProvider,
+  UpgradesError,
 } from '@openzeppelin/upgrades-core';
 
 import {
-  DeployProxyOptions,
+  ImportProxyOptions,
   deploy,
   getProxyFactory,
   getTransparentUpgradeableProxyFactory,
@@ -30,30 +31,25 @@ import {
 import { FormatTypes } from 'ethers/lib/utils';
 
 export interface ImportProxyFunction {
-  (proxyAddress: string, ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<Contract>;
+  (proxyAddress: string, ImplFactory: ContractFactory, opts?: ImportProxyOptions): Promise<Contract>;
 }
 
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
     proxyAddress: string,
     ImplFactory: ContractFactory,
-    opts: DeployProxyOptions = {},
+    opts: ImportProxyOptions = {},
   ) {
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
     const impl = await getImplementationAddressFromProxy(provider, proxyAddress);
-    console.log("FOUND IMPL ADDRESS " + impl + " FOR PROXY " + proxyAddress);
-    if (!!!impl) {
-      throw new Error("address does not look like proxy"); // TODO cleanup
+    if (impl === undefined) {
+      throw new UpgradesError(`Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`);
     }
-
-
 
     // from deploy-impl
     const { deployTx, deployData } = await getDeploymentFromImpl(hre, ImplFactory, opts, impl);
-
-
 
     // get proxy type from bytecode
     let kind : ProxyDeployment["kind"];
@@ -64,21 +60,23 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     } else if (await isBytecodeMatch(provider, proxyAddress, await getBeaconProxyFactory(hre, ImplFactory.signer))) {
       kind = 'beacon';
     } else {
-      throw new Error("cannot determine proxy type"); // TODO let user specify it
+      if (opts.kind !== undefined) {
+        // TODO check if kind can be something else
+        kind = opts.kind;
+      }
+      throw new UpgradesError(`Cannot determine proxy kind at contract address ${proxyAddress}. Specify the kind in the options for the importProxy function.`);
     }
     console.log("determined kind " + kind);
 
+    // TODO get proxy admin and add to manifest
 
     const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
-    
-
 
     const implMatch = await isBytecodeMatch(provider, impl, ImplFactory);
     if (!implMatch) {
       throw new Error("Contract does not match with implementation bytecode deployed at " + impl);
     }
     await updateManifest();
-
 
     if (kind === 'uups') {
       if (await manifest.getAdmin()) {
@@ -110,8 +108,6 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
         return updated;
       });
     }
-
-
   };
 }
 
@@ -126,7 +122,7 @@ async function isBytecodeMatch(provider: EthereumProvider, addr: string, Factory
   return isProbableMatch(Factory.bytecode, implBytecode);
 }
 
-async function getDeploymentFromImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: DeployProxyOptions, impl: string) {
+async function getDeploymentFromImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: ImportProxyOptions, impl: string) {
   const deployData = await getDeployData(hre, ImplFactory, opts); // TODO move this stuff to deploy-impl so this function doesn't need to be exported
   const layout = deployData.layout;
   const deployTx = async () => {

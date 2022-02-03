@@ -1,4 +1,4 @@
-import { DeployOpts, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
+import { DeployOpts, ProxyDeployment, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
 
 export type Options = ValidationOptions &
   DeployOpts & {
@@ -20,4 +20,8 @@ export interface DeployProxyOptions extends Options {
 
 export interface UpgradeProxyOptions extends Options {
   call?: { fn: string; args?: unknown[] } | string;
+}
+
+export interface ImportProxyOptions extends Options {
+  force?: boolean;
 }

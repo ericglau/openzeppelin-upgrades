@@ -8,9 +8,9 @@ const TransparentUpgradableProxy = require('@openzeppelin/upgrades-core/artifact
 
 
 test.before(async t => {
-  t.context.Greeter = await ethers.getContractFactory('GreeterProxiable');
-  t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable');
-  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3Proxiable');
+  t.context.Greeter = await ethers.getContractFactory('Greeter');
+  t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
+  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
   t.context.ProxyAdmin = await ethers.getContractFactory(ProxyAdmin.abi, ProxyAdmin.bytecode);
   t.context.TransparentUpgradableProxy = await ethers.getContractFactory(TransparentUpgradableProxy.abi, TransparentUpgradableProxy.bytecode);
 
@@ -42,13 +42,13 @@ test('happy path', async t => {
 
 
 
-  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2, { kind: 'transparent' }); // TODO test without kind
+  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
   await greeter2.deployed();
   t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
 
-  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3, { kind: 'transparent' });
+  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
   const greeter3 = GreeterV3.attach(greeter3ImplAddr);
   const version3 = await greeter3.version();
   t.is(version3, 'V3');

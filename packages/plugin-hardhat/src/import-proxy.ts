@@ -39,7 +39,7 @@ export interface ImportProxyFunction {
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
     proxyAddress: string,
-    ImplFactory: ContractFactory,
+    Factory: ContractFactory,
     opts: ImportProxyOptions = {},
   ) {
     const { provider } = hre.network;
@@ -50,14 +50,16 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       throw new UpgradesError(`Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`);
     }
 
+    const deployData = await getDeployData(hre, Factory, opts); // TODO move this stuff to deploy-impl so this function doesn't need to be exported
+    const layout = deployData.layout;
 
     // get proxy type from bytecode
     let kind : ProxyDeployment["kind"];
-    if (await isBytecodeMatch(provider, proxyAddress, await getProxyFactory(hre, ImplFactory.signer))) {
+    if (await isBytecodeMatch(provider, proxyAddress, await getProxyFactory(hre, Factory.signer))) {
       kind = 'uups';
-    } else if (await isBytecodeMatch(provider, proxyAddress, await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer))) {
+    } else if (await isBytecodeMatch(provider, proxyAddress, await getTransparentUpgradeableProxyFactory(hre, Factory.signer))) {
       kind = 'transparent';
-    } else if (await isBytecodeMatch(provider, proxyAddress, await getBeaconProxyFactory(hre, ImplFactory.signer))) {
+    } else if (await isBytecodeMatch(provider, proxyAddress, await getBeaconProxyFactory(hre, Factory.signer))) {
       kind = 'beacon';
     } else {
       if (opts.kind !== undefined) {
@@ -74,11 +76,19 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       const admin = await getAdminAddress(provider, proxyAddress);
       //await fetchOrDeployAdmin(provider, () => deploy(AdminFactory), opts);
       // TODO add admin if not already one
+
+      const simulateDeploy = await getSimulateDeployFunction(admin);
+      const manifestAdminAddress = await fetchOrDeployAdmin(provider, simulateDeploy, opts);
+
+      // TODO give warning if imported admin differs from manifest
+      if (admin !== manifestAdminAddress) {
+        throw new Error("admin address does not match manifest admin address"); // TODO change this to a warning
+      }
     }
 
     const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
 
-    const implMatch = await isBytecodeMatch(provider, implAddress, ImplFactory);
+    const implMatch = await isBytecodeMatch(provider, implAddress, Factory);
     if (!implMatch) {
       throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
     }
@@ -93,20 +103,14 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       }
     }
 
-    return ImplFactory.attach(proxyAddress);
+    return Factory.attach(proxyAddress);
 
     // TODO the below is from impl-store.ts
     async function updateManifest(implAddress: string) {
       await manifest.addProxy(proxyToImport);
 
       // from deploy-impl
-      const deployData = await getDeployData(hre, ImplFactory, opts); // TODO move this stuff to deploy-impl so this function doesn't need to be exported
-      const layout = deployData.layout;
-      const simulateDeploy = async () => {
-        const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
-        const deployment = Object.assign({ abi }); //, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
-        return { ...deployment, layout, address: implAddress }; // TODO check where we should actually put this address part
-      };
+      const simulateDeploy = await getSimulateDeployFunction(implAddress);
 
       // simulate a deployment
       await fetchOrDeploy(
@@ -114,22 +118,15 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
         deployData.provider,
         simulateDeploy,
       );
+    }
 
-      // const lens = implLens(deployData.version.linkedWithoutMetadata);
-      // await manifest.lockedRun(async () => {
-      //   const data = await manifest.read();
-      //   const deployment = lens(data);
-      //   const stored = deployment.get();
-      //   const updated = await deployTx(); //await resumeOrDeploy(provider, stored, deploy);
-
-      //   if (updated !== stored) {
-      //     //await checkForAddressClash(provider, data, updated); // TODO not sure if we need this
-      //     // TODO if there is an existing impl version at different address, we should use that one (?)
-      //     deployment.set(updated);
-      //     await manifest.write(data);
-      //   }
-      //   return updated;
-      // });
+    async function getSimulateDeployFunction(addr: string) {
+      const simulateDeploy = async () => {
+        const abi = Factory.interface.format(FormatTypes.minimal) as string[];
+        const deployment = Object.assign({ abi }); //, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
+        return { ...deployment, layout, address: addr }; // TODO check where we should actually put this address part
+      };
+      return simulateDeploy;
     }
   };
 }

@@ -23,13 +23,13 @@ test('happy path', async t => {
   await impl.deployed();
   console.log("Deployed impl " + impl.address);
 
-  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!'], undefined));
+  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
   await proxy.deployed();
   console.log("Deployed proxy " + proxy.address);
 
 
 
-  const greeter = await upgrades.importProxy(proxy.address, Greeter, { kind: 'transparent' });
+  const greeter = await upgrades.importProxy(proxy.address, Greeter);
   t.is(await greeter.greet(), 'Hello, Hardhat!');
  // t.is(await greeter.add(5), 'Hello, Hardhat!'); //negative test
 

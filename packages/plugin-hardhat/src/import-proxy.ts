@@ -14,6 +14,7 @@ import {
   getVersion,
   EthereumProvider,
   UpgradesError,
+  getAdminAddress,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -66,9 +67,15 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       }
       throw new UpgradesError(`Cannot determine proxy kind at contract address ${proxyAddress}. Specify the kind in the options for the importProxy function.`);
     }
+    // TODO give error or warning if user provided kind is different from detected kind?
     console.log("determined kind " + kind);
 
-    // TODO get proxy admin and add to manifest
+    // TODO get proxy admin and add to manifes
+    if (kind === 'transparent') {
+      const admin = await getAdminAddress(provider, proxyAddress);
+      //await fetchOrDeployAdmin(provider, () => deploy(AdminFactory), opts);
+      // TODO add admin if not already one
+    }
 
     const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
 

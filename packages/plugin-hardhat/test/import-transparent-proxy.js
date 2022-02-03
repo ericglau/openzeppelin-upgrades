@@ -3,35 +3,36 @@ const test = require('ava');
 const { ethers, upgrades } = require('hardhat');
 //import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 
-const BeaconProxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.json');
-const UpgradableBeacon = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json');
+const ProxyAdmin = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json');
+const TransparentUpgradableProxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json');
 
 
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('GreeterProxiable');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable');
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3Proxiable');
-  t.context.BeaconProxy = await ethers.getContractFactory(BeaconProxy.abi, BeaconProxy.bytecode);
-  t.context.UpgradableBeacon = await ethers.getContractFactory(UpgradableBeacon.abi, UpgradableBeacon.bytecode);
+  t.context.ProxyAdmin = await ethers.getContractFactory(ProxyAdmin.abi, ProxyAdmin.bytecode);
+  t.context.TransparentUpgradableProxy = await ethers.getContractFactory(TransparentUpgradableProxy.abi, TransparentUpgradableProxy.bytecode);
+
   t.context.Adder = await ethers.getContractFactory('Adder');
 
 });
 
 test('happy path', async t => {
-  const { Adder, Greeter, GreeterV2, GreeterV3, UpgradableBeacon, BeaconProxy } = t.context;
+  const { Adder, Greeter, GreeterV2, GreeterV3, ProxyAdmin, TransparentUpgradableProxy} = t.context;
 
   // manually deploy an impl and proxy
   const impl = await Greeter.deploy();
   await impl.deployed();
   console.log("Deployed impl " + impl.address);
 
-  const beacon = await UpgradableBeacon.deploy(impl.address);
-  await beacon.deployed();
-  console.log("Deployed beacon " + beacon.address);
+  const admin = await ProxyAdmin.deploy();
+  await admin.deployed();
+  console.log("Deployed admin " + admin.address);
 
-  const proxy = await BeaconProxy.deploy(beacon.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
+  const proxy = await TransparentUpgradableProxy.deploy(impl.address, admin.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
   await proxy.deployed();
-  console.log("Deployed beacon proxy " + proxy.address);
+  console.log("Deployed proxy " + proxy.address);
 
 
 
@@ -40,14 +41,14 @@ test('happy path', async t => {
  // t.is(await greeter.add(5), 'Hello, Hardhat!'); //negative test
 
 
-  await upgrades.upgradeBeacon(beacon, GreeterV2);
-  const greeter2 = GreeterV2.attach(proxy.address);
+
+  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2, { kind: 'transparent' }); // TODO test without kind
   await greeter2.deployed();
   t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();
   t.is(await greeter2.greet(), 'Hello World');
 
-  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3);
+  const greeter3ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV3, { kind: 'transparent' });
   const greeter3 = GreeterV3.attach(greeter3ImplAddr);
   const version3 = await greeter3.version();
   t.is(version3, 'V3');

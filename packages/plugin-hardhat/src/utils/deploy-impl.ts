@@ -16,7 +16,7 @@ import {
   ValidationOptions,
   Version,
 } from '@openzeppelin/upgrades-core';
-import type { ContractFactory } from 'ethers';
+import type { Contract, ContractFactory } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
@@ -42,7 +42,7 @@ interface DeployData {
   fullOpts: Required<Options>;
 }
 
-export async function getDeployData(
+async function getDeployData(
   hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,
   opts: Options,
@@ -120,4 +120,38 @@ async function deployImpl(
   );
 
   return { impl, kind: opts.kind };
+}
+
+export async function simulateDeployImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: Options, implAddress: string) {
+  const { deployData, deploy } = await simulateDeployFunction(
+    hre, ImplFactory, opts, implAddress
+  )
+
+  // simulate a deployment
+  await fetchOrDeploy(
+    deployData.version,
+    deployData.provider,
+    deploy,
+  );
+}
+
+export async function simulateDeployFunction(hre: HardhatRuntimeEnvironment,
+  ImplFactory: ContractFactory,
+  opts: Options,
+  implAddress: string) {
+    const deployData = await getDeployData(hre, ImplFactory, opts);
+    const deploy = await getSimulateDeployFunction(deployData, ImplFactory, implAddress);
+    return { deployData, deploy };
+}
+
+/**
+ * Gets a function that returns a simulated deployment of the given contract to the given address.
+ */
+async function getSimulateDeployFunction(deployData: DeployData, contractFactory: ContractFactory, addr: string) {
+  const simulateDeploy = async () => {
+    const abi = contractFactory.interface.format(FormatTypes.minimal) as string[];
+    const deployment = Object.assign({ abi }); //, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
+    return { ...deployment, layout: deployData.layout, address: addr }; // TODO check where we should actually put this address part
+  };
+  return simulateDeploy;
 }

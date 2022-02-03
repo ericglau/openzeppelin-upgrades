@@ -6,31 +6,21 @@ import {
   fetchOrDeployAdmin,
   logWarning,
   ProxyDeployment,
-  BeaconProxyUnsupportedError,
-  getImplementationAddress,
   getImplementationAddressFromProxy,
-  implLens,
   getCode,
-  getVersion,
   EthereumProvider,
   UpgradesError,
   getAdminAddress,
-  fetchOrDeploy,
 } from '@openzeppelin/upgrades-core';
 
 import {
   ImportProxyOptions,
-  deploy,
   getProxyFactory,
   getTransparentUpgradeableProxyFactory,
-  getProxyAdminFactory,
-  DeployTransaction,
-  deployProxyImpl,
-  getInitializerData,
-  getDeployData,
   getBeaconProxyFactory,
+  simulateDeployFunction,
+  simulateDeployImpl,
 } from './utils';
-import { FormatTypes } from 'ethers/lib/utils';
 
 export interface ImportProxyFunction {
   (proxyAddress: string, ImplFactory: ContractFactory, opts?: ImportProxyOptions): Promise<Contract>;
@@ -49,9 +39,6 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     if (implAddress === undefined) {
       throw new UpgradesError(`Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`);
     }
-
-    const deployData = await getDeployData(hre, Factory, opts); // TODO move this stuff to deploy-impl so this function doesn't need to be exported
-    const layout = deployData.layout;
 
     // get proxy type from bytecode
     let kind : ProxyDeployment["kind"];
@@ -73,15 +60,12 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
 
     // TODO get proxy admin and add to manifes
     if (kind === 'transparent') {
-      const admin = await getAdminAddress(provider, proxyAddress);
-      //await fetchOrDeployAdmin(provider, () => deploy(AdminFactory), opts);
-      // TODO add admin if not already one
-
-      const simulateDeploy = await getSimulateDeployFunction(admin);
-      const manifestAdminAddress = await fetchOrDeployAdmin(provider, simulateDeploy, opts);
+      const adminAddress = await getAdminAddress(provider, proxyAddress);
+      const { deploy } = await simulateDeployFunction(hre, Factory, opts, adminAddress);
+      const manifestAdminAddress = await fetchOrDeployAdmin(provider, deploy, opts);
 
       // TODO give warning if imported admin differs from manifest
-      if (admin !== manifestAdminAddress) {
+      if (adminAddress !== manifestAdminAddress) {
         throw new Error("admin address does not match manifest admin address"); // TODO change this to a warning
       }
     }
@@ -108,25 +92,7 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     // TODO the below is from impl-store.ts
     async function updateManifest(implAddress: string) {
       await manifest.addProxy(proxyToImport);
-
-      // from deploy-impl
-      const simulateDeploy = await getSimulateDeployFunction(implAddress);
-
-      // simulate a deployment
-      await fetchOrDeploy(
-        deployData.version,
-        deployData.provider,
-        simulateDeploy,
-      );
-    }
-
-    async function getSimulateDeployFunction(addr: string) {
-      const simulateDeploy = async () => {
-        const abi = Factory.interface.format(FormatTypes.minimal) as string[];
-        const deployment = Object.assign({ abi }); //, await deploy(ImplFactory /* no contructor args //, ...deployData.fullOpts.constructorArgs*/));
-        return { ...deployment, layout, address: addr }; // TODO check where we should actually put this address part
-      };
-      return simulateDeploy;
+      await simulateDeployImpl(hre, Factory, opts, implAddress);
     }
   };
 }

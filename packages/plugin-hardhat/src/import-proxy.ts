@@ -3,7 +3,6 @@ import type { ContractFactory, Contract } from 'ethers';
 
 import {
   Manifest,
-  fetchOrDeployAdmin,
   logWarning,
   ProxyDeployment,
   getImplementationAddressFromProxy,
@@ -18,9 +17,9 @@ import {
   getProxyFactory,
   getTransparentUpgradeableProxyFactory,
   getBeaconProxyFactory,
-  simulateDeployFunction,
   simulateDeployImpl,
 } from './utils';
+import { simulateDeployAdmin } from './utils/simulate-deploy';
 
 export interface ImportProxyFunction {
   (proxyAddress: string, ImplFactory: ContractFactory, opts?: ImportProxyOptions): Promise<Contract>;
@@ -58,25 +57,23 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     // TODO give error or warning if user provided kind is different from detected kind?
     console.log("determined kind " + kind);
 
-    // TODO get proxy admin and add to manifes
-    if (kind === 'transparent') {
-      const adminAddress = await getAdminAddress(provider, proxyAddress);
-      const { deploy } = await simulateDeployFunction(hre, Factory, opts, adminAddress);
-      const manifestAdminAddress = await fetchOrDeployAdmin(provider, deploy, opts);
 
-      // TODO give warning if imported admin differs from manifest
-      if (adminAddress !== manifestAdminAddress) {
-        throw new Error("admin address does not match manifest admin address"); // TODO change this to a warning
-      }
-    }
-
-    const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
-
+    // add impl to manifest
     const implMatch = await isBytecodeMatch(provider, implAddress, Factory);
     if (!implMatch) {
       throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
     }
-    await updateManifest(implAddress);
+    await simulateDeployImpl(hre, Factory, opts, implAddress);
+
+    // add admin to manifest
+    if (kind === 'transparent') {
+      const adminAddress = await getAdminAddress(provider, proxyAddress);
+      await simulateDeployAdmin(hre, Factory, opts, adminAddress);
+    }
+
+    // add proxy to manifest
+    const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
+    await manifest.addProxy(proxyToImport);
 
     if (kind === 'uups') {
       if (await manifest.getAdmin()) {
@@ -88,12 +85,6 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     }
 
     return Factory.attach(proxyAddress);
-
-    // TODO the below is from impl-store.ts
-    async function updateManifest(implAddress: string) {
-      await manifest.addProxy(proxyToImport);
-      await simulateDeployImpl(hre, Factory, opts, implAddress);
-    }
   };
 }
 

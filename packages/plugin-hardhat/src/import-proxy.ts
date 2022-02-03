@@ -33,12 +33,6 @@ export interface ImportProxyFunction {
   (proxyAddress: string, ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<Contract>;
 }
 
-function isProbableMatch(creationCode: string, deployedBytecode: string) {
-  const creationCodeWithoutPrefix = creationCode.replace(/^0x/, '');
-  const deployedBytecodeWithoutPrefix = deployedBytecode.replace(/^0x/, '');
-  return creationCodeWithoutPrefix.includes(deployedBytecodeWithoutPrefix);
-}
-
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
     proxyAddress: string,
@@ -79,7 +73,10 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     
 
 
-    await checkBytecodeMatch(provider, impl, ImplFactory);
+    const implMatch = await isBytecodeMatch(provider, impl, ImplFactory);
+    if (!implMatch) {
+      throw new Error("Contract does not match with implementation bytecode deployed at " + impl);
+    }
     await updateManifest();
     return ImplFactory.attach(proxyAddress);
 
@@ -174,20 +171,15 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
   };
 }
 
-async function checkBytecodeMatch(provider: EthereumProvider, impl: string, ImplFactory: ContractFactory) {
-  const probableMatch = await isBytecodeMatch(provider, impl, ImplFactory);
-  if (!probableMatch) {
-    throw new Error("Contract does not match with implementation bytecode deployed at " + impl);
-  }
+function isProbableMatch(creationCode: string, deployedBytecode: string) {
+  const creationCodeWithoutPrefix = creationCode.replace(/^0x/, '');
+  const deployedBytecodeWithoutPrefix = deployedBytecode.replace(/^0x/, '');
+  return creationCodeWithoutPrefix.includes(deployedBytecodeWithoutPrefix);
 }
 
 async function isBytecodeMatch(provider: EthereumProvider, addr: string, Factory: ContractFactory) {
   const implBytecode = await getCode(provider, addr);
-  //console.log("factory bytecode " + Factory.bytecode);
-  //console.log("addr bytecode " + implBytecode);
-
-  const probableMatch = isProbableMatch(Factory.bytecode, implBytecode);
-  return probableMatch;
+  return isProbableMatch(Factory.bytecode, implBytecode);
 }
 
 async function getDeploymentFromImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: DeployProxyOptions, impl: string) {

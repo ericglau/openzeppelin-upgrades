@@ -78,10 +78,20 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       throw new Error("Contract does not match with implementation bytecode deployed at " + impl);
     }
     await updateManifest();
+
+
+    if (kind === 'uups') {
+      if (await manifest.getAdmin()) {
+        logWarning(`A proxy admin was previously deployed on this network`, [
+          `This is not natively used with the current kind of proxy ('uups').`,
+          `Changes to the admin will have no effect on this new proxy.`,
+        ]);
+      }
+    }
+
     return ImplFactory.attach(proxyAddress);
 
-
-
+    // TODO the below is from impl-store.ts
     async function updateManifest() {
       await manifest.addProxy(proxyToImport);
       const lens = implLens(deployData.version.linkedWithoutMetadata);
@@ -100,74 +110,8 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
         return updated;
       });
     }
-    // TODO write impl to manifest
-    // TODO the below is from impl-store.ts
-    // try {
-    //   const deployment = await manifest.lockedRun(async () => {
-    //     debug('fetching deployment of', lens.description);
-    //     const data = await manifest.read();
-    //     const deployment = lens(data);
-    //     const stored = deployment.get();
-    //     if (stored === undefined) {
-    //       debug('deployment of', lens.description, 'not found');
-    //     }
-    //     const updated = await resumeOrDeploy(provider, stored, deploy);
-    //     if (updated !== stored) {
-    //       await checkForAddressClash(provider, data, updated);
-    //       deployment.set(updated);
-    //       await manifest.write(data);
-    //     }
-    //     return updated;
-    //   });
 
 
-
-
-
-    // const { impl, kind } = await deployProxyImpl(hre, ImplFactory, opts);
-    // const contractInterface = ImplFactory.interface;
-    // const data = getInitializerData(contractInterface, args, opts.initializer);
-
-    // if (kind === 'uups') {
-    //   if (await manifest.getAdmin()) {
-    //     logWarning(`A proxy admin was previously deployed on this network`, [
-    //       `This is not natively used with the current kind of proxy ('uups').`,
-    //       `Changes to the admin will have no effect on this new proxy.`,
-    //     ]);
-    //   }
-    // }
-
-    // let proxyDeployment: Required<ProxyDeployment & DeployTransaction>;
-    // switch (kind) {
-    //   case 'beacon': {
-    //     throw new BeaconProxyUnsupportedError();
-    //   }
-
-    //   case 'uups': {
-    //     const ProxyFactory = await getProxyFactory(hre, ImplFactory.signer);
-    //     proxyDeployment = Object.assign({ kind }, await deploy(ProxyFactory, impl, data));
-    //     break;
-    //   }
-
-    //   case 'transparent': {
-    //     const AdminFactory = await getProxyAdminFactory(hre, ImplFactory.signer);
-    //     const adminAddress = await fetchOrDeployAdmin(provider, () => deploy(AdminFactory));
-    //     const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer);
-    //     proxyDeployment = Object.assign(
-    //       { kind },
-    //       await deploy(TransparentUpgradeableProxyFactory, impl, adminAddress, data),
-    //     );
-    //     break;
-    //   }
-    // }
-
-    //TODO
-    //await manifest.addProxy(proxyDeployment);
-
-    //const inst = ImplFactory.attach(proxyDeployment.address);
-    // @ts-ignore Won't be readonly because inst was created through attach.
-    //inst.deployTransaction = proxyDeployment.deployTransaction;
-    //return inst;
   };
 }
 

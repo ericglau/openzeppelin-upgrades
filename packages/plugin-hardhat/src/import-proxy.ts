@@ -28,7 +28,7 @@ export interface ImportProxyFunction {
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
     proxyAddress: string,
-    Factory: ContractFactory,
+    ImplFactory: ContractFactory,
     opts: ImportProxyOptions = {},
   ) {
     const { provider } = hre.network;
@@ -40,42 +40,49 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     }
 
     // get proxy type from bytecode
-    let kind : ProxyDeployment["kind"];
-    if (await isBytecodeMatch(provider, proxyAddress, await getProxyFactory(hre, Factory.signer))) {
-      kind = 'uups';
-    } else if (await isBytecodeMatch(provider, proxyAddress, await getTransparentUpgradeableProxyFactory(hre, Factory.signer))) {
-      kind = 'transparent';
-    } else if (await isBytecodeMatch(provider, proxyAddress, await getBeaconProxyFactory(hre, Factory.signer))) {
-      kind = 'beacon';
+    let kindDetected : ProxyDeployment["kind"];
+    if (await isBytecodeMatch(provider, proxyAddress, await getProxyFactory(hre, ImplFactory.signer))) {
+      kindDetected = 'uups';
+    } else if (await isBytecodeMatch(provider, proxyAddress, await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer))) {
+      kindDetected = 'transparent';
+    } else if (await isBytecodeMatch(provider, proxyAddress, await getBeaconProxyFactory(hre, ImplFactory.signer))) {
+      kindDetected = 'beacon';
     } else {
-      if (opts.kind !== undefined) {
-        // TODO check if kind can be something else
-        kind = opts.kind;
+      if (opts.kind === undefined) {
+        throw new UpgradesError(`Cannot determine the proxy kind at address ${proxyAddress}. Specify the 'kind' option for the importProxy function.`);
+      } else {
+        if (opts.kind !== 'uups' && opts.kind !== 'transparent' && opts.kind !== 'beacon') {
+          throw new UpgradesError(`kind must be uups, transparent, or beacon`, () => `Specify a supported kind of proxy in the options for the importProxy function`);
+        }
+        kindDetected = opts.kind;
       }
-      throw new UpgradesError(`Cannot determine proxy kind at contract address ${proxyAddress}. Specify the kind in the options for the importProxy function.`);
     }
-    // TODO give error or warning if user provided kind is different from detected kind?
-    console.log("determined kind " + kind);
 
+    if (opts.kind !== undefined && opts.kind !== kindDetected) {
+      logWarning(`Detected proxy kind '${kindDetected}' at address ${proxyAddress} which differs from specified kind '${opts.kind}'`, [
+        `The kind of proxy detected at the given address differs from the kind specified in the importProxy function's options.`,
+        `The proxy will be imported as kind '${kindDetected}'.`,
+      ]);
+    }
 
     // add impl to manifest
-    const implMatch = await isBytecodeMatch(provider, implAddress, Factory);
+    const implMatch = await isBytecodeMatch(provider, implAddress, ImplFactory);
     if (!implMatch) {
       throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
     }
-    await simulateDeployImpl(hre, Factory, opts, implAddress);
+    await simulateDeployImpl(hre, ImplFactory, opts, implAddress);
 
     // add admin to manifest
-    if (kind === 'transparent') {
+    if (kindDetected === 'transparent') {
       const adminAddress = await getAdminAddress(provider, proxyAddress);
-      await simulateDeployAdmin(hre, Factory, opts, adminAddress);
+      await simulateDeployAdmin(hre, ImplFactory, opts, adminAddress);
     }
 
     // add proxy to manifest
-    const proxyToImport: ProxyDeployment = { kind: kind , address: proxyAddress };
+    const proxyToImport: ProxyDeployment = { kind: kindDetected , address: proxyAddress };
     await manifest.addProxy(proxyToImport);
 
-    if (kind === 'uups') {
+    if (kindDetected === 'uups') {
       if (await manifest.getAdmin()) {
         logWarning(`A proxy admin was previously deployed on this network`, [
           `This is not natively used with the current kind of proxy ('uups').`,
@@ -84,17 +91,17 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       }
     }
 
-    return Factory.attach(proxyAddress);
+    return ImplFactory.attach(proxyAddress);
   };
 }
 
-function isProbableMatch(creationCode: string, deployedBytecode: string) {
+async function isBytecodeMatch(provider: EthereumProvider, addr: string, contractFactory: ContractFactory) {
+  const implBytecode = await getCode(provider, addr);
+  return compareBytecode(contractFactory.bytecode, implBytecode);
+}
+
+function compareBytecode(creationCode: string, deployedBytecode: string) {
   const creationCodeWithoutPrefix = creationCode.replace(/^0x/, '');
   const deployedBytecodeWithoutPrefix = deployedBytecode.replace(/^0x/, '');
   return creationCodeWithoutPrefix.includes(deployedBytecodeWithoutPrefix);
-}
-
-async function isBytecodeMatch(provider: EthereumProvider, addr: string, Factory: ContractFactory) {
-  const implBytecode = await getCode(provider, addr);
-  return isProbableMatch(Factory.bytecode, implBytecode);
 }

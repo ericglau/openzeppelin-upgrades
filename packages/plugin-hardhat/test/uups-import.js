@@ -1,39 +1,26 @@
 const test = require('ava');
 
 const { ethers, upgrades } = require('hardhat');
-//import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 
 const ERC1967Proxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json');
-
 
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('GreeterProxiable');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable');
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3Proxiable');
   t.context.ERC1967Proxy = await ethers.getContractFactory(ERC1967Proxy.abi, ERC1967Proxy.bytecode);
-  t.context.Adder = await ethers.getContractFactory('Adder');
-
 });
 
 test('happy path', async t => {
-  const { Adder, Greeter, GreeterV2, GreeterV3, ERC1967Proxy } = t.context;
+  const { Greeter, GreeterV2, GreeterV3, ERC1967Proxy } = t.context;
 
-  // manually deploy an impl and proxy
   const impl = await Greeter.deploy();
   await impl.deployed();
-  console.log("Deployed impl " + impl.address);
-
   const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
   await proxy.deployed();
-  console.log("Deployed proxy " + proxy.address);
-
-
 
   const greeter = await upgrades.importProxy(proxy.address, Greeter);
   t.is(await greeter.greet(), 'Hello, Hardhat!');
- // t.is(await greeter.add(5), 'Hello, Hardhat!'); //negative test
-
-
 
   const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
   await greeter2.deployed();
@@ -47,10 +34,6 @@ test('happy path', async t => {
   t.is(version3, 'V3');
 });
 
-/**
- * Copied from initializer-data.ts
- * TODO: remove comment
- */
 function getInitializerData(
   contractInterface,
   args

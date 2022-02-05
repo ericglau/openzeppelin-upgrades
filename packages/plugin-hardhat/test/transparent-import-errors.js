@@ -18,7 +18,7 @@ test.before(async t => {
 
 });
 
-test('happy path', async t => {
+test('import happy path', async t => {
   const { Adder, Greeter, GreeterV2, GreeterV3, ProxyAdmin, TransparentUpgradableProxy} = t.context;
 
   // manually deploy an impl and proxy

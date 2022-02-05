@@ -10,6 +10,7 @@ import {
   UpgradesError,
   getAdminAddress,
   isBytecodeMatch,
+  detectProxyKindFromBytecode,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -39,13 +40,13 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
       throw new UpgradesError(`Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`);
     }
 
-    const kind = await detectProxyKind(provider, hre, proxyAddress, ImplFactory, opts);
+    const importKind = await detectProxyKind(provider, hre, proxyAddress, ImplFactory, opts);
 
     await addImplToManifest(provider, hre, implAddress, ImplFactory, opts);
-    if (kind === 'transparent') {
+    if (importKind === 'transparent') {
       await addAdminToManifest(provider, hre, proxyAddress, ImplFactory, opts);
     }
-    await addProxyToManifest(kind, proxyAddress, manifest);
+    await addProxyToManifest(importKind, proxyAddress, manifest);
 
     return ImplFactory.attach(proxyAddress);
   };
@@ -79,29 +80,9 @@ async function addProxyToManifest(kind: ProxyDeployment['kind'], proxyAddress: s
 }
 
 async function detectProxyKind(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, proxyAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {
-  let kindDetected: ProxyDeployment["kind"];
-  if (await isBytecodeMatch(provider, proxyAddress, (await getProxyFactory(hre, ImplFactory.signer)).bytecode)) {
-    kindDetected = 'uups';
-  } else if (await isBytecodeMatch(provider, proxyAddress, (await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer)).bytecode)) {
-    kindDetected = 'transparent';
-  } else if (await isBytecodeMatch(provider, proxyAddress, (await getBeaconProxyFactory(hre, ImplFactory.signer)).bytecode)) {
-    kindDetected = 'beacon';
-  } else {
-    if (opts.kind === undefined) {
-      throw new UpgradesError(`Cannot determine the proxy kind at address ${proxyAddress}. Specify the 'kind' option for the importProxy function.`);
-    } else {
-      if (opts.kind !== 'uups' && opts.kind !== 'transparent' && opts.kind !== 'beacon') {
-        throw new UpgradesError(`kind must be uups, transparent, or beacon`, () => `Specify a supported kind of proxy in the options for the importProxy function`);
-      }
-      kindDetected = opts.kind;
-    }
-  }
+  const UUPSProxy = (await getProxyFactory(hre, ImplFactory.signer)).bytecode;
+  const TransparentProxy = (await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer)).bytecode;
+  const BeaconProxy = (await getBeaconProxyFactory(hre, ImplFactory.signer)).bytecode;
 
-  if (opts.kind !== undefined && opts.kind !== kindDetected) {
-    logWarning(`Detected proxy kind '${kindDetected}' at address ${proxyAddress} which differs from specified kind '${opts.kind}'`, [
-      `The kind of proxy detected at the given address differs from the kind specified in the importProxy function's options.`,
-      `The proxy will be imported as kind '${kindDetected}'.`,
-    ]);
-  }
-  return kindDetected;
+  return await detectProxyKindFromBytecode(provider, proxyAddress, { UUPSProxy, TransparentProxy, BeaconProxy }, opts.kind);
 }

@@ -6,10 +6,10 @@ import {
   logWarning,
   ProxyDeployment,
   getImplementationAddressFromProxy,
-  getCode,
   EthereumProvider,
   UpgradesError,
   getAdminAddress,
+  isBytecodeMatch,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -52,7 +52,7 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
 }
 
 async function addImplToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, implAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {
-  const implMatch = await isBytecodeMatch(provider, implAddress, ImplFactory);
+  const implMatch = await isBytecodeMatch(provider, implAddress, ImplFactory.bytecode);
   if (!implMatch) {
     throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
   }
@@ -80,11 +80,11 @@ async function addProxyToManifest(kind: ProxyDeployment['kind'], proxyAddress: s
 
 async function detectProxyKind(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, proxyAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {
   let kindDetected: ProxyDeployment["kind"];
-  if (await isBytecodeMatch(provider, proxyAddress, await getProxyFactory(hre, ImplFactory.signer))) {
+  if (await isBytecodeMatch(provider, proxyAddress, (await getProxyFactory(hre, ImplFactory.signer)).bytecode)) {
     kindDetected = 'uups';
-  } else if (await isBytecodeMatch(provider, proxyAddress, await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer))) {
+  } else if (await isBytecodeMatch(provider, proxyAddress, (await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer)).bytecode)) {
     kindDetected = 'transparent';
-  } else if (await isBytecodeMatch(provider, proxyAddress, await getBeaconProxyFactory(hre, ImplFactory.signer))) {
+  } else if (await isBytecodeMatch(provider, proxyAddress, (await getBeaconProxyFactory(hre, ImplFactory.signer)).bytecode)) {
     kindDetected = 'beacon';
   } else {
     if (opts.kind === undefined) {
@@ -104,15 +104,4 @@ async function detectProxyKind(provider: EthereumProvider, hre: HardhatRuntimeEn
     ]);
   }
   return kindDetected;
-}
-
-async function isBytecodeMatch(provider: EthereumProvider, addr: string, contractFactory: ContractFactory) {
-  const implBytecode = await getCode(provider, addr);
-  return compareBytecode(contractFactory.bytecode, implBytecode);
-}
-
-function compareBytecode(creationCode: string, deployedBytecode: string) {
-  const creationCodeWithoutPrefix = creationCode.replace(/^0x/, '');
-  const deployedBytecodeWithoutPrefix = deployedBytecode.replace(/^0x/, '');
-  return creationCodeWithoutPrefix.includes(deployedBytecodeWithoutPrefix);
 }

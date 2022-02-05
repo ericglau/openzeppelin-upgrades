@@ -24,6 +24,7 @@ interface ManifestField<T> {
  * @param provider the Ethereum provider
  * @param deploy the deploy function
  * @param opts options containing the timeout and pollingInterval parameters. If undefined, assumes the timeout is not configurable and will not mention those parameters in the error message for TransactionMinedTimeout.
+ * @param forceDeploy if true, deploy without fetching existing deployment and allow address to clash. Defaults to false.
  * @returns the deployment address
  * @throws {InvalidDeployment} if the deployment is invalid
  * @throws {TransactionMinedTimeout} if the transaction was not confirmed within the timeout period
@@ -33,6 +34,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   provider: EthereumProvider,
   deploy: () => Promise<T>,
   opts?: DeployOpts,
+  forceDeploy?: boolean
 ): Promise<string> {
   const manifest = await Manifest.forNetwork(provider);
 
@@ -41,15 +43,22 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       debug('fetching deployment of', lens.description);
       const data = await manifest.read();
       const deployment = lens(data);
-      const stored = deployment.get();
-      if (stored === undefined) {
-        debug('deployment of', lens.description, 'not found');
-      }
-      const updated = await resumeOrDeploy(provider, stored, deploy);
-      if (updated !== stored) {
-        await checkForAddressClash(provider, data, updated);
+      let updated;
+      if (forceDeploy) {
+        updated = await deploy();
         deployment.set(updated);
         await manifest.write(data);
+      } else {
+        const stored = deployment.get();
+        if (stored === undefined) {
+          debug('deployment of', lens.description, 'not found');
+        }
+        updated = await resumeOrDeploy(provider, stored, deploy);
+        if (updated !== stored) {
+          await checkForAddressClash(provider, data, updated);
+          deployment.set(updated);
+          await manifest.write(data);
+        }
       }
       return updated;
     });
@@ -82,8 +91,9 @@ export async function fetchOrDeploy(
   provider: EthereumProvider,
   deploy: () => Promise<ImplDeployment>,
   opts?: DeployOpts,
+  forceDeploy?: boolean 
 ): Promise<string> {
-  return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts);
+  return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, forceDeploy);
 }
 
 export const implLens = (versionWithoutMetadata: string) =>

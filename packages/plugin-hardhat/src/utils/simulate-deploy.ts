@@ -11,7 +11,6 @@ export async function simulateDeployAdmin(hre: HardhatRuntimeEnvironment, ProxyA
   const { deployData, simulateDeploy } = await simulateDeployment(hre, ProxyAdminFactory, opts, adminAddress);
   const manifestAdminAddress = await fetchOrDeployAdmin(deployData.provider, simulateDeploy, opts);
   if (adminAddress !== manifestAdminAddress) {
-    // TODO test this
     logWarning(`Imported proxy with admin at '${adminAddress}' which differs from previously deployed admin '${manifestAdminAddress}'`, [
       `The imported proxy admin is different than the proxy admin that was previously deployed on this network. This proxy will not be upgradable directly by the plugin.`,
       `To upgrade this proxy, use the prepareProxy or defender.proposeUpgrade function and then upgrade it using the admin at '${adminAddress}'.`
@@ -21,7 +20,7 @@ export async function simulateDeployAdmin(hre: HardhatRuntimeEnvironment, ProxyA
 
 export async function simulateDeployImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: Options, implAddress: string) {
   const { deployData, simulateDeploy } = await simulateDeployment(hre, ImplFactory, opts, implAddress);
-  await fetchOrDeploy(deployData.version, deployData.provider, simulateDeploy);
+  await fetchOrDeploy(deployData.version, deployData.provider, simulateDeploy, opts, true);
 }
 
 async function simulateDeployment(hre: HardhatRuntimeEnvironment,

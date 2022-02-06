@@ -115,15 +115,18 @@ test('wrong implementation', async t => {
 test('multiple identical implementations', async t => {
   const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
 
-  const impl = await GreeterProxiable.deploy();
-  await impl.deployed();
-  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
-  await proxy.deployed();
+  // const impl = await GreeterProxiable.deploy();
+  // await impl.deployed();
+  // const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
+  // await proxy.deployed();
 
-  const impl2 = await GreeterProxiable.deploy();
-  await impl2.deployed();
-  const proxy2 = await ERC1967Proxy.deploy(impl2.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']));
-  await proxy2.deployed();
+  // const impl2 = await GreeterProxiable.deploy();
+  // await impl2.deployed();
+  // const proxy2 = await ERC1967Proxy.deploy(impl2.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']));
+  // await proxy2.deployed();
+
+  const proxy3 = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat 3!']);
+
 
   const BEFORE_IMPORT = await GreeterProxiable.attach(proxy.address);
   console.log("BEFORE IMPORT " + await BEFORE_IMPORT.greet());

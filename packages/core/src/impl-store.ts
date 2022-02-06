@@ -1,6 +1,6 @@
 import debug from './utils/debug';
 import { Manifest, ManifestData, ImplDeployment } from './manifest';
-import { EthereumProvider, isDevelopmentNetwork } from './provider';
+import { EthereumProvider, hasCode, isDevelopmentNetwork } from './provider';
 import { Deployment, InvalidDeployment, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import type { Version } from './version';
 import assert from 'assert';
@@ -15,7 +15,7 @@ interface ManifestLens<T> {
 interface ManifestField<T> {
   get(): T | undefined;
   set(value: T | undefined): void;
-  add?(value: T | undefined): void;
+  add?(value: T | undefined, provider: EthereumProvider): Promise<void>;//, validateExistingAddress: (existingAddr: string) => Promise<T>): void;
 }
 
 /**
@@ -49,7 +49,12 @@ async function fetchOrDeployGeneric<T extends Deployment>(
         updated = await deploy();
         await checkForAddressClash(provider, data, updated);
         if (deployment.add) {
-          deployment.add(updated);
+          await deployment.add(updated, provider);
+          // , async (existingAddress: string) => { 
+          //   if (!await hasCode(provider, existingAddress)) {
+          //     throw new InvalidDeployment(existingAddress);
+          //   }
+          // });
         } else {
           deployment.set(updated);
         }
@@ -106,10 +111,10 @@ export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
-    add: (value?: ImplDeployment) => { 
+    add: async (value?: ImplDeployment, provider?: EthereumProvider) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
-        const { address, allAddresses } = mergeAddresses(existing, value);
+        const { address, allAddresses } = await mergeAddresses(existing, value, provider);
         data.impls[versionWithoutMetadata] = { ...value, address, allAddresses };
       } else {
         data.impls[versionWithoutMetadata] = value;
@@ -118,13 +123,24 @@ export const implLens = (versionWithoutMetadata: string) =>
   }));
 
 /**
- * Merge the addresses in the deployments and return it
+ * Merge the addresses in the deployments and return it.
+ * Verifies that each existing address has code before adding it
+ * 
  * @param existing existing deployment
  * @param value deployment to write
  */
-function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
+async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, provider?: EthereumProvider) {
   let merged = new Set<string>();
-  merged.add(existing.address);
+
+  // TODO cleanup
+  if (provider !== undefined) {
+    
+    console.log("HAS CODE AT " + existing.address + "?? " + await hasCode(provider, existing.address));
+  }
+
+  if (await checkHasCode(existing, existing.address, provider)) {
+    merged.add(existing.address);
+  }
   merged.add(value.address);
   if (existing.allAddresses !== undefined) {
     existing.allAddresses.forEach(item => merged.add(item))
@@ -136,6 +152,17 @@ function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
   return { address: existing.address, allAddresses: Array.from(merged) };
 }
 
+async function checkHasCode(existing: ImplDeployment, existingAddress: string, provider?: EthereumProvider) {
+  if (provider !== undefined && !await hasCode(provider, existingAddress)) {
+    if (await isDevelopmentNetwork(provider)) {
+      debug('omitting a previous deployment at address', existingAddress);
+      return false;
+    } else {
+      throw new InvalidDeployment(existing); // TODO pass in exisringAddress?
+    }
+  }
+  return true;
+}
 
 export async function fetchOrDeployAdmin(
   provider: EthereumProvider,

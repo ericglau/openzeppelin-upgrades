@@ -96,11 +96,44 @@ export async function fetchOrDeploy(
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, forceDeploy);
 }
 
+// todo use the orig version of this when not importing?
 export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
-    set: (value?: ImplDeployment) => (data.impls[versionWithoutMetadata] = value),
+    set: (value?: ImplDeployment) => { 
+      const existing = data.impls[versionWithoutMetadata];
+      if (existing !== undefined && value !== undefined) {
+        const { address, allAddresses } = mergeAddresses(existing, value); // TODO append
+        value.address = address;
+        value.allAddresses = allAddresses;
+        data.impls[versionWithoutMetadata] = value;
+      } else {
+        data.impls[versionWithoutMetadata] = value;
+      }
+    }
   }));
+
+/**
+ * Merge the addresses in the deployments and return it
+ * @param existing
+ * @param value 
+ */
+function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
+  if (existing.allAddresses === undefined) {
+    existing.allAddresses = [];
+  }
+  pushIfNotFound(existing.allAddresses, existing.address);
+  pushIfNotFound(existing.allAddresses, value.address);
+  // TODO   pushIfNotFound(existing.allAddresses, value.allAddresses ?????);
+
+  return { address: existing.address, allAddresses: existing.allAddresses };
+}
+
+function pushIfNotFound(allAddresses: string[], address: string) {
+  if (!allAddresses.includes(address)) {
+    allAddresses.push(address);
+  }
+}
 
 export async function fetchOrDeployAdmin(
   provider: EthereumProvider,

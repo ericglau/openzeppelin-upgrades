@@ -58,7 +58,8 @@ export class Manifest {
 
   async getDeploymentFromAddress(address: string): Promise<ImplDeployment> {
     const data = await this.read();
-    const deployment = Object.values(data.impls).find(d => d?.address === address);
+    const deployment = Object.values(data.impls).find(d => d?.address === address || d?.allAddresses?.includes(address));
+
     if (deployment === undefined) {
       throw new DeploymentNotFound(`Deployment at address ${address} is not registered`);
     }

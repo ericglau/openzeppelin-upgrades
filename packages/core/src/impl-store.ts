@@ -96,17 +96,15 @@ export async function fetchOrDeploy(
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, forceDeploy);
 }
 
-// todo use the orig version of this when not importing?
 export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
-        const { address, allAddresses } = mergeAddresses(existing, value); // TODO append
-        value.address = address;
-        value.allAddresses = allAddresses;
-        data.impls[versionWithoutMetadata] = value;
+        const { address, allAddresses } = mergeAddresses(existing, value);
+
+        data.impls[versionWithoutMetadata] = { ...value, address, allAddresses };
       } else {
         data.impls[versionWithoutMetadata] = value;
       }
@@ -115,25 +113,23 @@ export const implLens = (versionWithoutMetadata: string) =>
 
 /**
  * Merge the addresses in the deployments and return it
- * @param existing
- * @param value 
+ * @param existing existing deployment
+ * @param value deployment to write
  */
 function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
-  if (existing.allAddresses === undefined) {
-    existing.allAddresses = [];
+  let merged = new Set<string>();
+  merged.add(existing.address);
+  merged.add(value.address);
+  if (existing.allAddresses !== undefined) {
+    existing.allAddresses.forEach(item => merged.add(item))
   }
-  pushIfNotFound(existing.allAddresses, existing.address);
-  pushIfNotFound(existing.allAddresses, value.address);
-  // TODO   pushIfNotFound(existing.allAddresses, value.allAddresses ?????);
+  if (value.allAddresses !== undefined) {
+    value.allAddresses.forEach(item => merged.add(item))
+  }
 
-  return { address: existing.address, allAddresses: existing.allAddresses };
+  return { address: existing.address, allAddresses: Array.from(merged) };
 }
 
-function pushIfNotFound(allAddresses: string[], address: string) {
-  if (!allAddresses.includes(address)) {
-    allAddresses.push(address);
-  }
-}
 
 export async function fetchOrDeployAdmin(
   provider: EthereumProvider,

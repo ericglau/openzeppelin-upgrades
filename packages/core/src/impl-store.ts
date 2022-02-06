@@ -25,7 +25,7 @@ interface ManifestField<T> {
  * @param provider the Ethereum provider
  * @param deploy the deploy function
  * @param opts options containing the timeout and pollingInterval parameters. If undefined, assumes the timeout is not configurable and will not mention those parameters in the error message for TransactionMinedTimeout.
- * @param forceDeploy if true, deploy without fetching existing deployment and allow address to clash. Defaults to false.
+ * @param append if true, adds an address to existing deployment. Defaults to false.
  * @returns the deployment address
  * @throws {InvalidDeployment} if the deployment is invalid
  * @throws {TransactionMinedTimeout} if the transaction was not confirmed within the timeout period
@@ -35,7 +35,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   provider: EthereumProvider,
   deploy: () => Promise<T>,
   opts?: DeployOpts,
-  forceDeploy?: boolean
+  append?: boolean
 ): Promise<string> {
   const manifest = await Manifest.forNetwork(provider);
 
@@ -45,8 +45,9 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const data = await manifest.read();
       const deployment = lens(data);
       let updated;
-      if (forceDeploy) {
+      if (append) {
         updated = await deploy();
+        await checkForAddressClash(provider, data, updated);
         if (deployment.add) {
           deployment.add(updated);
         } else {
@@ -96,9 +97,9 @@ export async function fetchOrDeploy(
   provider: EthereumProvider,
   deploy: () => Promise<ImplDeployment>,
   opts?: DeployOpts,
-  forceDeploy?: boolean 
+  append?: boolean 
 ): Promise<string> {
-  return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, forceDeploy);
+  return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, append);
 }
 
 export const implLens = (versionWithoutMetadata: string) =>
@@ -179,7 +180,7 @@ function lookupDeployment(data: ManifestData, address: string): ManifestField<De
   }
 
   for (const versionWithoutMetadata in data.impls) {
-    if (data.impls[versionWithoutMetadata]?.address === address) {
+    if (data.impls[versionWithoutMetadata]?.address === address || data.impls[versionWithoutMetadata]?.allAddresses?.includes(address)) {
       return implLens(versionWithoutMetadata)(data);
     }
   }

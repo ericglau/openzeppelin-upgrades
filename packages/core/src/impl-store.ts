@@ -15,6 +15,7 @@ interface ManifestLens<T> {
 interface ManifestField<T> {
   get(): T | undefined;
   set(value: T | undefined): void;
+  add?(value: T | undefined): void;
 }
 
 /**
@@ -46,7 +47,11 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       let updated;
       if (forceDeploy) {
         updated = await deploy();
-        deployment.set(updated);
+        if (deployment.add) {
+          deployment.add(updated);
+        } else {
+          deployment.set(updated);
+        }
         await manifest.write(data);
       } else {
         const stored = deployment.get();
@@ -99,11 +104,11 @@ export async function fetchOrDeploy(
 export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
-    set: (value?: ImplDeployment) => { 
+    set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
+    add: (value?: ImplDeployment) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
         const { address, allAddresses } = mergeAddresses(existing, value);
-
         data.impls[versionWithoutMetadata] = { ...value, address, allAddresses };
       } else {
         data.impls[versionWithoutMetadata] = value;

@@ -1,5 +1,5 @@
 export default {
-  files: ['test/*.js'],
+  files: ['test/import*.js'],
   ignoredByWatcher: ['**/*.ts', '.openzeppelin'],
   verbose: true,
   serial: true,

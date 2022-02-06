@@ -111,3 +111,24 @@ test('wrong implementation', async t => {
   t.true(NOT_MATCH_BYTECODE.test(e.message), e.message);
 });
 
+test('multiple identical implementations', async t => {
+  const { GreeterProxiable, ERC1967Proxy } = t.context;
+
+  const impl = await GreeterProxiable.deploy();
+  await impl.deployed();
+  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
+  await proxy.deployed();
+
+  const impl2 = await GreeterProxiable.deploy();
+  await impl2.deployed();
+  const proxy2 = await ERC1967Proxy.deploy(impl2.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']));
+  await proxy2.deployed();
+
+  const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
+  const greeterUpgraded = await upgrades.upgradeProxy(greeter, GreeterProxiable);
+  t.is(await greeterUpgraded.greet(), 'Hello, Hardhat!');
+
+  const greeter2 = await upgrades.importProxy(proxy2.address, GreeterProxiable);
+  const greeter2Upgraded = await upgrades.upgradeProxy(greeter2, GreeterProxiable);
+  t.is(await greeter2Upgraded.greet(), 'Hello, Hardhat 2!');
+});

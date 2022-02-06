@@ -37,6 +37,7 @@ function getInitializerData(
 }
 
 const NOT_MATCH_BYTECODE = /Contract does not match with implementation bytecode deployed at \S+/;
+const NOT_REGISTERED_ADMIN = "Proxy admin is not the one registered in the network manifest";
 
 test('transparent happy path', async t => {
   const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy} = t.context;
@@ -131,4 +132,34 @@ test('multiple identical implementations', async t => {
   const greeter2 = await upgrades.importProxy(proxy2.address, GreeterProxiable);
   const greeter2Upgraded = await upgrades.upgradeProxy(greeter2, GreeterProxiable);
   t.is(await greeter2Upgraded.greet(), 'Hello, Hardhat 2!');
+});
+
+test('import transparents with different admin', async t => {
+  const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy} = t.context;
+
+  const impl = await Greeter.deploy();
+  await impl.deployed();
+  const admin = await ProxyAdmin.deploy();
+  await admin.deployed();
+  const proxy = await TransparentUpgradableProxy.deploy(impl.address, admin.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
+  await proxy.deployed();
+
+  const admin2 = await ProxyAdmin.deploy();
+  await admin2.deployed();
+  const proxy2 = await TransparentUpgradableProxy.deploy(impl.address, admin2.address, getInitializerData(Greeter.interface, ['Hello, Hardhat 2!']));
+  await proxy2.deployed();
+
+  const greeter = await upgrades.importProxy(proxy.address, Greeter);
+  const greeter2 = await upgrades.importProxy(proxy2.address, Greeter);
+
+  t.not(await upgrades.erc1967.getAdminAddress(greeter2.address), await upgrades.erc1967.getAdminAddress(greeter.address));
+
+  // cannot upgrade directly
+  const e = await t.throwsAsync(() => upgrades.upgradeProxy(proxy.address, GreeterV2));
+  t.is(NOT_REGISTERED_ADMIN, e.message, e.message);
+
+  // prepare upgrades instead
+  const greeterV2ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV2);
+  const greeterV2ImplAddr_2 = await upgrades.prepareUpgrade(greeter2.address, GreeterV2);
+  t.is(greeterV2ImplAddr_2, greeterV2ImplAddr);
 });

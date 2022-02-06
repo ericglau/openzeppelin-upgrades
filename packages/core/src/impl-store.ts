@@ -1,6 +1,6 @@
 import debug from './utils/debug';
 import { Manifest, ManifestData, ImplDeployment } from './manifest';
-import { EthereumProvider, hasCode, isDevelopmentNetwork } from './provider';
+import { EthereumProvider, getCode, hasCode, isDevelopmentNetwork } from './provider';
 import { Deployment, InvalidDeployment, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import type { Version } from './version';
 import assert from 'assert';
@@ -132,15 +132,18 @@ export const implLens = (versionWithoutMetadata: string) =>
 async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, provider?: EthereumProvider) {
   let merged = new Set<string>();
 
-  // TODO cleanup
-  if (provider !== undefined) {
-    
-    console.log("HAS CODE AT " + existing.address + "?? " + await hasCode(provider, existing.address));
-  }
 
-  if (await checkHasCode(existing, existing.address, provider)) {
-    merged.add(existing.address);
+  // TODO allow force
+  if (!await checkMatchingCode(existing, existing.address, value.address, provider)) {
+    // if not matching code, assume all of the other addresses in allAddresses are also invalid
+    // therefore just return the new deployment as is
+
+    console.log("NOT MATCHING CODE AT " + existing.address);
+    return { address: value.address, allAddresses: value.allAddresses };
   }
+  console.log("HAS MATCHING CODE AT " + existing.address);
+
+  merged.add(existing.address);
   merged.add(value.address);
   if (existing.allAddresses !== undefined) {
     existing.allAddresses.forEach(item => merged.add(item))
@@ -152,13 +155,22 @@ async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, p
   return { address: existing.address, allAddresses: Array.from(merged) };
 }
 
-async function checkHasCode(existing: ImplDeployment, existingAddress: string, provider?: EthereumProvider) {
-  if (provider !== undefined && !await hasCode(provider, existingAddress)) {
-    if (await isDevelopmentNetwork(provider)) {
-      debug('omitting a previous deployment at address', existingAddress);
-      return false;
-    } else {
-      throw new InvalidDeployment(existing); // TODO pass in exisringAddress?
+async function checkMatchingCode(existing: ImplDeployment, existingAddress: string, newAddress: string, provider?: EthereumProvider) {
+  console.log("checkMatchingCode AT " + existing.address + " vs " + newAddress);
+
+  if (provider !== undefined) {
+    const existingCode = await getCode(provider, existingAddress);
+    console.log("existingCode " + existingCode);
+
+    const newCode = await getCode(provider, newAddress);
+    console.log("newCode " + existingCode);
+    if (existingCode === '0x' || existingCode !== newCode) {
+      if (await isDevelopmentNetwork(provider)) {
+        debug('omitting a previous deployment at address', existingAddress);
+        return false;
+      } else {
+        throw new InvalidDeployment(existing); // TODO pass in existingAddress?
+      }
     }
   }
   return true;

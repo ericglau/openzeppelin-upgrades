@@ -170,6 +170,7 @@ async function checkMatchingCode(existing: ImplDeployment, existingAddress: stri
         return false;
       } else {
         throw new InvalidDeployment(existing); // TODO pass in existingAddress?
+        // TODO give a different error if the existing code was different
       }
     }
   }

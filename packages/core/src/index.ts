@@ -31,7 +31,7 @@ export { UpgradeableContract } from './standalone';
 export { isTransparentOrUUPSProxy, isBeaconProxy } from './eip-1967-type';
 export { getImplementationAddressFromBeacon, getImplementationAddressFromProxy } from './impl-address';
 export { isBeacon } from './beacon';
-export { isBytecodeMatch, detectProxyKindFromBytecode } from './bytecode-match';
+export { compareBytecode, detectProxyKindFromBytecode } from './bytecode-match';
 
 export {
   BeaconProxyUnsupportedError,

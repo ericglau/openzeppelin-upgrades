@@ -11,15 +11,22 @@ import { logWarning } from "./utils/log";
  * @param creationCode the creation code that may have deployed the contract
  * @returns true if the creation code contains the runtime code
  */
-export async function isBytecodeMatch(provider: EthereumProvider, addr: string, creationCode: string) {
+async function isBytecodeMatch(provider: EthereumProvider, addr: string, creationCode: string) {
   const implBytecode = await getCode(provider, addr);
   return compareBytecode(creationCode, implBytecode);
 }
 
-function compareBytecode(creationCode: string, deployedBytecode: string) {
+/**
+ * Determines whether runtime bytecode matches with contract creation code.
+ *  
+ * @param creationCode the creation code that may have deployed a contract
+ * @param runtimeBytecode the runtime bytecode that was deployed
+ * @returns true if the creation code contains the runtime code
+ */
+export async function compareBytecode(creationCode: string, runtimeBytecode: string) {
   const creationCodeWithoutPrefix = creationCode.replace(/^0x/, '');
-  const deployedBytecodeWithoutPrefix = deployedBytecode.replace(/^0x/, '');
-  return creationCodeWithoutPrefix.includes(deployedBytecodeWithoutPrefix);
+  const runtimeBytecodeWithoutPrefix = runtimeBytecode.replace(/^0x/, '');
+  return creationCodeWithoutPrefix.includes(runtimeBytecodeWithoutPrefix);
 }
 
 interface ProxyCreationCodes {

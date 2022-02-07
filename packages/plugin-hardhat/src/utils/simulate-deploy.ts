@@ -1,5 +1,5 @@
 import {
-  fetchOrDeploy, fetchOrDeployAdmin, logWarning,
+  fetchOrDeploy, fetchOrDeployAdmin, hashBytecode, logWarning,
 } from '@openzeppelin/upgrades-core';
 import type { ContractFactory } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
@@ -18,28 +18,29 @@ export async function simulateDeployAdmin(hre: HardhatRuntimeEnvironment, ProxyA
   }
 }
 
-export async function simulateDeployImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: Options, implAddress: string) {
-  const { deployData, simulateDeploy } = await simulateDeployment(hre, ImplFactory, opts, implAddress);
+export async function simulateDeployImpl(hre: HardhatRuntimeEnvironment, ImplFactory: ContractFactory, opts: Options, implAddress: string, runtimeBytecode: string) {
+  const { deployData, simulateDeploy } = await simulateDeployment(hre, ImplFactory, opts, implAddress, runtimeBytecode);
   await fetchOrDeploy(deployData.version, deployData.provider, simulateDeploy, opts, true);
 }
 
 async function simulateDeployment(hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,
   opts: Options,
-  implAddress: string) {
+  implAddress: string,
+  runtimeBytecode?: string) {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-  const simulateDeploy = await getSimulateDeploy(deployData, ImplFactory, implAddress);
+  const simulateDeploy = await getSimulateDeploy(deployData, ImplFactory, implAddress, runtimeBytecode && hashBytecode(runtimeBytecode));
   return { deployData, simulateDeploy };
 }
 
 /**
  * Gets a function that returns a simulated deployment of the given contract to the given address.
  */
-async function getSimulateDeploy(deployData: DeployData, contractFactory: ContractFactory, addr: string) {
+async function getSimulateDeploy(deployData: DeployData, contractFactory: ContractFactory, addr: string, bytecodeHash?: string) {
   const simulateDeploy = async () => {
     const abi = contractFactory.interface.format(FormatTypes.minimal) as string[];
     const deployment = Object.assign({ abi });
-    return { ...deployment, layout: deployData.layout, address: addr };
+    return { ...deployment, layout: deployData.layout, address: addr, bytecodeHash };
   };
   return simulateDeploy;
 }

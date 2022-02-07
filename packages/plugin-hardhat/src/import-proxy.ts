@@ -9,8 +9,9 @@ import {
   EthereumProvider,
   UpgradesError,
   getAdminAddress,
-  isBytecodeMatch,
+  compareBytecode,
   detectProxyKindFromBytecode,
+  getCode,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -53,11 +54,12 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
 }
 
 async function addImplToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, implAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {
-  const implMatch = await isBytecodeMatch(provider, implAddress, ImplFactory.bytecode);
+  const runtimeBytecode = await getCode(provider, implAddress);
+  const implMatch = await compareBytecode(ImplFactory.bytecode, runtimeBytecode);
   if (!implMatch) {
     throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
   }
-  await simulateDeployImpl(hre, ImplFactory, opts, implAddress);
+  await simulateDeployImpl(hre, ImplFactory, opts, implAddress, runtimeBytecode);
 }
 
 async function addAdminToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, proxyAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {

@@ -23,6 +23,7 @@ export interface ManifestData {
 export interface ImplDeployment extends Deployment {
   layout: StorageLayout;
   allAddresses?: string[];
+  bytecodeHash?: string;
 }
 
 export interface ProxyDeployment extends Deployment {
@@ -167,7 +168,7 @@ export function normalizeManifestData(input: ManifestData): ManifestData {
     manifestVersion: input.manifestVersion,
     admin: input.admin && normalizeDeployment(input.admin),
     proxies: input.proxies.map(p => normalizeDeployment(p, ['kind'])),
-    impls: mapValues(input.impls, i => i && normalizeDeployment(i, ['layout', 'allAddresses'])),
+    impls: mapValues(input.impls, i => i && normalizeDeployment(i, ['layout', 'allAddresses', 'bytecodeHash'])),
   };
 }
 

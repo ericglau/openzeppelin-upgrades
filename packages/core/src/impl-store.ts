@@ -1,10 +1,10 @@
 import debug from './utils/debug';
 import { Manifest, ManifestData, ImplDeployment } from './manifest';
 import { EthereumProvider, getCode, hasCode, isDevelopmentNetwork } from './provider';
-import { Deployment, InvalidDeployment, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
+import { Deployment, InvalidDeployment, Reason, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import { hashBytecode, Version } from './version';
 import assert from 'assert';
-import { DeployOpts } from '.';
+import { DeployOpts, isEmpty } from '.';
 import { exit } from 'process';
 
 interface ManifestLens<T> {
@@ -48,7 +48,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const data = await manifest.read();
       const deployment = lens(data);
       let updated;
-      let stored = await validateAndGet<T>(deployment, lens, provider);
+      let stored = await getAndValidate<T>(deployment, lens, provider);
       if (append) {
         updated = await deploy();
         await checkForAddressClash(provider, data, updated);
@@ -85,20 +85,18 @@ async function fetchOrDeployGeneric<T extends Deployment>(
           await manifest.write(data);
         }
       });
-      e.removed = true;
+      e.reason = Reason.Removed;
     }
 
     throw e;
   }
 }
 
-async function validateAndGet<T extends Deployment>(deployment: ManifestField<T>, lens: ManifestLens<T>, provider: EthereumProvider) {
+async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>, lens: ManifestLens<T>, provider: EthereumProvider) {
   let stored = deployment.get();
   if (stored === undefined) {
     debug('deployment of', lens.description, 'not found');
-  }
-  // check if stored is valid -- check if it has code
-  if (stored !== undefined) {
+  } else {
     const existingBytecode = await getCode(provider, stored.address);
     const isDevNet = await isDevelopmentNetwork(provider);
 
@@ -107,7 +105,7 @@ async function validateAndGet<T extends Deployment>(deployment: ManifestField<T>
         debug('omitting a previous deployment due to no bytecode at address', stored.address);
         stored = undefined;
       } else {
-        throw new InvalidDeployment(stored);
+        throw new InvalidDeployment(stored, Reason.NoBytecode);
       }
     }
     if (stored !== undefined && deployment.getBytecodeHash) {
@@ -124,8 +122,7 @@ function validate<T extends Deployment>(deployment: T, existingBytecodeHash: str
       debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
       return undefined;
     } else {
-      throw new InvalidDeployment(deployment);
-      // TODO give a different error if the existing code was different
+      throw new InvalidDeployment(deployment, Reason.MismatchedBytecode);
     }
   }
   return deployment;
@@ -197,13 +194,12 @@ async function checkMatchingCode(existing: ImplDeployment, existingAddress: stri
 
     const newCode = await getCode(provider, newAddress);
     console.log("newCode " + existingCode);
-    if (existingCode === '0x' || existingCode !== newCode) {
+    if (isEmpty(existingCode) || existingCode !== newCode) {
       if (await isDevelopmentNetwork(provider)) {
         debug('omitting a previous deployment at address', existingAddress);
         return false;
       } else {
-        throw new InvalidDeployment(existing); // TODO pass in existingAddress?
-        // TODO give a different error if the existing code was different
+        throw new InvalidDeployment(existing, isEmpty(existingCode) ? Reason.NoBytecode : Reason.MismatchedBytecode);
       }
     }
   }

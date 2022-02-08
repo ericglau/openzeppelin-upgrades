@@ -18,6 +18,7 @@ interface ManifestField<T> {
   set(value: T | undefined): void;
   validate?(expectedBytecode: string, isDevNet: boolean): T | undefined;
   import?(value: T | undefined, expectedBytecode?: string): Promise<void>;
+  getBytecodeHash?(): string | undefined;
 }
 
 /**
@@ -47,27 +48,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const data = await manifest.read();
       const deployment = lens(data);
       let updated;
-      let stored = deployment.get();
-      if (stored === undefined) {
-        debug('deployment of', lens.description, 'not found');
-      }
-      // check if stored is valid -- check if it has code
-      if (stored !== undefined) {
-        const existingBytecode = await getCode(provider, stored.address);
-        const isDevNet = await isDevelopmentNetwork(provider);
-
-        if (existingBytecode === undefined) {
-          if (isDevNet) {
-            debug('omitting a previous deployment due to no bytecode at address', stored.address);
-            stored = undefined;
-          } else {
-            throw new InvalidDeployment(stored);
-          }
-        }
-        if (stored !== undefined && deployment.validate) {
-          stored = deployment.validate(existingBytecode, isDevNet);
-        }
-      }
+      let stored = await validateAndGet<T>(deployment, lens, provider);
       if (append) {
         updated = await deploy();
         await checkForAddressClash(provider, data, updated);
@@ -111,6 +92,45 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   }
 }
 
+async function validateAndGet<T extends Deployment>(deployment: ManifestField<T>, lens: ManifestLens<T>, provider: EthereumProvider) {
+  let stored = deployment.get();
+  if (stored === undefined) {
+    debug('deployment of', lens.description, 'not found');
+  }
+  // check if stored is valid -- check if it has code
+  if (stored !== undefined) {
+    const existingBytecode = await getCode(provider, stored.address);
+    const isDevNet = await isDevelopmentNetwork(provider);
+
+    if (existingBytecode === undefined) {
+      if (isDevNet) {
+        debug('omitting a previous deployment due to no bytecode at address', stored.address);
+        stored = undefined;
+      } else {
+        throw new InvalidDeployment(stored);
+      }
+    }
+    if (stored !== undefined && deployment.getBytecodeHash) {
+      stored = validate(stored, hashBytecode(existingBytecode), isDevNet, deployment.getBytecodeHash());
+    }
+  }
+  return stored;
+}
+
+function validate<T extends Deployment>(deployment: T, existingBytecodeHash: string, isDevNet: boolean, storedBytecodeHash?: string) {
+  console.log("GET FROM IMPL DEPLOYMENT WITH storedBytecodeHash " + storedBytecodeHash + ", COMPARING WITH " + existingBytecodeHash);
+  if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
+    if (isDevNet) {
+      debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
+      return undefined;
+    } else {
+      throw new InvalidDeployment(deployment);
+      // TODO give a different error if the existing code was different
+    }
+  }
+  return deployment;
+}
+
 export async function fetchOrDeploy(
   version: Version,
   provider: EthereumProvider,
@@ -125,26 +145,7 @@ export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
-    validate: (existingBytecode: string, isDevNet: boolean) => {
-      const deployment = data.impls[versionWithoutMetadata];
-      if (deployment === undefined) {
-        return undefined;
-      }
-      const existingBytecodeHash = hashBytecode(existingBytecode);
-
-      const storedBytecodeHash = deployment.bytecodeHash;
-      console.log("GET FROM IMPL DEPLOYMENT WITH storedBytecodeHash " + storedBytecodeHash + ", COMPARING WITH " + existingBytecodeHash);
-      if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
-        if (isDevNet) {
-          debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
-          return undefined;
-        } else {
-          throw new InvalidDeployment(deployment);
-          // TODO give a different error if the existing code was different
-        }
-      }
-      return data.impls[versionWithoutMetadata];
-    },
+    getBytecodeHash: () => data.impls[versionWithoutMetadata]?.bytecodeHash,
     import: async (value?: ImplDeployment, expectedBytecode?: string, provider?: EthereumProvider) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {

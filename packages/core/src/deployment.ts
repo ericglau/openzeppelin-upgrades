@@ -60,12 +60,20 @@ export async function resumeOrDeploy<T extends Deployment>(
       // a development network then we simply silently redeploy.
       throw new InvalidDeployment(cached);
     } else {
-      debug('ignoring invalid deployment in development network', txHash);
+      if (txHash === undefined) {
+        debug('ignoring invalid deployment in development network - no code at address', cached.address);
+      } else {
+        debug('ignoring invalid deployment in development network', txHash);
+      }
     }
   }
 
   const deployment = await deploy();
-  debug('initiated deployment', deployment.txHash);
+  if (deployment.txHash !== undefined) {
+    debug('initiated deployment', deployment.txHash);
+  } else {
+    debug('imported deployment');
+  }
   return deployment;
 }
 

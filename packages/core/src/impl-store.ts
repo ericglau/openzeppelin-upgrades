@@ -5,6 +5,7 @@ import { Deployment, InvalidDeployment, resumeOrDeploy, waitAndValidateDeploymen
 import { hashBytecode, Version } from './version';
 import assert from 'assert';
 import { DeployOpts } from '.';
+import { exit } from 'process';
 
 interface ManifestLens<T> {
   description: string;
@@ -13,9 +14,10 @@ interface ManifestLens<T> {
 }
 
 interface ManifestField<T> {
-  get(expectedBytecodeHash?: string, isDevNet?: boolean): T | undefined;
+  get(): T | undefined;
   set(value: T | undefined): void;
-  add?(value: T | undefined, provider: EthereumProvider): Promise<void>;//, validateExistingAddress: (existingAddr: string) => Promise<T>): void;
+  validate?(expectedBytecode?: string, isDevNet?: boolean): T | undefined;
+  import?(value: T | undefined, expectedBytecode?: string): Promise<void>;
 }
 
 /**
@@ -45,11 +47,15 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const data = await manifest.read();
       const deployment = lens(data);
       let updated;
+      let stored = deployment.get();
+      if (stored !== undefined && deployment.validate) {
+        stored = deployment.validate(await getCode(provider, stored.address), await isDevelopmentNetwork(provider));
+      }
       if (append) {
         updated = await deploy();
         await checkForAddressClash(provider, data, updated);
-        if (deployment.add) {
-          await deployment.add(updated, provider);
+        if (deployment.import) {
+          await deployment.import(updated);
           // , async (existingAddress: string) => { 
           //   if (!await hasCode(provider, existingAddress)) {
           //     throw new InvalidDeployment(existingAddress);
@@ -60,11 +66,10 @@ async function fetchOrDeployGeneric<T extends Deployment>(
         }
         await manifest.write(data);
       } else {
-        const stored1 = deployment.get();
-        let stored = undefined;
-        if (stored1 !== undefined) {
-          stored = deployment.get(hashBytecode(await getCode(provider, stored1.address)), await isDevelopmentNetwork(provider));
-        }
+        // let validatedDepl = undefined;
+        // if (stored !== undefined && deployment.validate) {
+        //   validatedDepl = deployment.validate(hashBytecode(await getCode(provider, stored.address)), await isDevelopmentNetwork(provider));
+        // }
         if (stored === undefined) {
           debug('deployment of', lens.description, 'not found');
         }
@@ -113,16 +118,28 @@ export async function fetchOrDeploy(
 
 export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
-    get: (expectedBytecodeHash?: string, isDevNet?: boolean) => {
+    get: () => data.impls[versionWithoutMetadata],
+    set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
+    validate: (existingBytecode?: string, isDevNet?: boolean) => {
       const deployment = data.impls[versionWithoutMetadata];
       if (deployment === undefined) {
-        return;
+        return undefined;
       }
-      const storedBytecodeHash = deployment.bytecodeHash;
-      console.log("GET FROM IMPL DEPLOYMENT WITH storedBytecodeHash " + storedBytecodeHash + ", COMPARING WITH " + expectedBytecodeHash);
-      if (expectedBytecodeHash !== undefined && storedBytecodeHash !== expectedBytecodeHash) {
+      if (existingBytecode === undefined) {
         if (isDevNet) {
-          debug('omitting a previous deployment at address', deployment.address);
+          debug('omitting a previous deployment due to no bytecode at address', deployment.address);
+          return undefined;
+        } else {
+          throw new InvalidDeployment(deployment);
+        }
+      }
+      const existingBytecodeHash = hashBytecode(existingBytecode);
+
+      const storedBytecodeHash = deployment.bytecodeHash;
+      console.log("GET FROM IMPL DEPLOYMENT WITH storedBytecodeHash " + storedBytecodeHash + ", COMPARING WITH " + existingBytecodeHash);
+      if (storedBytecodeHash !== existingBytecodeHash) {
+        if (isDevNet) {
+          debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
           return undefined;
         } else {
           throw new InvalidDeployment(deployment);
@@ -131,8 +148,7 @@ export const implLens = (versionWithoutMetadata: string) =>
       }
       return data.impls[versionWithoutMetadata];
     },
-    set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
-    add: async (value?: ImplDeployment, provider?: EthereumProvider) => { 
+    import: async (value?: ImplDeployment, expectedBytecode?: string, provider?: EthereumProvider) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
         const { address, allAddresses } = await mergeAddresses(existing, value, provider);
@@ -153,13 +169,11 @@ export const implLens = (versionWithoutMetadata: string) =>
 async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, provider?: EthereumProvider) {
   let merged = new Set<string>();
 
-
   // TODO allow force
   if (!await checkMatchingCode(existing, existing.address, value.address, provider)) {
     // if not matching code, assume all of the other addresses in allAddresses are also invalid
     // therefore just return the new deployment as is
-
-    console.log("NOT MATCHING CODE AT " + existing.address);
+     console.log("NOT MATCHING CODE AT " + existing.address);
     return { address: value.address, allAddresses: value.allAddresses };
   }
   console.log("HAS MATCHING CODE AT " + existing.address);

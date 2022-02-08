@@ -137,7 +137,7 @@ export const implLens = (versionWithoutMetadata: string) =>
 
       const storedBytecodeHash = deployment.bytecodeHash;
       console.log("GET FROM IMPL DEPLOYMENT WITH storedBytecodeHash " + storedBytecodeHash + ", COMPARING WITH " + existingBytecodeHash);
-      if (storedBytecodeHash !== existingBytecodeHash) {
+      if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
         if (isDevNet) {
           debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
           return undefined;

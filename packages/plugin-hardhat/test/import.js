@@ -184,6 +184,9 @@ test('import transparents with different admin', async t => {
 
   // prepare upgrades instead
   const greeterV2ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV2);
+  console.log("impl address 1 " + (greeterV2ImplAddr));
   const greeterV2ImplAddr_2 = await upgrades.prepareUpgrade(greeter2.address, GreeterV2);
+  console.log("impl address 2 " + (greeterV2ImplAddr_2));
+
   t.is(greeterV2ImplAddr_2, greeterV2ImplAddr);
 });

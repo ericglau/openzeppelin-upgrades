@@ -105,8 +105,7 @@ async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>
       } else {
         throw new InvalidDeployment(stored, Reason.NoBytecode);
       }
-    }
-    if (stored !== undefined && deployment.getBytecodeHash) {
+    } else if (deployment.getBytecodeHash) {
       stored = validate(stored, hashBytecode(existingBytecode), isDevNet, deployment.getBytecodeHash());
     }
   }

@@ -56,20 +56,11 @@ async function fetchOrDeployGeneric<T extends Deployment>(
         await checkForAddressClash(provider, data, updated);
         if (deployment.import) {
           await deployment.import(updated);
-          // , async (existingAddress: string) => { 
-          //   if (!await hasCode(provider, existingAddress)) {
-          //     throw new InvalidDeployment(existingAddress);
-          //   }
-          // });
         } else {
           deployment.set(updated);
         }
         await manifest.write(data);
       } else {
-        // let validatedDepl = undefined;
-        // if (stored !== undefined && deployment.validate) {
-        //   validatedDepl = deployment.validate(hashBytecode(await getCode(provider, stored.address)), await isDevelopmentNetwork(provider));
-        // }
         if (stored === undefined) {
           debug('deployment of', lens.description, 'not found');
         }

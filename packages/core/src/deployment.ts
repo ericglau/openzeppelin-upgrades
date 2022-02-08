@@ -108,9 +108,6 @@ export async function waitAndValidateDeployment(
         }
       }
     }
-  } else {
-  // TODO if txHash undefined, validate code against creationCode
-
   }
 
   debug('verifying code in target address', address);

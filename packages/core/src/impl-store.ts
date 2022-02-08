@@ -16,7 +16,7 @@ interface ManifestLens<T> {
 interface ManifestField<T> {
   get(): T | undefined;
   set(value: T | undefined): void;
-  validate?(expectedBytecode?: string, isDevNet?: boolean): T | undefined;
+  validate?(expectedBytecode: string, isDevNet: boolean): T | undefined;
   import?(value: T | undefined, expectedBytecode?: string): Promise<void>;
 }
 
@@ -48,8 +48,25 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const deployment = lens(data);
       let updated;
       let stored = deployment.get();
-      if (stored !== undefined && deployment.validate) {
-        stored = deployment.validate(await getCode(provider, stored.address), await isDevelopmentNetwork(provider));
+      if (stored === undefined) {
+        debug('deployment of', lens.description, 'not found');
+      }
+      // check if stored is valid -- check if it has code
+      if (stored !== undefined) {
+        const existingBytecode = await getCode(provider, stored.address);
+        const isDevNet = await isDevelopmentNetwork(provider);
+
+        if (existingBytecode === undefined) {
+          if (isDevNet) {
+            debug('omitting a previous deployment due to no bytecode at address', stored.address);
+            stored = undefined;
+          } else {
+            throw new InvalidDeployment(stored);
+          }
+        }
+        if (stored !== undefined && deployment.validate) {
+          stored = deployment.validate(existingBytecode, isDevNet);
+        }
       }
       if (append) {
         updated = await deploy();
@@ -59,11 +76,8 @@ async function fetchOrDeployGeneric<T extends Deployment>(
         } else {
           deployment.set(updated);
         }
-        await manifest.write(data);
+        await manifest.write(data);  
       } else {
-        if (stored === undefined) {
-          debug('deployment of', lens.description, 'not found');
-        }
         updated = await resumeOrDeploy(provider, stored, deploy);
         if (updated !== stored) {
           await checkForAddressClash(provider, data, updated);
@@ -111,18 +125,10 @@ export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
-    validate: (existingBytecode?: string, isDevNet?: boolean) => {
+    validate: (existingBytecode: string, isDevNet: boolean) => {
       const deployment = data.impls[versionWithoutMetadata];
       if (deployment === undefined) {
         return undefined;
-      }
-      if (existingBytecode === undefined) {
-        if (isDevNet) {
-          debug('omitting a previous deployment due to no bytecode at address', deployment.address);
-          return undefined;
-        } else {
-          throw new InvalidDeployment(deployment);
-        }
       }
       const existingBytecodeHash = hashBytecode(existingBytecode);
 

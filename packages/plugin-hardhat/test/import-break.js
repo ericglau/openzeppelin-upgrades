@@ -41,6 +41,8 @@ test('deploy then import then upgrade', async t => {
   const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
   await proxy.deployed();
 
+  console.log("BEFOER IMPORE PROXY ");
+
   // import the other proxy - now the manifest has two addresses for impl
   const greeterImported = await upgrades.importProxy(proxy.address, GreeterProxiable);
   t.is(await greeterImported.greet(), 'Hello, Hardhat!');

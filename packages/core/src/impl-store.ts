@@ -1,11 +1,10 @@
 import debug from './utils/debug';
 import { Manifest, ManifestData, ImplDeployment } from './manifest';
-import { EthereumProvider, getCode, hasCode, isDevelopmentNetwork } from './provider';
+import { EthereumProvider, getCode, isDevelopmentNetwork } from './provider';
 import { Deployment, InvalidDeployment, Reason, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import { hashBytecode, Version } from './version';
 import assert from 'assert';
-import { DeployOpts, isEmpty } from '.';
-import { exit } from 'process';
+import { DeployOpts } from '.';
 
 interface ManifestLens<T> {
   description: string;
@@ -16,8 +15,7 @@ interface ManifestLens<T> {
 interface ManifestField<T> {
   get(): T | undefined;
   set(value: T | undefined): void;
-  validate?(expectedBytecode: string, isDevNet: boolean): T | undefined;
-  import?(value: T | undefined, expectedBytecode?: string): Promise<void>;
+  import?(value: T | undefined): Promise<void>;
   getBytecodeHash?(): string | undefined;
 }
 
@@ -143,10 +141,10 @@ export const implLens = (versionWithoutMetadata: string) =>
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
     getBytecodeHash: () => data.impls[versionWithoutMetadata]?.bytecodeHash,
-    import: async (value?: ImplDeployment, expectedBytecode?: string, provider?: EthereumProvider) => { 
+    import: async (value?: ImplDeployment) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
-        const { address, allAddresses } = await mergeAddresses(existing, value, provider);
+        const { address, allAddresses } = await mergeAddresses(existing, value);
         data.impls[versionWithoutMetadata] = { ...value, address, allAddresses };
       } else {
         data.impls[versionWithoutMetadata] = value;
@@ -164,17 +162,9 @@ export const implLens = (versionWithoutMetadata: string) =>
 async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, provider?: EthereumProvider) {
   let merged = new Set<string>();
 
-  // TODO allow force
-  if (!await checkMatchingCode(existing, existing.address, value.address, provider)) {
-    // if not matching code, assume all of the other addresses in allAddresses are also invalid
-    // therefore just return the new deployment as is
-     console.log("NOT MATCHING CODE AT " + existing.address);
-    return { address: value.address, allAddresses: value.allAddresses };
-  }
-  console.log("HAS MATCHING CODE AT " + existing.address);
-
   merged.add(existing.address);
   merged.add(value.address);
+
   if (existing.allAddresses !== undefined) {
     existing.allAddresses.forEach(item => merged.add(item))
   }
@@ -183,27 +173,6 @@ async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, p
   }
 
   return { address: existing.address, allAddresses: Array.from(merged) };
-}
-
-async function checkMatchingCode(existing: ImplDeployment, existingAddress: string, newAddress: string, provider?: EthereumProvider) {
-  console.log("checkMatchingCode AT " + existing.address + " vs " + newAddress);
-
-  if (provider !== undefined) {
-    const existingCode = await getCode(provider, existingAddress);
-    console.log("existingCode " + existingCode);
-
-    const newCode = await getCode(provider, newAddress);
-    console.log("newCode " + existingCode);
-    if (isEmpty(existingCode) || existingCode !== newCode) {
-      if (await isDevelopmentNetwork(provider)) {
-        debug('omitting a previous deployment at address', existingAddress);
-        return false;
-      } else {
-        throw new InvalidDeployment(existing, isEmpty(existingCode) ? Reason.NoBytecode : Reason.MismatchedBytecode);
-      }
-    }
-  }
-  return true;
 }
 
 export async function fetchOrDeployAdmin(

@@ -39,11 +39,9 @@ export async function resumeOrDeploy<T extends Deployment>(
   if (cached !== undefined) {
     const { txHash } = cached;
     if (txHash === undefined) {
-      if (await hasCode(provider, cached.address)) {
-        // Nothing to do here without a txHash.
-        // This is the case for deployments migrated from OpenZeppelin CLI.
-        return cached;
-      }
+      // Nothing to do here without a txHash.
+      // This is the case for deployments migrated from OpenZeppelin CLI.
+      return cached;
     } else {
       // If there is a deployment with txHash stored, we look its transaction up. If the
       // transaction is found, the deployment is reused.
@@ -60,20 +58,12 @@ export async function resumeOrDeploy<T extends Deployment>(
       // a development network then we simply silently redeploy.
       throw new InvalidDeployment(cached);
     } else {
-      if (txHash === undefined) {
-        debug('ignoring invalid deployment in development network - no code at address', cached.address);
-      } else {
-        debug('ignoring invalid deployment in development network', txHash);
-      }
+      debug('ignoring invalid deployment in development network', txHash);
     }
   }
 
   const deployment = await deploy();
-  if (deployment.txHash !== undefined) {
-    debug('initiated deployment', deployment.txHash);
-  } else {
-    debug('imported deployment');
-  }
+  debug('initiated deployment', deployment.txHash);
   return deployment;
 }
 

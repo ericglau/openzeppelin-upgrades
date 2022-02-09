@@ -143,37 +143,31 @@ test('multiple identical implementations', async t => {
   const proxy2 = await ERC1967Proxy.deploy(impl2.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']));
   await proxy2.deployed();
 
-  //const proxy3 = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat 3!']);
-
-
-  const BEFORE_IMPORT = await GreeterProxiable.attach(proxy.address);
-  console.log("BEFORE IMPORT " + await BEFORE_IMPORT.greet());
-  console.log("IMPL IS AT " + await upgrades.erc1967.getImplementationAddress(proxy.address));
-
   const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
-
-  const AFTER_IMPORT = await GreeterProxiable.attach(proxy.address);
-  console.log("AFTER IMPORT " + await AFTER_IMPORT.greet());
-  console.log("IMPL IS AT " + await upgrades.erc1967.getImplementationAddress(proxy.address));
-  console.log("PROXY ADDRESS " + (proxy.address));
-  console.log("GREETER ADDRESS " + (greeter.address));
-
-  const greeterUpgraded = await upgrades.upgradeProxy(greeter, GreeterProxiable);
-  //t.is(await greeterUpgraded.greet(), 'Hello, Hardhat!');
-
-
-  const AFTER_UPGRADE = await GreeterProxiable.attach(proxy.address);
-  console.log("AFTER UPGRADE1");
-  console.log("IMPL IS AT " + await upgrades.erc1967.getImplementationAddress(proxy.address));
-  console.log("PROXY ADDRESS " + (proxy.address));
-  console.log("GREETER ADDRESS " + (greeter.address));
-  console.log("AFTER UPGRADE " + await AFTER_UPGRADE.greet());
-
-
+  const greeterUpgraded = await upgrades.upgradeProxy(greeter, GreeterV2Proxiable);
+  t.is(await greeterUpgraded.greet(), 'Hello, Hardhat!');
 
   const greeter2 = await upgrades.importProxy(proxy2.address, GreeterProxiable);
-  const greeter2Upgraded = await upgrades.upgradeProxy(greeter2, GreeterProxiable);
+  const greeter2Upgraded = await upgrades.upgradeProxy(greeter2, GreeterV2Proxiable);
   t.is(await greeter2Upgraded.greet(), 'Hello, Hardhat 2!');
+});
+
+test('same implementation', async t => {
+  const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
+
+  const impl = await GreeterProxiable.deploy();
+  await impl.deployed();
+  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
+  await proxy.deployed();
+  const proxy2 = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']));
+  await proxy2.deployed();
+
+  const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
+  const greeter2 = await upgrades.importProxy(proxy2.address, GreeterProxiable);
+
+  const implAddr1 = await upgrades.erc1967.getImplementationAddress(greeter.address);
+  const implAddr2 = await upgrades.erc1967.getImplementationAddress(greeter2.address);
+  t.is(implAddr2, implAddr1);
 });
 
 test('import transparents with different admin', async t => {

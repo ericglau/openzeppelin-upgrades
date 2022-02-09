@@ -39,15 +39,8 @@ test('import then deploy with same impl', async t => {
   const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
-  const implAddr1 = await upgrades.erc1967.getImplementationAddress(greeter.address);
-  console.log("IMPL ADDR IMPORTED " + implAddr1);
-
   const greeter2 = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat 2!']);
   await greeter2.deployed();
-
-  const implAddr2 = await upgrades.erc1967.getImplementationAddress(greeter2.address);
-  console.log("IMPL ADDR 2 IMPORTED " + implAddr2);
-
 
   t.is(await upgrades.erc1967.getImplementationAddress(greeter2.address), await upgrades.erc1967.getImplementationAddress(greeter.address));
 });

@@ -109,6 +109,9 @@ async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>
       stored = validate(stored, hashBytecode(existingBytecode), isDevNet, deployment.getBytecodeHash());
     }
   }
+  if (stored === undefined) {
+    deployment.set(undefined);
+  }
   return stored;
 }
 
@@ -158,7 +161,7 @@ export const implLens = (versionWithoutMetadata: string) =>
  * @param existing existing deployment
  * @param value deployment to write
  */
-async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment, provider?: EthereumProvider) {
+async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
   let merged = new Set<string>();
 
   merged.add(existing.address);

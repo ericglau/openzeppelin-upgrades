@@ -11,6 +11,7 @@ test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
   t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable');
+  t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable');
 
   t.context.ProxyAdmin = await ethers.getContractFactory(ProxyAdmin.abi, ProxyAdmin.bytecode);
   t.context.TransparentUpgradableProxy = await ethers.getContractFactory(TransparentUpgradableProxy.abi, TransparentUpgradableProxy.bytecode);
@@ -38,14 +39,21 @@ test('import then deploy with same impl', async t => {
   const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
+  const implAddr1 = await upgrades.erc1967.getImplementationAddress(greeter.address);
+  console.log("IMPL ADDR IMPORTED " + implAddr1);
+
   const greeter2 = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat 2!']);
   await greeter2.deployed();
+
+  const implAddr2 = await upgrades.erc1967.getImplementationAddress(greeter2.address);
+  console.log("IMPL ADDR 2 IMPORTED " + implAddr2);
+
 
   t.is(await upgrades.erc1967.getImplementationAddress(greeter2.address), await upgrades.erc1967.getImplementationAddress(greeter.address));
 });
 
 test('deploy then import with same impl', async t => {
-  const { GreeterProxiable, ERC1967Proxy } = t.context;
+  const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
 
   const greeter = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat!']);
   await greeter.deployed();
@@ -58,7 +66,19 @@ test('deploy then import with same impl', async t => {
   const greeter2 = await upgrades.importProxy(proxy.address, GreeterProxiable);
   t.is(await greeter2.greet(), 'Hello, Hardhat 2!');
 
-  t.not(await upgrades.erc1967.getImplementationAddress(greeter2.address), await upgrades.erc1967.getImplementationAddress(greeter.address));
+  const implAddr1 = await upgrades.erc1967.getImplementationAddress(greeter.address);
+  const implAddr2 = await upgrades.erc1967.getImplementationAddress(greeter2.address);
+  t.not(implAddr2, implAddr1);
+
+  // upgrade imported proxy to the same impl
+  await upgrades.upgradeProxy(greeter2, GreeterProxiable);
+  const implAddrUpgraded = await upgrades.erc1967.getImplementationAddress(greeter2.address);
+  t.true(implAddrUpgraded === implAddr1 || implAddrUpgraded === implAddr2, implAddrUpgraded);
+
+  // upgrade imported proxy to different impl
+  await upgrades.upgradeProxy(greeter2, GreeterV2Proxiable);
+  const implAddrUpgraded2 = await upgrades.erc1967.getImplementationAddress(greeter2.address);
+  t.not(implAddrUpgraded2 !== implAddrUpgraded, implAddrUpgraded2);
 });
 
 test('import previous deployment', async t => {

@@ -1,6 +1,6 @@
 import debug from './utils/debug';
 import { Manifest, ManifestData, ImplDeployment, AdminDeployment } from './manifest';
-import { EthereumProvider, getCode, isDevelopmentNetwork } from './provider';
+import { EthereumProvider, getCode, isDevelopmentNetwork, isEmpty } from './provider';
 import { Deployment, InvalidDeployment, Reason, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import { hashBytecode, Version } from './version';
 import assert from 'assert';
@@ -98,7 +98,7 @@ async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>
     const existingBytecode = await getCode(provider, stored.address);
     const isDevNet = await isDevelopmentNetwork(provider);
 
-    if (existingBytecode === undefined) {
+    if (isEmpty(existingBytecode)) {
       if (isDevNet) {
         debug('omitting a previous deployment due to no bytecode at address', stored.address);
         stored = undefined;

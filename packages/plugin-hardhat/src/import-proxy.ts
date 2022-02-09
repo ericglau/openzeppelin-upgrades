@@ -57,14 +57,16 @@ async function addImplToManifest(provider: EthereumProvider, hre: HardhatRuntime
   const runtimeBytecode = await getCode(provider, implAddress);
   const implMatch = await compareBytecode(ImplFactory.bytecode, runtimeBytecode);
   if (!implMatch) {
-    throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress);
+    throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress); // TODO add force option
   }
   await simulateDeployImpl(hre, ImplFactory, opts, implAddress, runtimeBytecode);
 }
 
 async function addAdminToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, proxyAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {
   const adminAddress = await getAdminAddress(provider, proxyAddress);
-  await simulateDeployAdmin(hre, ImplFactory, opts, adminAddress);
+  const adminBytecode = await getCode(provider, adminAddress);
+  // don't need to compare the admin contract's bytecode with creation code since it could be a custom admin, but store it to manifest in case it is used with the wrong network later on
+  await simulateDeployAdmin(hre, ImplFactory, opts, adminAddress, adminBytecode);
 }
 
 async function addProxyToManifest(kind: ProxyDeployment['kind'], proxyAddress: string, manifest: Manifest) {

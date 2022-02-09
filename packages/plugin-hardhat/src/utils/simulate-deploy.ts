@@ -7,8 +7,8 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployData, getDeployData } from './deploy-impl';
 import { Options } from './options';
 
-export async function simulateDeployAdmin(hre: HardhatRuntimeEnvironment, ProxyAdminFactory: ContractFactory, opts: Options, adminAddress: string) {
-  const { deployData, simulateDeploy } = await simulateDeployment(hre, ProxyAdminFactory, opts, adminAddress);
+export async function simulateDeployAdmin(hre: HardhatRuntimeEnvironment, ProxyAdminFactory: ContractFactory, opts: Options, adminAddress: string, adminBytecode: string) {
+  const { deployData, simulateDeploy } = await simulateDeployment(hre, ProxyAdminFactory, opts, adminAddress, adminBytecode);
   const manifestAdminAddress = await fetchOrDeployAdmin(deployData.provider, simulateDeploy, opts);
   if (adminAddress !== manifestAdminAddress) {
     logWarning(`Imported proxy with admin at '${adminAddress}' which differs from previously deployed admin '${manifestAdminAddress}'`, [

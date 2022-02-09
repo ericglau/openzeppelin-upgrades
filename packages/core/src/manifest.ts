@@ -17,13 +17,19 @@ export interface ManifestData {
     [version in string]?: ImplDeployment;
   };
   proxies: ProxyDeployment[];
-  admin?: Deployment;
+  admin?: AdminDeployment;
 }
 
-export interface ImplDeployment extends Deployment {
+interface BytecodeDeployment extends Deployment {
+  bytecodeHash?: string;
+}
+
+export interface AdminDeployment extends BytecodeDeployment {
+}
+
+export interface ImplDeployment extends BytecodeDeployment {
   layout: StorageLayout;
   allAddresses?: string[];
-  bytecodeHash?: string;
 }
 
 export interface ProxyDeployment extends Deployment {
@@ -166,7 +172,7 @@ export class DeploymentNotFound extends Error {}
 export function normalizeManifestData(input: ManifestData): ManifestData {
   return {
     manifestVersion: input.manifestVersion,
-    admin: input.admin && normalizeDeployment(input.admin),
+    admin: input.admin && normalizeDeployment(input.admin, ['bytecodeHash']),
     proxies: input.proxies.map(p => normalizeDeployment(p, ['kind'])),
     impls: mapValues(input.impls, i => i && normalizeDeployment(i, ['layout', 'allAddresses', 'bytecodeHash'])),
   };

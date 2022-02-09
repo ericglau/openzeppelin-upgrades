@@ -1,5 +1,5 @@
 import debug from './utils/debug';
-import { Manifest, ManifestData, ImplDeployment } from './manifest';
+import { Manifest, ManifestData, ImplDeployment, AdminDeployment } from './manifest';
 import { EthereumProvider, getCode, isDevelopmentNetwork } from './provider';
 import { Deployment, InvalidDeployment, Reason, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import { hashBytecode, Version } from './version';
@@ -184,7 +184,8 @@ export async function fetchOrDeployAdmin(
 
 const adminLens = lens('proxy admin', 'proxy admin', data => ({
   get: () => data.admin,
-  set: (value?: Deployment) => (data.admin = value),
+  set: (value?: AdminDeployment) => (data.admin = value),
+  getBytecodeHash: () => data.admin?.bytecodeHash,
 }));
 
 function lens<T>(description: string, type: string, fn: (data: ManifestData) => ManifestField<T>): ManifestLens<T> {

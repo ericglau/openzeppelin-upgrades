@@ -1,41 +1,36 @@
 const assert = require('assert');
 const { withDefaults } = require('@openzeppelin/truffle-upgrades/dist/utils/options.js');
-const { getProxyAdminFactory } = require('@openzeppelin/truffle-upgrades/dist/utils/factories.js');
+const { getProxyFactory, getTransparentUpgradeableProxyFactory, getProxyAdminFactory, getBeaconProxyFactory, getUpgradeableBeaconFactory } = require('@openzeppelin/truffle-upgrades/dist/utils/factories.js');
+const { getInitializerData } = require('@openzeppelin/truffle-upgrades/dist/utils/initializer-data');
+
+const { importProxy, upgradeProxy, deployBeacon, deployBeaconProxy, upgradeBeacon, prepareUpgrade } = require('@openzeppelin/truffle-upgrades');
 
 
-const { deployBeacon, deployBeaconProxy, upgradeBeacon, prepareUpgrade } = require('@openzeppelin/truffle-upgrades');
-
-//const ProxyAdmin = artifacts.require("@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol");
-
-const TruffleContract = require('@truffle/contract');
-
-const ProxyAdmin = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json');
-const TransparentUpgradableProxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json');
-
-const ERC1967Proxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json');
-
-const BeaconProxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.json');
-const UpgradableBeacon = require('@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json');
-
-const GreeterBeaconImpl = artifacts.require('GreeterBeaconImpl');
+const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');
 const GreeterV3 = artifacts.require('GreeterV3');
+const GreeterProxiable = artifacts.require('GreeterProxiable');
+const GreeterV2Proxiable = artifacts.require('GreeterV2Proxiable');
+const GreeterV3Proxiable = artifacts.require('GreeterV3Proxiable');
 
-const TX_HASH_MISSING = 'transaction hash is missing';
+const NOT_MATCH_BYTECODE = /Contract does not match with implementation bytecode deployed at \S+/;
+const NOT_REGISTERED_ADMIN = "Proxy admin is not the one registered in the network manifest";
 
-contract('GreeterBeaconImpl', function () {
-  it('infer beacon proxy', async function () {
-    // const greeter = await GreeterBeaconImpl.deployed();
-    // assert.strictEqual(await greeter.greet(), 'Hello Truffle');
-    
-    
+contract('Greeter', function () {
+  it('transparent happy path', async function () {
     const { deployer } = withDefaults({});
-    // const contract = TruffleContract(ProxyAdmin);
 
-    // const admin = await deployer.deploy(contract);
+    const impl = await deployer.deploy(Greeter);
+    const admin = await deployer.deploy(getProxyAdminFactory());
+    const proxy = await deployer.deploy(getTransparentUpgradeableProxyFactory(), impl.address, admin.address, getInitializerData(Greeter, ['Hello, Truffle!']));
 
-    const admin = getProxyAdminFactory();
-    deployer.deploy(admin);
+    const greeter = await importProxy(proxy.address, Greeter);
+    assert.equal(await greeter.greet(), 'Hello, Truffle!');
+  
+    const greeter2 = await upgradeProxy(greeter, GreeterV2);
+    assert.equal(await greeter2.greet(), 'Hello, Truffle!');
+    await greeter2.resetGreeting();
+    assert.equal(await greeter2.greet(), 'Hello World');
   });
 
   // it('deployBeaconProxy', async function () {

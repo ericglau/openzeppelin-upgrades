@@ -15,8 +15,8 @@ interface ManifestLens<T> {
 interface ManifestField<T> {
   get(): T | undefined;
   set(value: T | undefined): void;
-  import?(value: T | undefined): Promise<void>;
   getBytecodeHash?(): string | undefined;
+  merge?(value: T | undefined): Promise<void>;
 }
 
 /**
@@ -26,7 +26,7 @@ interface ManifestField<T> {
  * @param provider the Ethereum provider
  * @param deploy the deploy function
  * @param opts options containing the timeout and pollingInterval parameters. If undefined, assumes the timeout is not configurable and will not mention those parameters in the error message for TransactionMinedTimeout.
- * @param append if true, adds an address to existing deployment. Defaults to false.
+ * @param merge if true, adds a deployment to existing deployment by merging their addresses. Defaults to false.
  * @returns the deployment address
  * @throws {InvalidDeployment} if the deployment is invalid
  * @throws {TransactionMinedTimeout} if the transaction was not confirmed within the timeout period
@@ -36,7 +36,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   provider: EthereumProvider,
   deploy: () => Promise<T>,
   opts?: DeployOpts,
-  append?: boolean
+  merge?: boolean
 ): Promise<string> {
   const manifest = await Manifest.forNetwork(provider);
 
@@ -47,11 +47,11 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const deployment = lens(data);
       let updated;
       let stored = await getAndValidate<T>(deployment, lens, provider);
-      if (append) {
+      if (merge) {
         updated = await deploy();
         await checkForAddressClash(provider, data, updated);
-        if (deployment.import) {
-          await deployment.import(updated);
+        if (deployment.merge) {
+          await deployment.merge(updated);
         } else {
           deployment.set(updated);
         }
@@ -133,9 +133,9 @@ export async function fetchOrDeploy(
   provider: EthereumProvider,
   deploy: () => Promise<ImplDeployment>,
   opts?: DeployOpts,
-  append?: boolean 
+  merge?: boolean 
 ): Promise<string> {
-  return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, append);
+  return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, merge);
 }
 
 export const implLens = (versionWithoutMetadata: string) =>
@@ -143,7 +143,7 @@ export const implLens = (versionWithoutMetadata: string) =>
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
     getBytecodeHash: () => data.impls[versionWithoutMetadata]?.bytecodeHash,
-    import: async (value?: ImplDeployment) => { 
+    merge: async (value?: ImplDeployment) => { 
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
         const { address, allAddresses } = await mergeAddresses(existing, value);
@@ -156,10 +156,9 @@ export const implLens = (versionWithoutMetadata: string) =>
 
 /**
  * Merge the addresses in the deployments and return it.
- * Verifies that each existing address has code before adding it
  * 
  * @param existing existing deployment
- * @param value deployment to write
+ * @param value deployment to add
  */
 async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
   let merged = new Set<string>();
@@ -180,9 +179,9 @@ async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
 export async function fetchOrDeployAdmin(
   provider: EthereumProvider,
   deploy: () => Promise<Deployment>,
-  opts?: DeployOpts,
+  merge?: DeployOpts,
 ): Promise<string> {
-  return fetchOrDeployGeneric(adminLens, provider, deploy, opts);
+  return fetchOrDeployGeneric(adminLens, provider, deploy, merge);
 }
 
 const adminLens = lens('proxy admin', 'proxy admin', data => ({

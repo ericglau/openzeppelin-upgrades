@@ -29,6 +29,7 @@ export interface ImportProxyFunction {
 
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
+    // TODO use ContractAddressOrInstance?
     proxyAddress: string,
     ImplFactory: ContractFactory,
     opts: ImportProxyOptions = {},

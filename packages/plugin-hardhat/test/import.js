@@ -112,6 +112,24 @@ test('wrong implementation', async t => {
   t.true(NOT_MATCH_BYTECODE.test(e.message), e.message);
 });
 
+test('force implementation', async t => {
+  const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy} = t.context;
+
+  const impl = await Greeter.deploy();
+  await impl.deployed();
+  const admin = await ProxyAdmin.deploy();
+  await admin.deployed();
+  const proxy = await TransparentUpgradableProxy.deploy(impl.address, admin.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
+  await proxy.deployed();
+
+  const greeter = await upgrades.importProxy(proxy.address, GreeterV2, { force: true });
+  t.is(await greeter.greet(), 'Hello, Hardhat!');
+  
+  // since this is the wrong impl, expect it to have an error if using a non-existant function
+  const e = await t.throwsAsync(() => greeter.resetGreeting());
+  t.true(e.message.includes("Transaction reverted"), e.message);
+});
+
 test('multiple identical implementations', async t => {
   const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
 

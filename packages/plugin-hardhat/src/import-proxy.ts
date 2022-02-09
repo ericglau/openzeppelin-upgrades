@@ -56,8 +56,10 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
 async function addImplToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, implAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions) {
   const runtimeBytecode = await getCode(provider, implAddress);
   const implMatch = await compareBytecode(ImplFactory.bytecode, runtimeBytecode);
-  if (!implMatch) {
-    throw new Error("Contract does not match with implementation bytecode deployed at " + implAddress); // TODO add force option
+  if (!implMatch && !opts.force) {
+    throw new UpgradesError("Contract does not match with implementation bytecode deployed at " + implAddress, 
+      () => "The provided contract factory does not match with the bytecode deployed at the implementation address. If you are sure that you are using the correct implementation contract, force the import with the option { force: true }"
+    )
   }
   await simulateDeployImpl(hre, ImplFactory, opts, implAddress, runtimeBytecode);
 }

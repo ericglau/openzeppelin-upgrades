@@ -116,7 +116,6 @@ async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>
 }
 
 function validate<T extends Deployment>(deployment: T, existingBytecodeHash: string, isDevNet: boolean, storedBytecodeHash?: string) {
-  console.log("GET FROM IMPL DEPLOYMENT WITH storedBytecodeHash " + storedBytecodeHash + ", COMPARING WITH " + existingBytecodeHash);
   if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
     if (isDevNet) {
       debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);

@@ -42,18 +42,15 @@ export async function resumeOrDeploy<T extends Deployment>(
       // Nothing to do here without a txHash.
       // This is the case for deployments migrated from OpenZeppelin CLI.
       return cached;
-    } else {
-      // If there is a deployment with txHash stored, we look its transaction up. If the
-      // transaction is found, the deployment is reused.
-      debug('found previous deployment', txHash);
-      const tx = await getTransactionByHash(provider, txHash);
-      if (tx !== null) {
-        debug('resuming previous deployment', txHash);
-        return cached;
-      }
     }
-    // At this point, either the tx was not found, or it was an imported deployment but there is no code at the address
-    if (!(await isDevelopmentNetwork(provider))) {
+    // If there is a deployment with txHash stored, we look its transaction up. If the
+    // transaction is found, the deployment is reused.
+    debug('found previous deployment', txHash);
+    const tx = await getTransactionByHash(provider, txHash);
+    if (tx !== null) {
+      debug('resuming previous deployment', txHash);
+      return cached;
+    } else if (!(await isDevelopmentNetwork(provider))) {
       // If the transaction is not found we throw an error, except if we're in
       // a development network then we simply silently redeploy.
       throw new InvalidDeployment(cached);

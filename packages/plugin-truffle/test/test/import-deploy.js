@@ -1,45 +1,52 @@
 const assert = require('assert');
 const { withDefaults } = require('@openzeppelin/truffle-upgrades/dist/utils/options.js');
-const { getProxyFactory, getTransparentUpgradeableProxyFactory, getProxyAdminFactory, getBeaconProxyFactory, getUpgradeableBeaconFactory } = require('@openzeppelin/truffle-upgrades/dist/utils/factories.js');
+const {
+  getProxyFactory,
+  getTransparentUpgradeableProxyFactory,
+  getProxyAdminFactory,
+} = require('@openzeppelin/truffle-upgrades/dist/utils/factories.js');
 const { getInitializerData } = require('@openzeppelin/truffle-upgrades/dist/utils/initializer-data');
 
-const { importProxy, upgradeProxy, deployProxy, deployBeacon, deployBeaconProxy, upgradeBeacon, prepareUpgrade, erc1967 } = require('@openzeppelin/truffle-upgrades');
+const { importProxy, upgradeProxy, deployProxy, erc1967 } = require('@openzeppelin/truffle-upgrades');
 
 const { deployer } = withDefaults({});
 
 const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');
-const GreeterV3 = artifacts.require('GreeterV3');
 const GreeterProxiable = artifacts.require('GreeterProxiable');
 const GreeterV2Proxiable = artifacts.require('GreeterV2Proxiable');
-const GreeterV3Proxiable = artifacts.require('GreeterV3Proxiable');
-
-const NOT_MATCH_BYTECODE = /Contract does not match with implementation bytecode deployed at \S+/;
-const NOT_REGISTERED_ADMIN = "Proxy admin is not the one registered in the network manifest";
 
 contract('Greeter', function () {
   it('import then deploy with same impl', async function () {
     const impl = await deployer.deploy(GreeterProxiable);
-    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle!']));
+    const proxy = await deployer.deploy(
+      getProxyFactory(),
+      impl.address,
+      getInitializerData(GreeterProxiable, ['Hello, Truffle!']),
+    );
 
     const greeter = await importProxy(proxy.address, GreeterProxiable);
     assert.equal(await greeter.greet(), 'Hello, Truffle!');
-  
+
     const greeter2 = await deployProxy(GreeterProxiable, ['Hello, Truffle 2!']);
-    assert.equal(await greeter2.greet(), 'Hello, Truffle 2!', );
+    assert.equal(await greeter2.greet(), 'Hello, Truffle 2!');
 
     // do not check impl addresses here since they may not match due to a previous deployment on the network
   });
 
   it('deploy then import with same impl', async function () {
     const greeter = await deployProxy(GreeterProxiable, ['Hello, Truffle!']);
-  
+
     const impl = await deployer.deploy(GreeterProxiable);
-    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle 2!']));
+    const proxy = await deployer.deploy(
+      getProxyFactory(),
+      impl.address,
+      getInitializerData(GreeterProxiable, ['Hello, Truffle 2!']),
+    );
 
     const greeter2 = await importProxy(proxy.address, GreeterProxiable);
     assert.equal(await greeter2.greet(), 'Hello, Truffle 2!');
-  
+
     const implAddr1 = await erc1967.getImplementationAddress(greeter.address);
     const implAddr2 = await erc1967.getImplementationAddress(greeter2.address);
     assert.notEqual(implAddr2, implAddr1);
@@ -60,20 +67,30 @@ contract('Greeter', function () {
 
     const greeterImported = await importProxy(greeter.address, GreeterProxiable);
     assert.equal(await greeterImported.greet(), 'Hello, Truffle!');
-  
+
     assert.equal(greeterImported.address, greeter.address);
-    assert.equal(await erc1967.getImplementationAddress(greeterImported.address), await erc1967.getImplementationAddress(greeter.address));
+    assert.equal(
+      await erc1967.getImplementationAddress(greeterImported.address),
+      await erc1967.getImplementationAddress(greeter.address),
+    );
   });
 
   it('import previous import', async function () {
     const impl = await deployer.deploy(GreeterProxiable);
-    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle 2!']));
+    const proxy = await deployer.deploy(
+      getProxyFactory(),
+      impl.address,
+      getInitializerData(GreeterProxiable, ['Hello, Truffle 2!']),
+    );
 
     const greeterImported = await importProxy(proxy.address, GreeterProxiable);
     const greeterImportedAgain = await importProxy(proxy.address, GreeterProxiable);
-  
+
     assert.equal(greeterImportedAgain.address, greeterImported.address);
-    assert.equal(await erc1967.getImplementationAddress(greeterImported.address), await erc1967.getImplementationAddress(greeterImported.address));
+    assert.equal(
+      await erc1967.getImplementationAddress(greeterImported.address),
+      await erc1967.getImplementationAddress(greeterImported.address),
+    );
   });
 
   it('import then deploy transparent', async function () {
@@ -81,7 +98,12 @@ contract('Greeter', function () {
 
     const impl = await deployer.deploy(Greeter);
     const admin = await deployer.deploy(getProxyAdminFactory());
-    const proxy = await deployer.deploy(getTransparentUpgradeableProxyFactory(), impl.address, admin.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+    const proxy = await deployer.deploy(
+      getTransparentUpgradeableProxyFactory(),
+      impl.address,
+      admin.address,
+      getInitializerData(Greeter, ['Hello, Truffle!']),
+    );
 
     // admin may be different than what's already on the network
     await importProxy(proxy.address, Greeter);

@@ -14,15 +14,15 @@ test.before(async t => {
   t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable');
 
   t.context.ProxyAdmin = await ethers.getContractFactory(ProxyAdmin.abi, ProxyAdmin.bytecode);
-  t.context.TransparentUpgradableProxy = await ethers.getContractFactory(TransparentUpgradableProxy.abi, TransparentUpgradableProxy.bytecode);
+  t.context.TransparentUpgradableProxy = await ethers.getContractFactory(
+    TransparentUpgradableProxy.abi,
+    TransparentUpgradableProxy.bytecode,
+  );
 
   t.context.ERC1967Proxy = await ethers.getContractFactory(ERC1967Proxy.abi, ERC1967Proxy.bytecode);
 });
 
-function getInitializerData(
-  contractInterface,
-  args
-) {
+function getInitializerData(contractInterface, args) {
   const initializer = 'initialize';
   const fragment = contractInterface.getFunction(initializer);
   return contractInterface.encodeFunctionData(fragment, args);
@@ -33,7 +33,10 @@ test('import then deploy with same impl', async t => {
 
   const impl = await GreeterProxiable.deploy();
   await impl.deployed();
-  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
+  const proxy = await ERC1967Proxy.deploy(
+    impl.address,
+    getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']),
+  );
   await proxy.deployed();
 
   const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
@@ -43,7 +46,10 @@ test('import then deploy with same impl', async t => {
   await greeter2.deployed();
   t.is(await greeter2.greet(), 'Hello, Hardhat 2!');
 
-  t.is(await upgrades.erc1967.getImplementationAddress(greeter2.address), await upgrades.erc1967.getImplementationAddress(greeter.address));
+  t.is(
+    await upgrades.erc1967.getImplementationAddress(greeter2.address),
+    await upgrades.erc1967.getImplementationAddress(greeter.address),
+  );
 });
 
 test('deploy then import with same impl', async t => {
@@ -54,7 +60,10 @@ test('deploy then import with same impl', async t => {
 
   const impl = await GreeterProxiable.deploy();
   await impl.deployed();
-  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']));
+  const proxy = await ERC1967Proxy.deploy(
+    impl.address,
+    getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat 2!']),
+  );
   await proxy.deployed();
 
   const greeter2 = await upgrades.importProxy(proxy.address, GreeterProxiable);
@@ -85,7 +94,10 @@ test('import previous deployment', async t => {
   t.is(await greeterImported.greet(), 'Hello, Hardhat!');
 
   t.is(greeterImported.address, greeter.address);
-  t.is(await upgrades.erc1967.getImplementationAddress(greeterImported.address), await upgrades.erc1967.getImplementationAddress(greeter.address));
+  t.is(
+    await upgrades.erc1967.getImplementationAddress(greeterImported.address),
+    await upgrades.erc1967.getImplementationAddress(greeter.address),
+  );
 });
 
 test('import previous import', async t => {
@@ -93,32 +105,45 @@ test('import previous import', async t => {
 
   const impl = await GreeterProxiable.deploy();
   await impl.deployed();
-  const proxy = await ERC1967Proxy.deploy(impl.address, getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']));
+  const proxy = await ERC1967Proxy.deploy(
+    impl.address,
+    getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']),
+  );
   await proxy.deployed();
 
   const greeterImported = await upgrades.importProxy(proxy.address, GreeterProxiable);
   const greeterImportedAgain = await upgrades.importProxy(proxy.address, GreeterProxiable);
 
   t.is(greeterImportedAgain.address, greeterImported.address);
-  t.is(await upgrades.erc1967.getImplementationAddress(greeterImportedAgain.address), await upgrades.erc1967.getImplementationAddress(greeterImported.address));
+  t.is(
+    await upgrades.erc1967.getImplementationAddress(greeterImportedAgain.address),
+    await upgrades.erc1967.getImplementationAddress(greeterImported.address),
+  );
 });
 
 test('import then deploy transparent with same admin', async t => {
-  const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy} = t.context;
+  const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy } = t.context;
 
   const impl = await Greeter.deploy();
   await impl.deployed();
   const admin = await ProxyAdmin.deploy();
   await admin.deployed();
-  const proxy = await TransparentUpgradableProxy.deploy(impl.address, admin.address, getInitializerData(Greeter.interface, ['Hello, Hardhat!']));
+  const proxy = await TransparentUpgradableProxy.deploy(
+    impl.address,
+    admin.address,
+    getInitializerData(Greeter.interface, ['Hello, Hardhat!']),
+  );
   await proxy.deployed();
 
   const greeter = await upgrades.importProxy(proxy.address, Greeter);
   const greeter2 = await upgrades.deployProxy(Greeter, ['Hello, Hardhat 2!']);
   await greeter2.deployed();
 
-  t.is(await upgrades.erc1967.getAdminAddress(greeter2.address), await upgrades.erc1967.getAdminAddress(greeter.address));
-  
+  t.is(
+    await upgrades.erc1967.getAdminAddress(greeter2.address),
+    await upgrades.erc1967.getAdminAddress(greeter.address),
+  );
+
   const upgraded = await upgrades.upgradeProxy(greeter.address, GreeterV2);
   await upgraded.deployed();
   const upgraded2 = await upgrades.upgradeProxy(greeter2.address, GreeterV2);

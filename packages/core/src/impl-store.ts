@@ -36,7 +36,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   provider: EthereumProvider,
   deploy: () => Promise<T>,
   opts?: DeployOpts,
-  merge?: boolean
+  merge?: boolean,
 ): Promise<string> {
   const manifest = await Manifest.forNetwork(provider);
 
@@ -46,7 +46,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
       const data = await manifest.read();
       const deployment = lens(data);
       let updated;
-      let stored = await getAndValidate<T>(deployment, lens, provider);
+      const stored = await getAndValidate<T>(deployment, lens, provider);
       if (merge) {
         updated = await deploy();
         await checkForAddressClash(provider, data, updated);
@@ -55,7 +55,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
         } else {
           deployment.set(updated);
         }
-        await manifest.write(data);  
+        await manifest.write(data);
       } else {
         updated = await resumeOrDeploy(provider, stored, deploy);
         if (updated !== stored) {
@@ -90,7 +90,11 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   }
 }
 
-async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>, lens: ManifestLens<T>, provider: EthereumProvider) {
+async function getAndValidate<T extends Deployment>(
+  deployment: ManifestField<T>,
+  lens: ManifestLens<T>,
+  provider: EthereumProvider,
+) {
   let stored = deployment.get();
   if (stored === undefined) {
     debug('deployment of', lens.description, 'not found');
@@ -115,7 +119,12 @@ async function getAndValidate<T extends Deployment>(deployment: ManifestField<T>
   return stored;
 }
 
-function validate<T extends Deployment>(deployment: T, existingBytecodeHash: string, isDevNet: boolean, storedBytecodeHash?: string) {
+function validate<T extends Deployment>(
+  deployment: T,
+  existingBytecodeHash: string,
+  isDevNet: boolean,
+  storedBytecodeHash?: string,
+) {
   if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
     if (isDevNet) {
       debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
@@ -132,7 +141,7 @@ export async function fetchOrDeploy(
   provider: EthereumProvider,
   deploy: () => Promise<ImplDeployment>,
   opts?: DeployOpts,
-  merge?: boolean 
+  merge?: boolean,
 ): Promise<string> {
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, merge);
 }
@@ -140,9 +149,9 @@ export async function fetchOrDeploy(
 export const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
-    set: (value?: ImplDeployment) => data.impls[versionWithoutMetadata] = value,
+    set: (value?: ImplDeployment) => (data.impls[versionWithoutMetadata] = value),
     getBytecodeHash: () => data.impls[versionWithoutMetadata]?.bytecodeHash,
-    merge: async (value?: ImplDeployment) => { 
+    merge: async (value?: ImplDeployment) => {
       const existing = data.impls[versionWithoutMetadata];
       if (existing !== undefined && value !== undefined) {
         const { address, allAddresses } = await mergeAddresses(existing, value);
@@ -150,26 +159,26 @@ export const implLens = (versionWithoutMetadata: string) =>
       } else {
         data.impls[versionWithoutMetadata] = value;
       }
-    }
+    },
   }));
 
 /**
  * Merge the addresses in the deployments and return it.
- * 
+ *
  * @param existing existing deployment
  * @param value deployment to add
  */
 async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
-  let merged = new Set<string>();
+  const merged = new Set<string>();
 
   merged.add(existing.address);
   merged.add(value.address);
 
   if (existing.allAddresses !== undefined) {
-    existing.allAddresses.forEach(item => merged.add(item))
+    existing.allAddresses.forEach(item => merged.add(item));
   }
   if (value.allAddresses !== undefined) {
-    value.allAddresses.forEach(item => merged.add(item))
+    value.allAddresses.forEach(item => merged.add(item));
   }
 
   return { address: existing.address, allAddresses: Array.from(merged) };
@@ -219,7 +228,10 @@ function lookupDeployment(data: ManifestData, address: string): ManifestField<De
   }
 
   for (const versionWithoutMetadata in data.impls) {
-    if (data.impls[versionWithoutMetadata]?.address === address || data.impls[versionWithoutMetadata]?.allAddresses?.includes(address)) {
+    if (
+      data.impls[versionWithoutMetadata]?.address === address ||
+      data.impls[versionWithoutMetadata]?.allAddresses?.includes(address)
+    ) {
       return implLens(versionWithoutMetadata)(data);
     }
   }

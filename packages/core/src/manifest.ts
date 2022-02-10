@@ -24,8 +24,7 @@ interface BytecodeDeployment extends Deployment {
   bytecodeHash?: string;
 }
 
-export interface AdminDeployment extends BytecodeDeployment {
-}
+export type AdminDeployment = BytecodeDeployment;
 
 export interface ImplDeployment extends BytecodeDeployment {
   layout: StorageLayout;
@@ -65,7 +64,9 @@ export class Manifest {
 
   async getDeploymentFromAddress(address: string): Promise<ImplDeployment> {
     const data = await this.read();
-    const deployment = Object.values(data.impls).find(d => d?.address === address || d?.allAddresses?.includes(address));
+    const deployment = Object.values(data.impls).find(
+      d => d?.address === address || d?.allAddresses?.includes(address),
+    );
 
     if (deployment === undefined) {
       throw new DeploymentNotFound(`Deployment at address ${address} is not registered`);

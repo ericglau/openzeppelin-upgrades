@@ -1,4 +1,4 @@
-import { DeployOpts, ProxyDeployment, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
+import { DeployOpts, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
 
 export type Options = ValidationOptions &
   DeployOpts & {

@@ -91,7 +91,7 @@ test('beacon happy path', async t => {
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
   await upgrades.upgradeBeacon(beacon, GreeterV2);
-  const greeter2 = GreeterV2.attach(proxy.address);
+  const greeter2 = GreeterV2.attach(greeter.address);
   await greeter2.deployed();
   t.is(await greeter2.greet(), 'Hello, Hardhat!');
   await greeter2.resetGreeting();

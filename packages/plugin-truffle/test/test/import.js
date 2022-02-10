@@ -3,8 +3,9 @@ const { withDefaults } = require('@openzeppelin/truffle-upgrades/dist/utils/opti
 const { getProxyFactory, getTransparentUpgradeableProxyFactory, getProxyAdminFactory, getBeaconProxyFactory, getUpgradeableBeaconFactory } = require('@openzeppelin/truffle-upgrades/dist/utils/factories.js');
 const { getInitializerData } = require('@openzeppelin/truffle-upgrades/dist/utils/initializer-data');
 
-const { importProxy, upgradeProxy, deployBeacon, deployBeaconProxy, upgradeBeacon, prepareUpgrade } = require('@openzeppelin/truffle-upgrades');
+const { importProxy, upgradeProxy, deployBeacon, deployBeaconProxy, upgradeBeacon, prepareUpgrade, erc1967 } = require('@openzeppelin/truffle-upgrades');
 
+const { deployer } = withDefaults({});
 
 const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');
@@ -27,16 +28,10 @@ contract('Greeter', function () {
     const greeter = await importProxy(proxy.address, Greeter);
     assert.equal(await greeter.greet(), 'Hello, Truffle!');
   
-    // TODO can't upgrade because different admin
-    // const greeter2 = await upgradeProxy(greeter, GreeterV2);
-    // assert.equal(await greeter2.greet(), 'Hello, Truffle!');
-    // await greeter2.resetGreeting();
-    // assert.equal(await greeter2.greet(), 'Hello World');
+    // can't upgrade directly because different admin was deployed during migrations
   });
 
   it('uups happy path', async function () {
-    const { deployer } = withDefaults({});
-
     const impl = await deployer.deploy(GreeterProxiable);
     const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle!']));
 
@@ -50,8 +45,6 @@ contract('Greeter', function () {
   });
 
   it('beacon happy path', async function () {
-    const { deployer } = withDefaults({});
-
     const impl = await deployer.deploy(Greeter);
     const beacon = await deployer.deploy(getUpgradeableBeaconFactory(), impl.address);
     const proxy = await deployer.deploy(getBeaconProxyFactory(), beacon.address, getInitializerData(Greeter, ['Hello, Truffle!']));
@@ -66,46 +59,77 @@ contract('Greeter', function () {
     assert.equal(await greeter2.greet(), 'Hello World');
   });
 
-  // it('deployBeaconProxy', async function () {
-  //   const greeterBeacon = await deployBeacon(GreeterBeaconImpl);
-  //   assert.ok(greeterBeacon.transactionHash, TX_HASH_MISSING);
-  //   const greeter = await deployBeaconProxy(greeterBeacon, GreeterBeaconImpl, ['Hello Truffle']);
-  //   assert.ok(greeter.transactionHash, TX_HASH_MISSING);
-  //   assert.notEqual(greeter.transactionHash, greeterBeacon.transactionHash);
-  //   assert.equal(await greeter.greet(), 'Hello Truffle');
+  it('wrong implementation', async function () {
+    const impl = await deployer.deploy(Greeter);
+    const admin = await deployer.deploy(getProxyAdminFactory());
+    const proxy = await deployer.deploy(getTransparentUpgradeableProxyFactory(), impl.address, admin.address, getInitializerData(Greeter, ['Hello, Truffle!']));
 
-  //   const greeterSecond = await deployBeaconProxy(greeterBeacon, GreeterBeaconImpl, ['Hello Truffle second']);
-  //   assert.ok(greeterSecond.transactionHash, TX_HASH_MISSING);
-  //   assert.notEqual(greeterSecond.transactionHash, greeter.transactionHash);
-  //   assert.equal(await greeterSecond.greet(), 'Hello Truffle second');
+    await assert.rejects(importProxy(proxy.address, GreeterV2), error => NOT_MATCH_BYTECODE.test(error.message));
+  });
 
-  //   //  new impl
-  //   const upgradedBeacon = await upgradeBeacon(greeterBeacon, GreeterV2);
-  //   assert.ok(upgradedBeacon.transactionHash, TX_HASH_MISSING);
-  //   assert.notEqual(upgradedBeacon.transactionHash, greeterBeacon.transactionHash);
+  it('force implementation', async function () {
+    const impl = await deployer.deploy(Greeter);
+    const admin = await deployer.deploy(getProxyAdminFactory());
+    const proxy = await deployer.deploy(getTransparentUpgradeableProxyFactory(), impl.address, admin.address, getInitializerData(Greeter, ['Hello, Truffle!']));
 
-  //   // reload proxy to work with the new contract
-  //   const greeter2 = await GreeterV2.at(greeter.address);
-  //   assert.equal(await greeter2.greet(), 'Hello Truffle');
-  //   await greeter2.resetGreeting();
-  //   assert.equal(await greeter2.greet(), 'Hello World');
+    const greeter = await importProxy(proxy.address, GreeterV2, { force: true });
+    assert.equal(await greeter.greet(), 'Hello, Truffle!');
 
-  //   // reload proxy to work with the new contract
-  //   const greeterSecond2 = await GreeterV2.at(greeterSecond.address);
-  //   assert.equal(await greeterSecond2.greet(), 'Hello Truffle second');
-  //   await greeterSecond2.resetGreeting();
-  //   assert.equal(await greeterSecond2.greet(), 'Hello World');
+    // since this is the wrong impl, expect it to have an error if using a non-existent function
+    await assert.rejects(greeter.resetGreeting(), error => error.message.includes("revert"));
+  });
 
-  //   // prepare upgrade from beacon proxy
-  //   const greeter3ImplAddr = await prepareUpgrade(greeter.address, GreeterV3);
-  //   const greeter3 = await GreeterV3.at(greeter3ImplAddr);
-  //   const version3 = await greeter3.version();
-  //   assert.equal(version3, 'V3');
+  it('multiple identical implementations', async function () {
+    const impl = await deployer.deploy(GreeterProxiable);
+    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle!']));
 
-  //   // prepare upgrade from beacon itself
-  //   const greeter3ImplAddrFromBeacon = await prepareUpgrade(greeterBeacon.address, GreeterV3);
-  //   const greeter3FromBeacon = await GreeterV3.at(greeter3ImplAddrFromBeacon);
-  //   const version3FromBeacon = await greeter3FromBeacon.version();
-  //   assert.equal(version3FromBeacon, 'V3');
-  // });
+    const impl2 = await deployer.deploy(GreeterProxiable);
+    const proxy2 = await deployer.deploy(getProxyFactory(), impl2.address, getInitializerData(Greeter, ['Hello, Truffle 2!']));
+
+    const greeter = await importProxy(proxy.address, GreeterProxiable);
+    const greeterUpgraded = await upgradeProxy(greeter, GreeterV2Proxiable);
+    assert.equal(await greeterUpgraded.greet(), 'Hello, Truffle!');
+  
+    const greeter2 = await importProxy(proxy2.address, GreeterProxiable);
+    const greeter2Upgraded = await upgradeProxy(greeter2, GreeterV2Proxiable);
+    assert.equal(await greeter2Upgraded.greet(), 'Hello, Truffle 2!');
+  });
+
+  it('same implementations', async function () {
+    const impl = await deployer.deploy(GreeterProxiable);
+    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+    const proxy2 = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle 2!']));
+
+    const greeter = await importProxy(proxy.address, GreeterProxiable);
+    const greeter2 = await importProxy(proxy2.address, GreeterProxiable);
+
+    const implAddr1 = await erc1967.getImplementationAddress(greeter.address);
+    const implAddr2 = await erc1967.getImplementationAddress(greeter2.address);
+    assert.equal(implAddr2, implAddr1);
+  });
+
+  it('import transparents with different admin', async function () {
+    const { deployer } = withDefaults({});
+
+    const impl = await deployer.deploy(Greeter);
+    const admin = await deployer.deploy(getProxyAdminFactory());
+    const proxy = await deployer.deploy(getTransparentUpgradeableProxyFactory(), impl.address, admin.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+
+    const admin2 = await deployer.deploy(getProxyAdminFactory());
+    const proxy2 = await deployer.deploy(getTransparentUpgradeableProxyFactory(), impl.address, admin2.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+
+    const greeter = await importProxy(proxy.address, Greeter);
+    const greeter2 = await importProxy(proxy2.address, Greeter);
+
+    assert.notEqual(await erc1967.getAdminAddress(greeter2.address), await erc1967.getAdminAddress(greeter.address));
+  
+    // cannot upgrade directly
+    await assert.rejects(upgradeProxy(proxy.address, GreeterV2), error => NOT_REGISTERED_ADMIN === error.message);
+
+    // prepare upgrades instead
+    const greeterV2ImplAddr = await prepareUpgrade(greeter.address, GreeterV2);
+    const greeterV2ImplAddr_2 = await prepareUpgrade(greeter2.address, GreeterV2);
+
+    assert.equal(greeterV2ImplAddr_2, greeterV2ImplAddr);
+  });
 });

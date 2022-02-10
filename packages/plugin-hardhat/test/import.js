@@ -125,7 +125,7 @@ test('force implementation', async t => {
   const greeter = await upgrades.importProxy(proxy.address, GreeterV2, { force: true });
   t.is(await greeter.greet(), 'Hello, Hardhat!');
   
-  // since this is the wrong impl, expect it to have an error if using a non-existant function
+  // since this is the wrong impl, expect it to have an error if using a non-existent function
   const e = await t.throwsAsync(() => greeter.resetGreeting());
   t.true(e.message.includes("Transaction reverted"), e.message);
 });
@@ -196,9 +196,7 @@ test('import transparents with different admin', async t => {
 
   // prepare upgrades instead
   const greeterV2ImplAddr = await upgrades.prepareUpgrade(greeter.address, GreeterV2);
-  console.log("impl address 1 " + (greeterV2ImplAddr));
   const greeterV2ImplAddr_2 = await upgrades.prepareUpgrade(greeter2.address, GreeterV2);
-  console.log("impl address 2 " + (greeterV2ImplAddr_2));
 
   t.is(greeterV2ImplAddr_2, greeterV2ImplAddr);
 });

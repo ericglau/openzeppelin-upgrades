@@ -17,9 +17,14 @@ const Greeter = artifacts.require('Greeter');
 const GreeterV2 = artifacts.require('GreeterV2');
 const GreeterProxiable = artifacts.require('GreeterProxiable');
 const GreeterV2Proxiable = artifacts.require('GreeterV2Proxiable');
+const CustomProxy = artifacts.require('CustomProxy');
 
 const NOT_MATCH_BYTECODE = /Contract does not match with implementation bytecode deployed at \S+/;
 const NOT_REGISTERED_ADMIN = 'Proxy admin is not the one registered in the network manifest';
+const NOT_SUPPORTED_FUNCTION = 'Beacon proxies are not supported with the current function';
+const CANNOT_DETERMINE_KIND =
+  /Cannot determine the proxy kind at address \S+. Specify the 'kind' option for the importProxy function./;
+const INVALID_KIND = 'kind must be uups, transparent, or beacon';
 
 contract('Greeter', function () {
   it('transparent happy path', async function () {
@@ -72,6 +77,46 @@ contract('Greeter', function () {
     assert.equal(await greeter2.greet(), 'Hello, Truffle!');
     await greeter2.resetGreeting();
     assert.equal(await greeter2.greet(), 'Hello World');
+  });
+
+  it('ignore kind', async function () {
+    const impl = await deployer.deploy(Greeter);
+    const beacon = await deployer.deploy(getUpgradeableBeaconFactory(), impl.address);
+    const proxy = await deployer.deploy(
+      getBeaconProxyFactory(),
+      beacon.address,
+      getInitializerData(GreeterProxiable, ['Hello, Truffle!']),
+    );
+
+    // specify uups, but import should detect that it is a beacon proxy
+    const greeter = await importProxy(proxy.address, Greeter, { kind: 'uups' });
+
+    await assert.rejects(upgradeProxy(greeter, GreeterV2), error => error.message.startsWith(NOT_SUPPORTED_FUNCTION));
+  });
+
+  it('manually set kind', async function () {
+    const impl = await deployer.deploy(GreeterProxiable);
+    const proxy = await deployer.deploy(
+      CustomProxy,
+      impl.address,
+      getInitializerData(GreeterProxiable, ['Hello, Truffle!']),
+    );
+
+    // assert that kind is required since it cannot be determined due to custom proxy
+    await assert.rejects(importProxy(proxy.address, GreeterProxiable), error =>
+      CANNOT_DETERMINE_KIND.test(error.message),
+    );
+
+    // assert that kind is required since it cannot be determined due to custom proxy
+    await assert.rejects(importProxy(proxy.address, GreeterProxiable, { kind: 'invalid' }), error =>
+      error.message.startsWith(INVALID_KIND),
+    );
+
+    // valid kind
+    const greeter = await importProxy(proxy.address, GreeterProxiable, { kind: 'uups' });
+    assert.equal(await greeter.greet(), 'Hello, Truffle!');
+
+    await upgradeProxy(greeter, GreeterV2Proxiable);
   });
 
   it('wrong implementation', async function () {

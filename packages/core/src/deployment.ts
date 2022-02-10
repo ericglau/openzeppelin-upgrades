@@ -42,15 +42,18 @@ export async function resumeOrDeploy<T extends Deployment>(
       // Nothing to do here without a txHash.
       // This is the case for deployments migrated from OpenZeppelin CLI.
       return cached;
+    } else {
+      // If there is a deployment with txHash stored, we look its transaction up. If the
+      // transaction is found, the deployment is reused.
+      debug('found previous deployment', txHash);
+      const tx = await getTransactionByHash(provider, txHash);
+      if (tx !== null) {
+        debug('resuming previous deployment', txHash);
+        return cached;
+      }
     }
-    // If there is a deployment with txHash stored, we look its transaction up. If the
-    // transaction is found, the deployment is reused.
-    debug('found previous deployment', txHash);
-    const tx = await getTransactionByHash(provider, txHash);
-    if (tx !== null) {
-      debug('resuming previous deployment', txHash);
-      return cached;
-    } else if (!(await isDevelopmentNetwork(provider))) {
+    // At this point, either the tx was not found, or it was an imported deployment but there is no code at the address
+    if (!(await isDevelopmentNetwork(provider))) {
       // If the transaction is not found we throw an error, except if we're in
       // a development network then we simply silently redeploy.
       throw new InvalidDeployment(cached);
@@ -133,20 +136,40 @@ export class TransactionMinedTimeout extends UpgradesError {
 }
 
 export class InvalidDeployment extends Error {
-  removed = false;
+  reason: Reason | undefined;
 
-  constructor(readonly deployment: Deployment) {
+  constructor(readonly deployment: Deployment, reason?: Reason) {
     super();
+    this.reason = reason;
     // This hides the properties from the error when it's printed.
-    makeNonEnumerable(this, 'removed');
+    makeNonEnumerable(this, 'reason');
     makeNonEnumerable(this, 'deployment');
   }
 
   get message(): string {
     let msg = `No contract at address ${this.deployment.address}`;
-    if (this.removed) {
-      msg += ' (Removed from manifest)';
+    switch (this.reason) {
+      case Reason.Removed: {
+        msg += ' (Removed from manifest)';
+        break;
+      }
+      case Reason.NoBytecode: {
+        msg +=
+          ' (No bytecode was found at address. Ensure that you are using the network files for the correct network.)';
+        break;
+      }
+      case Reason.MismatchedBytecode: {
+        msg +=
+          ' (Different bytecode was found at address compared to a previous deployment. Ensure that you are using the network files for the correct network.)';
+        break;
+      }
     }
     return msg;
   }
+}
+
+export enum Reason {
+  Removed,
+  NoBytecode,
+  MismatchedBytecode,
 }

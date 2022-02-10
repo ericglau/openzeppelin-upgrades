@@ -1,14 +1,13 @@
 import {
   Manifest,
-  logWarning,
-  ProxyDeployment,
   getImplementationAddressFromProxy,
   UpgradesError,
   EthereumProvider,
   detectProxyKindFromBytecode,
   getCode,
-  compareBytecode,
   getAdminAddress,
+  getAndCompareImplBytecode,
+  addProxyToManifest,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -54,15 +53,7 @@ async function addImplToManifest(
   Contract: ContractClass,
   opts: ImportProxyOptions,
 ) {
-  const runtimeBytecode = await getCode(provider, implAddress);
-  const implMatch = await compareBytecode(Contract.bytecode, runtimeBytecode);
-  if (!implMatch && !opts.force) {
-    throw new UpgradesError(
-      'Contract does not match with implementation bytecode deployed at ' + implAddress,
-      () =>
-        'The provided contract factory does not match with the bytecode deployed at the implementation address. If you are sure that you are using the correct implementation contract, force the import with the option { force: true }',
-    );
-  }
+  const runtimeBytecode = await getAndCompareImplBytecode(provider, implAddress, Contract.bytecode, opts.force);
   await simulateDeployImpl(Contract, opts, implAddress, runtimeBytecode);
 }
 
@@ -76,20 +67,6 @@ async function addAdminToManifest(
   const adminBytecode = await getCode(provider, adminAddress);
   // don't need to compare the admin contract's bytecode with creation code since it could be a custom admin, but store it to manifest in case it is used with the wrong network later on
   await simulateDeployAdmin(Contract, opts, adminAddress, adminBytecode);
-}
-
-async function addProxyToManifest(kind: ProxyDeployment['kind'], proxyAddress: string, manifest: Manifest) {
-  const proxyToImport: ProxyDeployment = { kind: kind, address: proxyAddress };
-  await manifest.addProxy(proxyToImport);
-
-  if (kind === 'uups') {
-    if (await manifest.getAdmin()) {
-      logWarning(`A proxy admin was previously deployed on this network`, [
-        `This is not natively used with the current kind of proxy ('uups').`,
-        `Changes to the admin will have no effect on this new proxy.`,
-      ]);
-    }
-  }
 }
 
 async function detectProxyKind(

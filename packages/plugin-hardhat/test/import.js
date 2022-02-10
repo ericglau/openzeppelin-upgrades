@@ -41,7 +41,7 @@ const NOT_MATCH_BYTECODE = /Contract does not match with implementation bytecode
 const NOT_REGISTERED_ADMIN = 'Proxy admin is not the one registered in the network manifest';
 const NOT_SUPPORTED_FUNCTION = 'Beacon proxies are not supported with the current function';
 const CANNOT_DETERMINE_KIND =
-  /Cannot determine the proxy kind at address \S+. Specify the 'kind' option for the importProxy function./;
+  /Cannot determine the proxy kind at address \S+. Specify the kind option for the importProxy function./;
 const INVALID_KIND = 'kind must be uups, transparent, or beacon';
 
 test('transparent happy path', async t => {

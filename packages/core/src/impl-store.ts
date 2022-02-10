@@ -163,7 +163,7 @@ export const implLens = (versionWithoutMetadata: string) =>
   }));
 
 /**
- * Merge the addresses in the deployments and return it.
+ * Merge the addresses in the deployments and returns them.
  *
  * @param existing existing deployment
  * @param value deployment to add

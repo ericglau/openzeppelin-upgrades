@@ -33,7 +33,7 @@ contract('Greeter', function () {
 
   it('uups happy path', async function () {
     const impl = await deployer.deploy(GreeterProxiable);
-    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle!']));
 
     const greeter = await importProxy(proxy.address, GreeterProxiable);
     assert.equal(await greeter.greet(), 'Hello, Truffle!');
@@ -47,7 +47,7 @@ contract('Greeter', function () {
   it('beacon happy path', async function () {
     const impl = await deployer.deploy(Greeter);
     const beacon = await deployer.deploy(getUpgradeableBeaconFactory(), impl.address);
-    const proxy = await deployer.deploy(getBeaconProxyFactory(), beacon.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+    const proxy = await deployer.deploy(getBeaconProxyFactory(), beacon.address, getInitializerData(GreeterProxiable, ['Hello, Truffle!']));
 
     const greeter = await importProxy(proxy.address, Greeter);
     assert.equal(await greeter.greet(), 'Hello, Truffle!');
@@ -81,10 +81,10 @@ contract('Greeter', function () {
 
   it('multiple identical implementations', async function () {
     const impl = await deployer.deploy(GreeterProxiable);
-    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle!']));
+    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle!']));
 
     const impl2 = await deployer.deploy(GreeterProxiable);
-    const proxy2 = await deployer.deploy(getProxyFactory(), impl2.address, getInitializerData(Greeter, ['Hello, Truffle 2!']));
+    const proxy2 = await deployer.deploy(getProxyFactory(), impl2.address, getInitializerData(GreeterProxiable, ['Hello, Truffle 2!']));
 
     const greeter = await importProxy(proxy.address, GreeterProxiable);
     const greeterUpgraded = await upgradeProxy(greeter, GreeterV2Proxiable);
@@ -97,8 +97,8 @@ contract('Greeter', function () {
 
   it('same implementations', async function () {
     const impl = await deployer.deploy(GreeterProxiable);
-    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle!']));
-    const proxy2 = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(Greeter, ['Hello, Truffle 2!']));
+    const proxy = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle!']));
+    const proxy2 = await deployer.deploy(getProxyFactory(), impl.address, getInitializerData(GreeterProxiable, ['Hello, Truffle 2!']));
 
     const greeter = await importProxy(proxy.address, GreeterProxiable);
     const greeter2 = await importProxy(proxy2.address, GreeterProxiable);

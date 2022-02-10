@@ -41,6 +41,7 @@ test('import then deploy with same impl', async t => {
 
   const greeter2 = await upgrades.deployProxy(GreeterProxiable, ['Hello, Hardhat 2!']);
   await greeter2.deployed();
+  t.is(await greeter.greet(), 'Hello, Hardhat 2!');
 
   t.is(await upgrades.erc1967.getImplementationAddress(greeter2.address), await upgrades.erc1967.getImplementationAddress(greeter.address));
 });

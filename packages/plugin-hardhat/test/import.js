@@ -153,7 +153,7 @@ test('multiple identical implementations', async t => {
 });
 
 test('same implementation', async t => {
-  const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
+  const { GreeterProxiable, ERC1967Proxy } = t.context;
 
   const impl = await GreeterProxiable.deploy();
   await impl.deployed();

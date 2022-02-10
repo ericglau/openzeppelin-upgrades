@@ -79,6 +79,23 @@ contract('Greeter', function () {
     assert.equal(await greeter2.greet(), 'Hello World');
   });
 
+  it('import proxy instance', async function () {
+    const impl = await deployer.deploy(GreeterProxiable);
+    const proxy = await deployer.deploy(
+      getProxyFactory(),
+      impl.address,
+      getInitializerData(GreeterProxiable, ['Hello, Truffle!']),
+    );
+
+    const greeter = await importProxy(proxy, GreeterProxiable);
+    assert.equal(await greeter.greet(), 'Hello, Truffle!');
+
+    const greeter2 = await upgradeProxy(greeter, GreeterV2Proxiable);
+    assert.equal(await greeter2.greet(), 'Hello, Truffle!');
+    await greeter2.resetGreeting();
+    assert.equal(await greeter2.greet(), 'Hello World');
+  });
+
   it('ignore kind', async function () {
     const impl = await deployer.deploy(Greeter);
     const beacon = await deployer.deploy(getUpgradeableBeaconFactory(), impl.address);

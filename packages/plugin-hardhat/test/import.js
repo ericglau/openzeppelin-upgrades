@@ -110,6 +110,27 @@ test('beacon happy path', async t => {
   t.is(await greeter2.greet(), 'Hello World');
 });
 
+test('import proxy instance', async t => {
+  const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
+
+  const impl = await GreeterProxiable.deploy();
+  await impl.deployed();
+  const proxy = await ERC1967Proxy.deploy(
+    impl.address,
+    getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']),
+  );
+  await proxy.deployed();
+
+  const greeter = await upgrades.importProxy(proxy, GreeterProxiable);
+  t.is(await greeter.greet(), 'Hello, Hardhat!');
+
+  const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2Proxiable);
+  await greeter2.deployed();
+  t.is(await greeter2.greet(), 'Hello, Hardhat!');
+  await greeter2.resetGreeting();
+  t.is(await greeter2.greet(), 'Hello World');
+});
+
 test('ignore kind', async t => {
   const { Greeter, GreeterV2, UpgradableBeacon, BeaconProxy } = t.context;
 

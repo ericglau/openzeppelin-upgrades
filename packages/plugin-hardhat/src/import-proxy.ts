@@ -19,6 +19,8 @@ import {
   getTransparentUpgradeableProxyFactory,
   getBeaconProxyFactory,
   simulateDeployImpl,
+  ContractAddressOrInstance,
+  getContractAddress,
 } from './utils';
 import { simulateDeployAdmin } from './utils/simulate-deploy';
 
@@ -28,13 +30,14 @@ export interface ImportProxyFunction {
 
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
-    // TODO use ContractAddressOrInstance?
-    proxyAddress: string,
+    proxy: ContractAddressOrInstance,
     ImplFactory: ContractFactory,
     opts: ImportProxyOptions = {},
   ) {
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
+
+    const proxyAddress = getContractAddress(proxy);
 
     const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
     if (implAddress === undefined) {

@@ -19,17 +19,21 @@ import {
   withDefaults,
   getBeaconProxyFactory,
   ImportProxyOptions,
+  ContractAddressOrInstance,
+  getContractAddress,
 } from './utils';
 import { simulateDeployAdmin, simulateDeployImpl } from './utils/simulate-deploy';
 
 export async function importProxy(
-  proxyAddress: string,
+  proxy: ContractAddressOrInstance,
   Contract: ContractClass,
   opts: ImportProxyOptions = {},
 ): Promise<ContractInstance> {
   const { deployer } = withDefaults(opts);
   const provider = wrapProvider(deployer.provider);
   const manifest = await Manifest.forNetwork(provider);
+
+  const proxyAddress = getContractAddress(proxy);
 
   const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
   if (implAddress === undefined) {

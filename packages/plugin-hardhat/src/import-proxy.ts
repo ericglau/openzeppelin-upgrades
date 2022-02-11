@@ -45,7 +45,16 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
     const implAddress = await getImplementationAddressFromProxy(provider, proxyOrBeaconAddress);
     if (implAddress !== undefined) {
       const importKind = await detectProxyKind(provider, hre, proxyOrBeaconAddress, ImplFactory, opts);
-      await importProxyToManifest(provider, hre, proxyOrBeaconAddress, implAddress, ImplFactory, opts, importKind, manifest);
+      await importProxyToManifest(
+        provider,
+        hre,
+        proxyOrBeaconAddress,
+        implAddress,
+        ImplFactory,
+        opts,
+        importKind,
+        manifest,
+      );
 
       return ImplFactory.attach(proxyOrBeaconAddress);
     } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
@@ -60,7 +69,16 @@ export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunc
   };
 }
 
-async function importProxyToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, proxyAddress: string, implAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions, importKind: ProxyDeployment['kind'], manifest: Manifest) {
+async function importProxyToManifest(
+  provider: EthereumProvider,
+  hre: HardhatRuntimeEnvironment,
+  proxyAddress: string,
+  implAddress: string,
+  ImplFactory: ContractFactory,
+  opts: ImportProxyOptions,
+  importKind: ProxyDeployment['kind'],
+  manifest: Manifest,
+) {
   await addImplToManifest(provider, hre, implAddress, ImplFactory, opts);
   if (importKind === 'transparent') {
     await addAdminToManifest(provider, hre, proxyAddress, ImplFactory, opts);

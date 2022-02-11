@@ -54,9 +54,17 @@ export async function importProxy(
   } else {
     throw new ImportProxyUnsupportedError(proxyOrBeaconAddress);
   }
-};
+}
 
-async function importProxyToManifest(provider: EthereumProvider, proxyAddress: string, implAddress: string, Contract: ContractClass, opts: ImportProxyOptions, importKind: ProxyDeployment['kind'], manifest: Manifest) {
+async function importProxyToManifest(
+  provider: EthereumProvider,
+  proxyAddress: string,
+  implAddress: string,
+  Contract: ContractClass,
+  opts: ImportProxyOptions,
+  importKind: ProxyDeployment['kind'],
+  manifest: Manifest,
+) {
   await addImplToManifest(provider, implAddress, Contract, opts);
   if (importKind === 'transparent') {
     await addAdminToManifest(provider, proxyAddress, Contract, opts);

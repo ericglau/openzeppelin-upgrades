@@ -44,7 +44,8 @@ const CANNOT_DETERMINE_KIND =
   /Cannot determine the proxy kind at address \S+. Specify the kind option for the importProxy function./;
 const INVALID_KIND = 'kind must be uups, transparent, or beacon';
 const NOT_SUPPORTED_PROXY_OR_BEACON = /Contract at address \S+ doesn't look like a supported proxy or beacon/;
-const ONLY_PROXY_OR_BEACON = 'Only transparent, UUPS, or beacon proxies or beacons can be used with the importProxy() function.';
+const ONLY_PROXY_OR_BEACON =
+  'Only transparent, UUPS, or beacon proxies or beacons can be used with the importProxy() function.';
 
 test('transparent happy path', async t => {
   const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy } = t.context;

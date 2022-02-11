@@ -43,6 +43,8 @@ const NOT_SUPPORTED_FUNCTION = 'Beacon proxies are not supported with the curren
 const CANNOT_DETERMINE_KIND =
   /Cannot determine the proxy kind at address \S+. Specify the kind option for the importProxy function./;
 const INVALID_KIND = 'kind must be uups, transparent, or beacon';
+const NOT_SUPPORTED_PROXY_OR_BEACON = /Contract at address \S+ doesn't look like a supported proxy or beacon/;
+const ONLY_PROXY_OR_BEACON = 'Only transparent, UUPS, or beacon proxies or beacons can be used with the importProxy() function.';
 
 test('transparent happy path', async t => {
   const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy } = t.context;
@@ -89,7 +91,7 @@ test('uups happy path', async t => {
   t.is(await greeter2.greet(), 'Hello World');
 });
 
-test('beacon happy path', async t => {
+test('beacon proxy happy path', async t => {
   const { Greeter, GreeterV2, UpgradableBeacon, BeaconProxy } = t.context;
 
   const impl = await Greeter.deploy();
@@ -110,7 +112,31 @@ test('beacon happy path', async t => {
   t.is(await greeter2.greet(), 'Hello World');
 });
 
-test('import proxy instance', async t => {
+test('beacon happy path', async t => {
+  const { Greeter, GreeterV2, UpgradableBeacon } = t.context;
+
+  const impl = await Greeter.deploy();
+  await impl.deployed();
+  const beacon = await UpgradableBeacon.deploy(impl.address);
+  await beacon.deployed();
+
+  const beaconImported = await upgrades.importProxy(beacon.address, Greeter);
+  t.is(await beaconImported.implementation(), impl.address);
+
+  await upgrades.upgradeBeacon(beacon, GreeterV2);
+});
+
+test('not proxy or beacon', async t => {
+  const { Greeter } = t.context;
+
+  const impl = await Greeter.deploy();
+  await impl.deployed();
+
+  const e = await t.throwsAsync(() => upgrades.importProxy(impl.address, Greeter));
+  t.true(NOT_SUPPORTED_PROXY_OR_BEACON.test(e.message) && e.message.includes(ONLY_PROXY_OR_BEACON), e.message);
+});
+
+test('import proxy using contract instance', async t => {
   const { GreeterProxiable, GreeterV2Proxiable, ERC1967Proxy } = t.context;
 
   const impl = await GreeterProxiable.deploy();

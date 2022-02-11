@@ -1,13 +1,16 @@
 import {
   Manifest,
   getImplementationAddressFromProxy,
-  UpgradesError,
   EthereumProvider,
   detectProxyKindFromBytecode,
   getCode,
   getAdminAddress,
   getAndCompareImplBytecode,
   addProxyToManifest,
+  ProxyDeployment,
+  ImportProxyUnsupportedError,
+  getImplementationAddressFromBeacon,
+  isBeacon,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -21,11 +24,12 @@ import {
   ImportProxyOptions,
   ContractAddressOrInstance,
   getContractAddress,
+  getUpgradeableBeaconFactory,
 } from './utils';
 import { simulateDeployAdmin, simulateDeployImpl } from './utils/simulate-deploy';
 
 export async function importProxy(
-  proxy: ContractAddressOrInstance,
+  proxyOrBeacon: ContractAddressOrInstance,
   Contract: ContractClass,
   opts: ImportProxyOptions = {},
 ): Promise<ContractInstance> {
@@ -33,22 +37,31 @@ export async function importProxy(
   const provider = wrapProvider(deployer.provider);
   const manifest = await Manifest.forNetwork(provider);
 
-  const proxyAddress = getContractAddress(proxy);
+  const proxyOrBeaconAddress = getContractAddress(proxyOrBeacon);
 
-  const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
-  if (implAddress === undefined) {
-    throw new UpgradesError(`Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`);
+  const implAddress = await getImplementationAddressFromProxy(provider, proxyOrBeaconAddress);
+  if (implAddress !== undefined) {
+    const importKind = await detectProxyKind(provider, proxyOrBeaconAddress, Contract, opts);
+    await importProxyToManifest(provider, proxyOrBeaconAddress, implAddress, Contract, opts, importKind, manifest);
+
+    return Contract.at(proxyOrBeaconAddress);
+  } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
+    const beaconImplAddress = await getImplementationAddressFromBeacon(provider, proxyOrBeaconAddress);
+    await addImplToManifest(provider, beaconImplAddress, Contract, opts);
+
+    const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(Contract);
+    return UpgradeableBeaconFactory.at(proxyOrBeaconAddress);
+  } else {
+    throw new ImportProxyUnsupportedError(proxyOrBeaconAddress);
   }
+};
 
-  const importKind = await detectProxyKind(provider, proxyAddress, Contract, opts);
-
+async function importProxyToManifest(provider: EthereumProvider, proxyAddress: string, implAddress: string, Contract: ContractClass, opts: ImportProxyOptions, importKind: ProxyDeployment['kind'], manifest: Manifest) {
   await addImplToManifest(provider, implAddress, Contract, opts);
   if (importKind === 'transparent') {
     await addAdminToManifest(provider, proxyAddress, Contract, opts);
   }
   await addProxyToManifest(importKind, proxyAddress, manifest);
-
-  return Contract.at(proxyAddress);
 }
 
 async function addImplToManifest(

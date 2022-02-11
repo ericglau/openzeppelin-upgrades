@@ -25,6 +25,8 @@ const NOT_SUPPORTED_FUNCTION = 'Beacon proxies are not supported with the curren
 const CANNOT_DETERMINE_KIND =
   /Cannot determine the proxy kind at address \S+. Specify the kind option for the importProxy function./;
 const INVALID_KIND = 'kind must be uups, transparent, or beacon';
+const NOT_SUPPORTED_PROXY_OR_BEACON = /Contract at address \S+ doesn't look like a supported proxy or beacon/;
+const ONLY_PROXY_OR_BEACON = 'Only transparent, UUPS, or beacon proxies or beacons can be used with the importProxy() function.';
 
 contract('Greeter', function () {
   it('transparent happy path', async function () {
@@ -60,7 +62,7 @@ contract('Greeter', function () {
     assert.equal(await greeter2.greet(), 'Hello World');
   });
 
-  it('beacon happy path', async function () {
+  it('beacon proxy happy path', async function () {
     const impl = await deployer.deploy(Greeter);
     const beacon = await deployer.deploy(getUpgradeableBeaconFactory(), impl.address);
     const proxy = await deployer.deploy(
@@ -79,7 +81,23 @@ contract('Greeter', function () {
     assert.equal(await greeter2.greet(), 'Hello World');
   });
 
-  it('import proxy instance', async function () {
+  it('beacon happy path', async function () {
+    const impl = await deployer.deploy(Greeter);
+    const beacon = await deployer.deploy(getUpgradeableBeaconFactory(), impl.address);
+
+    const beaconImported = await importProxy(beacon.address, Greeter);
+    assert.equal(await beaconImported.implementation(), impl.address);
+
+    await upgradeBeacon(beacon, GreeterV2);
+  });
+
+  it('not proxy or beacon', async function () {
+    const impl = await deployer.deploy(Greeter);
+
+    await assert.rejects(importProxy(impl.address, Greeter), error => NOT_SUPPORTED_PROXY_OR_BEACON.test(error.message) && error.message.includes(ONLY_PROXY_OR_BEACON));
+  });
+
+  it('import proxy using contract instance', async function () {
     const impl = await deployer.deploy(GreeterProxiable);
     const proxy = await deployer.deploy(
       getProxyFactory(),

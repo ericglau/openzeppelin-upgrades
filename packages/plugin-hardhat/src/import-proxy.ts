@@ -1,16 +1,18 @@
-import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, Contract } from 'ethers';
 
 import {
   Manifest,
   getImplementationAddressFromProxy,
-  EthereumProvider,
-  UpgradesError,
   getAdminAddress,
   detectProxyKindFromBytecode,
   getCode,
   getAndCompareImplBytecode,
   addProxyToManifest,
+  isBeacon,
+  ImportProxyUnsupportedError,
+  ProxyDeployment,
+  getImplementationAddressFromBeacon,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -21,6 +23,7 @@ import {
   simulateDeployImpl,
   ContractAddressOrInstance,
   getContractAddress,
+  getUpgradeableBeaconFactory,
 } from './utils';
 import { simulateDeployAdmin } from './utils/simulate-deploy';
 
@@ -30,32 +33,39 @@ export interface ImportProxyFunction {
 
 export function makeImportProxy(hre: HardhatRuntimeEnvironment): ImportProxyFunction {
   return async function importProxy(
-    proxy: ContractAddressOrInstance,
+    proxyOrBeacon: ContractAddressOrInstance,
     ImplFactory: ContractFactory,
     opts: ImportProxyOptions = {},
   ) {
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
 
-    const proxyAddress = getContractAddress(proxy);
+    const proxyOrBeaconAddress = getContractAddress(proxyOrBeacon);
 
-    const implAddress = await getImplementationAddressFromProxy(provider, proxyAddress);
-    if (implAddress === undefined) {
-      throw new UpgradesError(
-        `Contract at ${proxyAddress} doesn't look like a supported UUPS/Transparent/Beacon proxy`,
-      );
+    const implAddress = await getImplementationAddressFromProxy(provider, proxyOrBeaconAddress);
+    if (implAddress !== undefined) {
+      const importKind = await detectProxyKind(provider, hre, proxyOrBeaconAddress, ImplFactory, opts);
+      await importProxyToManifest(provider, hre, proxyOrBeaconAddress, implAddress, ImplFactory, opts, importKind, manifest);
+
+      return ImplFactory.attach(proxyOrBeaconAddress);
+    } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
+      const beaconImplAddress = await getImplementationAddressFromBeacon(provider, proxyOrBeaconAddress);
+      await addImplToManifest(provider, hre, beaconImplAddress, ImplFactory, opts);
+
+      const UpgradeableBeaconFactory = await getUpgradeableBeaconFactory(hre, ImplFactory.signer);
+      return UpgradeableBeaconFactory.attach(proxyOrBeaconAddress);
+    } else {
+      throw new ImportProxyUnsupportedError(proxyOrBeaconAddress);
     }
-
-    const importKind = await detectProxyKind(provider, hre, proxyAddress, ImplFactory, opts);
-
-    await addImplToManifest(provider, hre, implAddress, ImplFactory, opts);
-    if (importKind === 'transparent') {
-      await addAdminToManifest(provider, hre, proxyAddress, ImplFactory, opts);
-    }
-    await addProxyToManifest(importKind, proxyAddress, manifest);
-
-    return ImplFactory.attach(proxyAddress);
   };
+}
+
+async function importProxyToManifest(provider: EthereumProvider, hre: HardhatRuntimeEnvironment, proxyAddress: string, implAddress: string, ImplFactory: ContractFactory, opts: ImportProxyOptions, importKind: ProxyDeployment['kind'], manifest: Manifest) {
+  await addImplToManifest(provider, hre, implAddress, ImplFactory, opts);
+  if (importKind === 'transparent') {
+    await addAdminToManifest(provider, hre, proxyAddress, ImplFactory, opts);
+  }
+  await addProxyToManifest(importKind, proxyAddress, manifest);
 }
 
 async function addImplToManifest(

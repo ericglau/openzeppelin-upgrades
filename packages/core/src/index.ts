@@ -41,5 +41,6 @@ export {
   DeployBeaconProxyUnsupportedError,
   DeployBeaconProxyImplUnknownError,
   DeployBeaconProxyKindError,
+  ImportProxyUnsupportedError,
   assertNotProxy,
 } from './usage-error';

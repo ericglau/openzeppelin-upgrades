@@ -7,7 +7,7 @@ Both `deployProxy` and `upgradeProxy` functions will return instances of https:/
 
 The following options are common to all functions.
 
-* `kind`: (`"uups" | "transparent"`) Choose between a UUPS or Transparent proxy. Defaults to Transparent. Not applicable for Beacon proxies. See xref:contracts:api:proxy.adoc#transparent-vs-uups[Transparent vs UUPS].
+* `kind`: (`"uups" | "transparent"`) Choose between a UUPS or Transparent proxy. Defaults to Transparent. See xref:contracts:api:proxy.adoc#transparent-vs-uups[Transparent vs UUPS]. Not applicable for Beacon proxies except when xref:#import-proxy[importing].
 * `unsafeAllow`: (`ValidationError[]`) Selectively disable one or more validation errors:
 ** `"external-library-linking"`: Allows a deployment with external libraries linked to the implementation contract. (External libraries are otherwise xref:faq.adoc#why-cant-i-use-external-libraries[not yet supported].)
 ** `"struct-definition"`, `"enum-definition"`: Used to be necessary to deploy a contract with structs or enums. No longer necessary.
@@ -121,6 +121,25 @@ async function deployBeaconProxy(
   args: unknown[] = [],
   opts: {
     initializer?: string | false,
+  } = {},
+): Promise<ethers.Contract>
+----
+
+[[import-proxy]]
+== importProxy
+
+Imports an existing proxy deployment to be used with this plugin. Provide the address of an existing proxy and the ethers contract factory of the implementation contract that was deployed. This can be used to recreate a lost https://docs.openzeppelin.com/upgrades-plugins/1.x/network-files[network file] by importing previously deployed proxies, or to register proxies for upgrading even if they were not originally deployed by this plugin. Supported for UUPS, Transparent, and Beacon proxies.
+
+* `force`: whether to force the import even if the runtime bytecode at the implementation address does not correspond to the provided ethers contract factory.
+
+[source,ts]
+----
+async function importProxy(
+  proxyAddress: string,
+  deployedImpl: ethers.ContractFactory,
+  opts: {
+    force?: boolean,
+    kind?: 'uups' | 'transparent' | 'beacon',
   } = {},
 ): Promise<ethers.Contract>
 ----

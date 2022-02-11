@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 // This contract is for testing only, it is not safe for use in production.
 
-// Minimal adaptation of https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ERC1967/ERC1967Proxy.sol
+// Adapted from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/ERC1967/ERC1967Proxy.sol
 contract CustomProxy {
 
     /**

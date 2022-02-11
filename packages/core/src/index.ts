@@ -1,5 +1,5 @@
 export * from './validate';
-export * from './impl-store';
+export { fetchOrDeploy, fetchOrDeployAdmin } from './impl-store';
 export * from './version';
 export * from './storage';
 export * from './eip-1967';

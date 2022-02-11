@@ -146,7 +146,7 @@ export async function fetchOrDeploy(
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, merge);
 }
 
-export const implLens = (versionWithoutMetadata: string) =>
+const implLens = (versionWithoutMetadata: string) =>
   lens(`implementation ${versionWithoutMetadata}`, 'implementation', data => ({
     get: () => data.impls[versionWithoutMetadata],
     set: (value?: ImplDeployment) => (data.impls[versionWithoutMetadata] = value),
@@ -168,7 +168,7 @@ export const implLens = (versionWithoutMetadata: string) =>
  * @param existing existing deployment
  * @param value deployment to add
  */
-async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
+export async function mergeAddresses(existing: ImplDeployment, value: ImplDeployment) {
   const merged = new Set<string>();
 
   merged.add(existing.address);

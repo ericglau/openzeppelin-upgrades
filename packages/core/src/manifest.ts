@@ -20,13 +20,13 @@ export interface ManifestData {
   admin?: AdminDeployment;
 }
 
-interface BytecodeDeployment extends Deployment {
+export interface GenericDeployment extends Deployment {
   bytecodeHash?: string;
 }
 
-export type AdminDeployment = BytecodeDeployment;
+export type AdminDeployment = GenericDeployment;
 
-export interface ImplDeployment extends BytecodeDeployment {
+export interface ImplDeployment extends GenericDeployment {
   layout: StorageLayout;
   allAddresses?: string[];
 }

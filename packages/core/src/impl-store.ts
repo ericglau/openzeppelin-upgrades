@@ -1,5 +1,5 @@
 import debug from './utils/debug';
-import { Manifest, ManifestData, ImplDeployment, AdminDeployment } from './manifest';
+import { Manifest, ManifestData, ImplDeployment, AdminDeployment, GenericDeployment } from './manifest';
 import { EthereumProvider, getCode, isDevelopmentNetwork, isEmpty } from './provider';
 import { Deployment, InvalidDeployment, Reason, resumeOrDeploy, waitAndValidateDeployment } from './deployment';
 import { hashBytecode, Version } from './version';
@@ -15,7 +15,7 @@ interface ManifestLens<T> {
 interface ManifestField<T> {
   get(): T | undefined;
   set(value: T | undefined): void;
-  getBytecodeHash?(): string | undefined;
+  getBytecodeHash(): string | undefined;
   merge?(value: T | undefined): Promise<void>;
 }
 
@@ -31,7 +31,7 @@ interface ManifestField<T> {
  * @throws {InvalidDeployment} if the deployment is invalid
  * @throws {TransactionMinedTimeout} if the transaction was not confirmed within the timeout period
  */
-async function fetchOrDeployGeneric<T extends Deployment>(
+async function fetchOrDeployGeneric<T extends GenericDeployment>(
   lens: ManifestLens<T>,
   provider: EthereumProvider,
   deploy: () => Promise<T>,
@@ -90,7 +90,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   }
 }
 
-async function getAndValidate<T extends Deployment>(
+async function getAndValidate<T extends GenericDeployment>(
   deployment: ManifestField<T>,
   lens: ManifestLens<T>,
   provider: EthereumProvider,
@@ -109,8 +109,8 @@ async function getAndValidate<T extends Deployment>(
       } else {
         throw new InvalidDeployment(stored, Reason.NoBytecode);
       }
-    } else if (deployment.getBytecodeHash) {
-      stored = validate(stored, hashBytecode(existingBytecode), isDevNet, deployment.getBytecodeHash());
+    } else {
+      stored = validate(stored, deployment.getBytecodeHash(), hashBytecode(existingBytecode), isDevNet);
     }
   }
   if (stored === undefined) {
@@ -121,9 +121,9 @@ async function getAndValidate<T extends Deployment>(
 
 function validate<T extends Deployment>(
   deployment: T,
+  storedBytecodeHash: string | undefined,
   existingBytecodeHash: string,
   isDevNet: boolean,
-  storedBytecodeHash?: string,
 ) {
   if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
     if (isDevNet) {
@@ -222,7 +222,7 @@ async function checkForAddressClash(
   }
 }
 
-function lookupDeployment(data: ManifestData, address: string): ManifestField<Deployment> | undefined {
+function lookupDeployment(data: ManifestData, address: string): ManifestField<GenericDeployment> | undefined {
   if (data.admin?.address === address) {
     return adminLens(data);
   }

@@ -33,11 +33,11 @@ export { getStorageLayoutForAddress } from './manifest-storage-layout';
 export * from './scripts/migrate-oz-cli-project';
 
 export { logWarning } from './utils/log';
-export { setProxyKind, processProxyKind } from './proxy-kind';
+export { setProxyKind, processProxyKind, detectProxyKind } from './proxy-kind';
 
 export { UpgradeableContract } from './standalone';
 
-export { isTransparentOrUUPSProxy, isBeaconProxy, detectProxyKind } from './eip-1967-type';
+export { isTransparentOrUUPSProxy, isBeaconProxy } from './eip-1967-type';
 export { getImplementationAddressFromBeacon, getImplementationAddressFromProxy } from './impl-address';
 export { isBeacon } from './beacon';
 export { getAndCompareImplBytecode } from './bytecode-match';

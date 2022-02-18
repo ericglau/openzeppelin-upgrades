@@ -40,9 +40,6 @@ function getInitializerData(contractInterface, args) {
 const NOT_MATCH_BYTECODE = /Contract does not match with implementation bytecode deployed at \S+/;
 const NOT_REGISTERED_ADMIN = 'Proxy admin is not the one registered in the network manifest';
 const NOT_SUPPORTED_FUNCTION = 'Beacon proxies are not supported with the current function';
-const CANNOT_DETERMINE_KIND =
-  /Cannot determine the proxy kind at address \S+. Specify the kind option for the importProxy function./;
-const INVALID_KIND = 'kind must be uups, transparent, or beacon';
 const NOT_SUPPORTED_PROXY_OR_BEACON = /Contract at address \S+ doesn't look like a supported proxy or beacon/;
 const ONLY_PROXY_OR_BEACON =
   'Only transparent, UUPS, or beacon proxies or beacons can be used with the importProxy() function.';
@@ -188,28 +185,6 @@ test('import custom proxy', async t => {
   await proxy.deployed();
 
   const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
-  t.is(await greeter.greet(), 'Hello, Hardhat!');
-
-  await upgrades.upgradeProxy(greeter, GreeterV2Proxiable);
-});
-
-test('manually set kind', async t => {
-  const { GreeterProxiable, GreeterV2Proxiable, CustomProxy } = t.context;
-
-  const impl = await GreeterProxiable.deploy();
-  await impl.deployed();
-  const proxy = await CustomProxy.deploy(
-    impl.address,
-    getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']),
-  );
-  await proxy.deployed();
-
-  // invalid kind
-  const e2 = await t.throwsAsync(() => upgrades.importProxy(proxy.address, GreeterProxiable, { kind: 'invalid' }));
-  t.true(e2.message.startsWith(INVALID_KIND), e2.message);
-
-  // valid kind
-  const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable, { kind: 'uups' });
   t.is(await greeter.greet(), 'Hello, Hardhat!');
 
   await upgrades.upgradeProxy(greeter, GreeterV2Proxiable);

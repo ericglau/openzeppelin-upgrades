@@ -28,7 +28,9 @@ export async function getImplementationAddress(provider: EthereumProvider, addre
   );
 
   if (isEmptySlot(storage)) {
-    throw new EIP1967ImplementationNotFound(`Contract at ${address} doesn't look like an ERC 1967 proxy with a logic contract address`);
+    throw new EIP1967ImplementationNotFound(
+      `Contract at ${address} doesn't look like an ERC 1967 proxy with a logic contract address`,
+    );
   }
 
   return parseAddressFromStorage(storage);

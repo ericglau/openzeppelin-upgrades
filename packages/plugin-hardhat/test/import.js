@@ -176,7 +176,7 @@ test('ignore kind', async t => {
   t.true(e.message.startsWith(NOT_SUPPORTED_FUNCTION), e.message);
 });
 
-test('manually set kind', async t => {
+test('import custom proxy', async t => {
   const { GreeterProxiable, GreeterV2Proxiable, CustomProxy } = t.context;
 
   const impl = await GreeterProxiable.deploy();
@@ -187,9 +187,22 @@ test('manually set kind', async t => {
   );
   await proxy.deployed();
 
-  // assert that kind is required since it cannot be determined due to custom proxy
-  const e = await t.throwsAsync(() => upgrades.importProxy(proxy.address, GreeterProxiable));
-  t.true(CANNOT_DETERMINE_KIND.test(e.message), e.message);
+  const greeter = await upgrades.importProxy(proxy.address, GreeterProxiable);
+  t.is(await greeter.greet(), 'Hello, Hardhat!');
+
+  await upgrades.upgradeProxy(greeter, GreeterV2Proxiable);
+});
+
+test('manually set kind', async t => {
+  const { GreeterProxiable, GreeterV2Proxiable, CustomProxy } = t.context;
+
+  const impl = await GreeterProxiable.deploy();
+  await impl.deployed();
+  const proxy = await CustomProxy.deploy(
+    impl.address,
+    getInitializerData(GreeterProxiable.interface, ['Hello, Hardhat!']),
+  );
+  await proxy.deployed();
 
   // invalid kind
   const e2 = await t.throwsAsync(() => upgrades.importProxy(proxy.address, GreeterProxiable, { kind: 'invalid' }));

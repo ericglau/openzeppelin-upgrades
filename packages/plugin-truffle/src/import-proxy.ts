@@ -107,7 +107,6 @@ async function detectProxyKind(
   return await detectProxyKindFromBytecode(
     provider,
     proxyAddress,
-    { UUPSProxy, TransparentProxy, BeaconProxy },
     opts.kind,
   );
 }

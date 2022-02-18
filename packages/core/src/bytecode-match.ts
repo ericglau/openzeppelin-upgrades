@@ -1,3 +1,4 @@
+import { isBeaconProxy, isTransparentOrUUPSProxy, isTransparentProxy } from '.';
 import { UpgradesError } from './error';
 import { ProxyDeployment } from './manifest';
 import { EthereumProvider, getCode } from './provider';
@@ -47,15 +48,14 @@ interface ProxyCreationCodes {
 export async function detectProxyKindFromBytecode(
   provider: EthereumProvider,
   proxyAddress: string,
-  proxyCreationCodes: ProxyCreationCodes,
   kind?: string,
 ) {
   let importKind: ProxyDeployment['kind'];
-  if (await isBytecodeMatch(provider, proxyAddress, proxyCreationCodes.UUPSProxy)) {
-    importKind = 'uups';
-  } else if (await isBytecodeMatch(provider, proxyAddress, proxyCreationCodes.TransparentProxy)) {
+  if (await isTransparentProxy(provider, proxyAddress)) {
     importKind = 'transparent';
-  } else if (await isBytecodeMatch(provider, proxyAddress, proxyCreationCodes.BeaconProxy)) {
+  } else if (await isTransparentOrUUPSProxy(provider, proxyAddress)) {
+    importKind = 'uups';
+  } else if (await isBeaconProxy(provider, proxyAddress)) {
     importKind = 'beacon';
   } else {
     if (kind === undefined) {

@@ -2,7 +2,7 @@ export * from './validate';
 export { fetchOrDeploy, fetchOrDeployAdmin } from './impl-store';
 export * from './version';
 export * from './storage';
-export * from './eip-1967';
+export { EIP1967AdminNotFound, EIP1967BeaconNotFound, EIP1967ImplementationNotFound, getAdminAddress, getBeaconAddress, getImplementationAddress, toEip1967Hash, toFallbackEip1967Hash } from './eip-1967';
 export * from './provider';
 export * from './src-decoder';
 export * from './solc-api';
@@ -28,7 +28,7 @@ export { setProxyKind, processProxyKind } from './proxy-kind';
 
 export { UpgradeableContract } from './standalone';
 
-export { isTransparentOrUUPSProxy, isBeaconProxy } from './eip-1967-type';
+export { isTransparentOrUUPSProxy, isTransparentProxy, isBeaconProxy } from './eip-1967-type';
 export { getImplementationAddressFromBeacon, getImplementationAddressFromProxy } from './impl-address';
 export { isBeacon } from './beacon';
 export { detectProxyKindFromBytecode, getAndCompareImplBytecode } from './bytecode-match';

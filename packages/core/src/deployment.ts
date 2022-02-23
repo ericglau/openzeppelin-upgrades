@@ -4,13 +4,17 @@ import debug from './utils/debug';
 import { makeNonEnumerable } from './utils/make-non-enumerable';
 import {
   EthereumProvider,
+  getCode,
   getTransactionByHash,
   getTransactionReceipt,
   hasCode,
   isDevelopmentNetwork,
+  isEmpty,
   isReceiptSuccessful,
 } from './provider';
 import { UpgradesError } from './error';
+import { GenericDeployment } from './manifest';
+import { hashBytecode } from './version';
 
 const sleep = promisify(setTimeout);
 
@@ -35,33 +39,75 @@ export async function resumeOrDeploy<T extends Deployment>(
   provider: EthereumProvider,
   cached: T | undefined,
   deploy: () => Promise<T>,
+  merge?: boolean,
 ): Promise<T> {
+  let shouldDeploy = true;
   if (cached !== undefined) {
-    const { txHash } = cached;
-    if (txHash === undefined) {
-      // Nothing to do here without a txHash.
-      // This is the case for deployments migrated from OpenZeppelin CLI.
-      return cached;
-    }
-    // If there is a deployment with txHash stored, we look its transaction up. If the
-    // transaction is found, the deployment is reused.
-    debug('found previous deployment', txHash);
-    const tx = await getTransactionByHash(provider, txHash);
-    if (tx !== null) {
-      debug('resuming previous deployment', txHash);
-      return cached;
-    } else if (!(await isDevelopmentNetwork(provider))) {
-      // If the transaction is not found we throw an error, except if we're in
-      // a development network then we simply silently redeploy.
-      throw new InvalidDeployment(cached);
-    } else {
-      debug('ignoring invalid deployment in development network', txHash);
+    try {
+      shouldDeploy = await validateStoredDeployment(cached, provider, merge);
+    } catch (e) {
+      if (e instanceof InvalidDeployment && (await isDevelopmentNetwork(provider))) {
+        debug('ignoring invalid deployment in development network', e.deployment.address, e.reason);
+      } else {
+        throw e;
+      }
     }
   }
 
-  const deployment = await deploy();
-  debug('initiated deployment', deployment.txHash);
-  return deployment;
+  if (shouldDeploy || cached === undefined) {
+    const deployment = await deploy();
+    debug('initiated deployment', deployment.txHash);
+    return deployment; 
+  } else {
+    return cached;
+  }
+}
+
+/**
+ * Validate an existing deployment and determine whether a new deployment should occur
+ * 
+ * @param stored 
+ * @param provider 
+ * @param merge 
+ * @return whether a new deployment should occur
+ */
+async function validateStoredDeployment<T extends GenericDeployment>(stored: T, provider: EthereumProvider, merge?: boolean) : Promise<boolean> {
+  const existingBytecode = await getCode(provider, stored.address);
+  if (isEmpty(existingBytecode)) {
+    // if bytecode is empty, maybe the tx hasn't been mined yet
+    const { txHash } = stored;
+    if (txHash !== undefined) {
+      // If there is a deployment with txHash stored, we look its transaction up. If the
+      // transaction is found, the deployment is reused.
+      debug('found previous deployment', txHash);
+      const tx = await getTransactionByHash(provider, txHash);
+      if (tx !== null) {
+        debug('resuming previous deployment', txHash);
+        if (merge) {
+          // If merging, wait for the existing deployment to be mined, then import the new one.
+          waitAndValidateDeployment(provider, stored);
+          return true;
+        } else {
+          // If not merging, reuse the existing deployment.
+          return false;
+        }
+      } else {
+        // If the transaction is not found we throw an error, except if we're in
+        // a development network then we simply silently redeploy.
+        // This error should be caught by the caller to determine if we're in a dev network.
+        throw new InvalidDeployment(stored);
+      }
+    } else {
+      throw new InvalidDeployment(stored, Reason.NoBytecode);
+    }
+  } else if (stored.bytecodeHash !== undefined && stored.bytecodeHash !== hashBytecode(existingBytecode)) {
+    throw new InvalidDeployment(stored, Reason.MismatchedBytecode);
+  } else {
+    // bytecode exists and does not conflict.
+    // if we are merging, this is what we expect, so we can go ahead and merge.
+    // otherwise, no need to deploy
+    return (merge === true);
+  }
 }
 
 export async function waitAndValidateDeployment(

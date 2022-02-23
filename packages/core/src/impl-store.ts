@@ -50,7 +50,21 @@ async function fetchOrDeployGeneric<T extends GenericDeployment>(
         );
       }
 
-      const stored = await getAndValidate(deployment, lens, provider);
+      let stored = deployment.get();
+      if (stored !== undefined) {
+        try {
+          await validateStoredDeployment(stored, provider);
+        } catch (e) {
+          if (e instanceof InvalidDeployment && (await isDevelopmentNetwork(provider))) {
+            debug('omitting a previous deployment', e.deployment.address, e.reason);
+            stored = undefined;
+            deployment.set(undefined);
+          } else {
+            throw e;
+          }
+        }
+      }
+
       const updated = merge ? await deploy() : await resumeOrDeploy(provider, stored, deploy);
       if (updated !== stored) {
         await checkForAddressClash(provider, data, updated);
@@ -87,50 +101,13 @@ async function fetchOrDeployGeneric<T extends GenericDeployment>(
   }
 }
 
-async function getAndValidate<T extends GenericDeployment>(
-  deployment: ManifestField<T>,
-  lens: ManifestLens<T>,
-  provider: EthereumProvider,
-) {
-  let stored = deployment.get();
-  if (stored === undefined) {
-    debug('deployment of', lens.description, 'not found');
-  } else {
-    const existingBytecode = await getCode(provider, stored.address);
-    const isDevNet = await isDevelopmentNetwork(provider);
-
-    if (isEmpty(existingBytecode)) {
-      if (isDevNet) {
-        debug('omitting a previous deployment due to no bytecode at address', stored.address);
-        stored = undefined;
-      } else {
-        throw new InvalidDeployment(stored, Reason.NoBytecode);
-      }
-    } else {
-      stored = validate(stored, stored.bytecodeHash, hashBytecode(existingBytecode), isDevNet);
-    }
+async function validateStoredDeployment<T extends GenericDeployment>(stored: T, provider: EthereumProvider) {
+  const existingBytecode = await getCode(provider, stored.address);
+  if (isEmpty(existingBytecode)) {
+    throw new InvalidDeployment(stored, Reason.NoBytecode);
+  } else if (stored.bytecodeHash !== undefined && stored.bytecodeHash !== hashBytecode(existingBytecode)) {
+    throw new InvalidDeployment(stored, Reason.MismatchedBytecode);
   }
-  if (stored === undefined) {
-    deployment.set(undefined);
-  }
-  return stored;
-}
-
-function validate<T extends Deployment>(
-  deployment: T,
-  storedBytecodeHash: string | undefined,
-  existingBytecodeHash: string,
-  isDevNet: boolean,
-) {
-  if (storedBytecodeHash !== undefined && storedBytecodeHash !== existingBytecodeHash) {
-    if (isDevNet) {
-      debug('omitting a previous deployment due to mismatched bytecode at address ', deployment.address);
-      return undefined;
-    } else {
-      throw new InvalidDeployment(deployment, Reason.MismatchedBytecode);
-    }
-  }
-  return deployment;
 }
 
 export async function fetchOrDeploy(

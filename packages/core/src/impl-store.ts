@@ -41,7 +41,7 @@ async function fetchOrDeployGeneric<T extends GenericDeployment>(
 
   try {
     const deployment = await manifest.lockedRun(async () => {
-      debug('fetching deployment of', lens.description);
+      debug('fetching deployment of', lens.description, merge);
       const data = await manifest.read();
       const deployment = lens(data);
       if (merge && !deployment.merge) {
@@ -51,7 +51,7 @@ async function fetchOrDeployGeneric<T extends GenericDeployment>(
       }
 
       let stored = deployment.get();
-      const updated = await resumeOrDeploy(provider, stored, deploy, merge);
+      const updated = await resumeOrDeploy(provider, stored, deploy, deployment, merge);
       if (updated !== stored) {
         await checkForAddressClash(provider, data, updated);
         if (merge && deployment.merge) {
@@ -87,6 +87,9 @@ async function fetchOrDeployGeneric<T extends GenericDeployment>(
   }
 }
 
+export function deleteDeployment(deployment: ManifestField<GenericDeployment>) {
+  deployment.set(undefined);
+}
 
 export async function fetchOrDeploy(
   version: Version,

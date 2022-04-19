@@ -2,11 +2,11 @@
 
 import '@nomiclabs/hardhat-ethers';
 import './type-extensions';
-import { subtask, extendEnvironment, extendConfig } from 'hardhat/config';
+import { subtask, extendEnvironment, extendConfig, task } from 'hardhat/config';
 import { TASK_COMPILE_SOLIDITY, TASK_COMPILE_SOLIDITY_COMPILE } from 'hardhat/builtin-tasks/task-names';
 import { lazyObject } from 'hardhat/plugins';
 import { HardhatConfig } from 'hardhat/types';
-import { getImplementationAddressFromBeacon, silenceWarnings, SolcInput } from '@openzeppelin/upgrades-core';
+import { getImplementationAddressFromBeacon, getImplementationAddressFromProxy, silenceWarnings, SolcInput } from '@openzeppelin/upgrades-core';
 import type { DeployFunction } from './deploy-proxy';
 import type { PrepareUpgradeFunction } from './prepare-upgrade';
 import type { UpgradeFunction } from './upgrade-proxy';
@@ -133,3 +133,22 @@ extendConfig((config: HardhatConfig) => {
     }
   }
 });
+
+// require("@nomiclabs/hardhat-etherscan");
+
+// task("verify")
+//   .setAction(async (args, hre, runSuper) => {
+//   console.log("Validating implementation for proxy: " + args.address);
+//   const address = await getImplementationAddressFromProxy(hre.network.provider, args.address);
+//   console.log("Implementation: " + address);
+//   return runSuper({...args, address});
+// });
+
+task("verify-proxy")
+  .addPositionalParam("address", "Address of the proxy to verify")
+  .setAction(async (args, hre) => {
+    // do something
+    console.log('Verifying proxy: ' + args.address);
+    await hre.run("verify", { "address":args.address });
+    //return runSuper(args);
+  });

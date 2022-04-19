@@ -134,8 +134,6 @@ extendConfig((config: HardhatConfig) => {
   }
 });
 
-// require("@nomiclabs/hardhat-etherscan");
-
 // task("verify")
 //   .setAction(async (args, hre, runSuper) => {
 //   console.log("Validating implementation for proxy: " + args.address);
@@ -147,8 +145,7 @@ extendConfig((config: HardhatConfig) => {
 task("verify-proxy")
   .addPositionalParam("address", "Address of the proxy to verify")
   .setAction(async (args, hre) => {
-    // do something
-    console.log('Verifying proxy: ' + args.address);
-    await hre.run("verify", { "address":args.address });
-    //return runSuper(args);
+    const address = await getImplementationAddressFromProxy(hre.network.provider, args.address);
+    console.log(`Verifying implementation ${address} for proxy ${args.address}`);
+    await hre.run("verify", { "address": address });
   });

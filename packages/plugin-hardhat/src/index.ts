@@ -220,7 +220,7 @@ task("verify")
     // const uupsProxyFactory = await getProxyFactory(hre);
     // console.log("Proxy: " + JSON.stringify(uupsProxyFactory));
 
-    const request = toVerifyRequest({
+    const params = {
       apiKey: etherscanAPIKey,
       contractAddress: proxyAddress,
       sourceCode: JSON.stringify(solcInput),
@@ -228,8 +228,16 @@ task("verify")
       contractName: 'ERC1967Proxy', //contractInformation.contractName,
       compilerVersion:  "v0.8.2+commit.661d1103", //solcFullVersion,
       constructorArguments: '' //deployArgumentsEncoded,
-    });
+    }
+
+    //console.log("Params:\n"+JSON.stringify(params));
+
+    const request = toVerifyRequest(params);
+    //console.log("Verify request:\n"+JSON.stringify(request));
+
     const response = await verifyContract(etherscanAPIEndpoints.urls.apiURL, request);
+
+    console.log("Response:\n"+JSON.stringify(response));
 
     const pollRequest = toCheckStatusRequest({
       apiKey: etherscanAPIKey,

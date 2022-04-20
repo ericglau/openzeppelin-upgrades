@@ -16,6 +16,10 @@ import type { UpgradeBeaconFunction } from './upgrade-beacon';
 import type { ForceImportFunction } from './force-import';
 import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInstanceFunction } from './admin';
 
+import { resolveEtherscanApiKey } from '@nomiclabs/hardhat-etherscan/dist/src/resolveEtherscanApiKey';
+import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanVerifyContractRequest';
+import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
+
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
   upgradeProxy: UpgradeFunction;
@@ -146,7 +150,51 @@ extendConfig((config: HardhatConfig) => {
 // Override task:
 task("verify")
   .setAction(async (args, hre, runSuper) => {
-    const address = await getImplementationAddressFromProxy(hre.network.provider, args.address);
-    console.log(`Verifying implementation ${address} for proxy ${args.address}`);
-    return runSuper({...args, address});
+    const proxyAddress = args.address;
+
+    const address = await getImplementationAddressFromProxy(hre.network.provider, proxyAddress);
+    console.log(`Verifying implementation ${address} for proxy ${proxyAddress}`);
+
+    const etherscanAPIEndpoints = await hre.run("verify:get-etherscan-endpoint");
+    console.log(`Etherscan endpoint urls: ${JSON.stringify(etherscanAPIEndpoints)}`);
+
+    const config: any = hre.config; // TODO use an interface
+    console.log(`Etherscan config: ${JSON.stringify(config.etherscan)}`);
+
+    const etherscanAPIKey = resolveEtherscanApiKey(
+      config.etherscan,
+      etherscanAPIEndpoints.network
+    );
+
+    const request = toVerifyRequest({
+      apiKey: etherscanAPIKey,
+      contractAddress: proxyAddress,
+      sourceCode: '', //JSON.stringify(compilerInput),
+      sourceName: '', //contractInformation.sourceName,
+      contractName: '', //contractInformation.contractName,
+      compilerVersion: '', //solcFullVersion,
+      constructorArguments: '' //deployArgumentsEncoded,
+    });
+    const response = await verifyContract(etherscanAPIEndpoints.apiURL, request);
+
+    const pollRequest = toCheckStatusRequest({
+      apiKey: etherscanAPIKey,
+      guid: response.message,
+    });
+  
+    // Compilation is bound to take some time so there's no sense in requesting status immediately.
+    await delay(700);
+    const verificationStatus = await getVerificationStatus(
+      etherscanAPIEndpoints.apiURL,
+      pollRequest
+    );
+  
+    if (
+      verificationStatus.isVerificationFailure() ||
+      verificationStatus.isVerificationSuccess()
+    ) {
+      console.log(verificationStatus.message);
+    }
+
+    //return runSuper({...args, address});
   });

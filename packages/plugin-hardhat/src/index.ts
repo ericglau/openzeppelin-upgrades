@@ -19,6 +19,10 @@ import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInsta
 import { resolveEtherscanApiKey } from '@nomiclabs/hardhat-etherscan/dist/src/resolveEtherscanApiKey';
 import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanVerifyContractRequest';
 import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
+import { getProxyFactory } from './utils/factories';
+
+import ERC1967ProxyDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.dbg.json';
+
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -166,6 +170,11 @@ task("verify")
       etherscanAPIEndpoints.network
     );
 
+    
+
+    const uupsProxyFactory = await getProxyFactory(hre);
+    console.log("Proxy: " + JSON.stringify(uupsProxyFactory));
+
     const request = toVerifyRequest({
       apiKey: etherscanAPIKey,
       contractAddress: proxyAddress,
@@ -175,7 +184,7 @@ task("verify")
       compilerVersion: '', //solcFullVersion,
       constructorArguments: '' //deployArgumentsEncoded,
     });
-    const response = await verifyContract(etherscanAPIEndpoints.apiURL, request);
+    const response = await verifyContract(etherscanAPIEndpoints.urls.apiURL, request);
 
     const pollRequest = toCheckStatusRequest({
       apiKey: etherscanAPIKey,

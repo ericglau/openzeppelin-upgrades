@@ -134,18 +134,19 @@ extendConfig((config: HardhatConfig) => {
   }
 });
 
-// task("verify")
-//   .setAction(async (args, hre, runSuper) => {
-//   console.log("Validating implementation for proxy: " + args.address);
-//   const address = await getImplementationAddressFromProxy(hre.network.provider, args.address);
-//   console.log("Implementation: " + address);
-//   return runSuper({...args, address});
-// });
+// Separate task:
+// task("verify-proxy")
+//   .addPositionalParam("address", "Address of the proxy to verify")
+//   .setAction(async (args, hre) => {
+//     const address = await getImplementationAddressFromProxy(hre.network.provider, args.address);
+//     console.log(`Verifying implementation ${address} for proxy ${args.address}`);
+//     await hre.run("verify", { "address": address });
+//   });
 
-task("verify-proxy")
-  .addPositionalParam("address", "Address of the proxy to verify")
-  .setAction(async (args, hre) => {
+// Override task:
+task("verify")
+  .setAction(async (args, hre, runSuper) => {
     const address = await getImplementationAddressFromProxy(hre.network.provider, args.address);
     console.log(`Verifying implementation ${address} for proxy ${args.address}`);
-    await hre.run("verify", { "address": address });
+    return runSuper({...args, address});
   });

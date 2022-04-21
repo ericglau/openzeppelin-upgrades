@@ -21,7 +21,7 @@ import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-ethers
 import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
 import { getProxyFactory } from './utils/factories';
 
-import ERC1967ProxyDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.dbg.json';
+import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 
 
 export interface HardhatUpgrades {
@@ -224,11 +224,11 @@ task("verify")
       apiKey: etherscanAPIKey,
       contractAddress: proxyAddress,
       sourceCode: JSON.stringify(solcInput),
-      sourceName: '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol', //contractInformation.sourceName,
-      contractName: 'ERC1967Proxy', //contractInformation.contractName,
+      sourceName: ERC1967Proxy.sourceName, //'@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol', //contractInformation.sourceName,
+      contractName: ERC1967Proxy.contractName, //'ERC1967Proxy', //contractInformation.contractName,
       compilerVersion:  "v0.8.2+commit.661d1103", //solcFullVersion,
-      constructorArguments: '' //deployArgumentsEncoded,
-    }
+      constructorArguments: '00000000000000000000000029a84d93754d766aef661cdba5d9ced07029d78200000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064f62d18880000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b48656c6c6f20576f726c6400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' //deployArgumentsEncoded,
+    } //TODO encode proxy constructor with beacon or impl, and a separately encoded initializer call and arguments
 
     //console.log("Params:\n"+JSON.stringify(params));
 

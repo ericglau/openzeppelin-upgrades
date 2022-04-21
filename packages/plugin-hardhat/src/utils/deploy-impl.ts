@@ -116,8 +116,11 @@ async function deployImpl(
     deployData.provider,
     async () => {
       const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
-      const deployment = Object.assign({ abi }, await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs));
-      return { ...deployment, layout };
+      const deployResult = await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs);
+      const tx = deployResult.deployTransaction;
+
+      const deployment = Object.assign({ abi }, deployResult);
+      return { ...deployment, layout, tx };
     },
     opts,
   );

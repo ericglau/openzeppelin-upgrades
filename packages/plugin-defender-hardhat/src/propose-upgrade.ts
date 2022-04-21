@@ -7,7 +7,7 @@ import {
   ValidationOptions,
 } from '@openzeppelin/upgrades-core';
 import { AdminClient, ProposalResponse } from 'defender-admin-client';
-import type { ContractFactory, ethers } from 'ethers';
+import type { ContractFactory } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { fromChainId } from 'defender-base-client';
@@ -24,6 +24,7 @@ export interface ProposalOptions extends ValidationOptions {
   proxyAdmin?: string;
   multisig?: string;
   multisigType?: 'Gnosis Safe' | 'Gnosis Multisig' | 'EOA';
+  getTxResponse?: boolean;
 }
 
 export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgradeFunction {

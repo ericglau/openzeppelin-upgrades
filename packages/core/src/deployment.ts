@@ -32,6 +32,9 @@ export interface DeployOpts {
    * Polling interval in milliseconds between checks for the transaction confirmation when deploying an implementation contract or proxy admin contract.
    */
   pollingInterval?: number;
+
+  // TODO
+  getTxResponse?: boolean;
 }
 
 /**

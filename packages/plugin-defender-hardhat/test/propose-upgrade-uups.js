@@ -65,7 +65,7 @@ test('proposes an upgrade and get tx response', async t => {
 
   const title = 'My upgrade';
   const description = 'My contract upgrade';
-  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description });
+  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description, getTxResponse: true });
 
   t.is(proposal.url, proposalUrl);
   sinon.assert.calledWithExactly(

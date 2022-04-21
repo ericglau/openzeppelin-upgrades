@@ -11,6 +11,7 @@ export function withDefaults(opts: Options = {}): Required<Options> {
     timeout: opts.timeout ?? 60e3,
     pollingInterval: opts.pollingInterval ?? 5e3,
     ...withValidationDefaults(opts),
+    getTxResponse: false
   };
 }
 

@@ -43,7 +43,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   deploy: () => Promise<T>,
   opts?: DeployOpts,
   merge?: boolean,
-): Promise<string> {
+): Promise<string | Deployment> {
   const manifest = await Manifest.forNetwork(provider);
 
   try {
@@ -76,7 +76,11 @@ async function fetchOrDeployGeneric<T extends Deployment>(
 
     await waitAndValidateDeployment(provider, deployment, lens.type, opts);
 
-    return deployment.address;
+    if (opts !== undefined && opts.getTxResponse) {
+      return deployment;
+    } else {
+      return deployment.address;
+    }
   } catch (e) {
     // If we run into a deployment error, we remove it from the manifest.
     if (e instanceof InvalidDeployment) {
@@ -111,7 +115,7 @@ export async function fetchOrDeploy(
   deploy: () => Promise<ImplDeployment>,
   opts?: DeployOpts,
   merge?: boolean,
-): Promise<string> {
+): Promise<string | Deployment> {
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, merge);
 }
 
@@ -152,7 +156,7 @@ export async function fetchOrDeployAdmin(
   provider: EthereumProvider,
   deploy: () => Promise<Deployment>,
   opts?: DeployOpts,
-): Promise<string> {
+): Promise<string | Deployment> {
   return fetchOrDeployGeneric(adminLens, provider, deploy, opts);
 }
 

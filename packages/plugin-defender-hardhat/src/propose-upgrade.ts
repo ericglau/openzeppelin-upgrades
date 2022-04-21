@@ -51,7 +51,10 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
       await getImplementationAddress(hre.network.provider, proxyAddress);
     }
 
-    const prepareUpgradeResponse = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, moreOpts);   
+    const prepareUpgradeResponse = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, moreOpts);
+
+    console.log('Defender propose upgrade got : ' + JSON.stringify(prepareUpgradeResponse));
+
     const { newImplementation, txResponse } = typeof prepareUpgradeResponse === 'string' ? 
       { newImplementation: prepareUpgradeResponse, txResponse: undefined } :
       { newImplementation: prepareUpgradeResponse.address, txResponse: prepareUpgradeResponse.txResponse };

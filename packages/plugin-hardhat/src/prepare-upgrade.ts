@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { ContractFactory } from 'ethers';
+import type { ContractFactory, ethers } from 'ethers';
 
-import { Options, ContractAddressOrInstance, getContractAddress, deployProxyImpl, deployBeaconImpl } from './utils';
+import { Options, ContractAddressOrInstance, getContractAddress, deployProxyImpl, deployBeaconImpl, DeployTransaction } from './utils';
 import {
   getBeaconAddress,
   isBeaconProxy,
@@ -14,7 +14,9 @@ export type PrepareUpgradeFunction = (
   proxyOrBeaconAddress: ContractAddressOrInstance,
   ImplFactory: ContractFactory,
   opts?: Options,
-) => Promise<string>;
+) => Promise<PrepareUpgradeResponse>;
+
+export type PrepareUpgradeResponse = string | { txResponse: ethers.providers.TransactionResponse, address: string };
 
 export function makePrepareUpgrade(hre: HardhatRuntimeEnvironment): PrepareUpgradeFunction {
   return async function prepareUpgrade(proxyOrBeacon, ImplFactory, opts: Options = {}) {

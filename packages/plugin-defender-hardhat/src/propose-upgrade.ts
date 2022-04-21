@@ -7,7 +7,7 @@ import {
   ValidationOptions,
 } from '@openzeppelin/upgrades-core';
 import { AdminClient, ProposalResponse } from 'defender-admin-client';
-import type { ContractFactory } from 'ethers';
+import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { fromChainId } from 'defender-base-client';
@@ -50,18 +50,29 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
       await getImplementationAddress(hre.network.provider, proxyAddress);
     }
 
-    const newImplementation = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, moreOpts);
+    const prepareUpgradeResponse = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, moreOpts);   
+    const { newImplementation, txResponse } = typeof prepareUpgradeResponse === 'string' ? 
+      { newImplementation: prepareUpgradeResponse, txResponse: undefined } :
+      { newImplementation: prepareUpgradeResponse.address, txResponse: prepareUpgradeResponse.txResponse };
+    
     const contract = { address: proxyAddress, network, abi: ImplFactory.interface.format(FormatTypes.json) as string };
-    return client.proposeUpgrade(
+
+    const proposeUpgradeResponse = 
       {
-        newImplementation,
-        title,
-        description,
-        proxyAdmin,
-        via: multisig,
-        viaType: multisigType,
-      },
-      contract,
-    );
+        ...await client.proposeUpgrade(
+          {
+            newImplementation,
+            title,
+            description,
+            proxyAdmin,
+            via: multisig,
+            viaType: multisigType,
+          },
+          contract,
+        ),
+        txResponse
+      };
+
+    return proposeUpgradeResponse;
   };
 }

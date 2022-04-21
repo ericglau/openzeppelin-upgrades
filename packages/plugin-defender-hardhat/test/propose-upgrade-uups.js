@@ -59,6 +59,33 @@ test('proposes an upgrade', async t => {
   );
 });
 
+test('proposes an upgrade and get tx response', async t => {
+  const { proposeUpgrade, fakeClient, greeter, GreeterV2 } = t.context;
+  fakeClient.proposeUpgrade.resolves({ url: proposalUrl });
+
+  const title = 'My upgrade';
+  const description = 'My contract upgrade';
+  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description });
+
+  t.is(proposal.url, proposalUrl);
+  sinon.assert.calledWithExactly(
+    fakeClient.proposeUpgrade,
+    {
+      newImplementation: sinon.match(/^0x[A-Fa-f0-9]{40}$/),
+      title,
+      description,
+      proxyAdmin: undefined,
+      via: undefined,
+      viaType: undefined,
+    },
+    {
+      address: greeter.address,
+      network: 'goerli',
+      abi: GreeterV2.interface.format(FormatTypes.json),
+    },
+  );
+});
+
 test('proposes an upgrade with explicit multisig and proxy admin', async t => {
   const { proposeUpgrade, fakeClient, greeter, GreeterV2 } = t.context;
   fakeClient.proposeUpgrade.resolves({ url: proposalUrl });

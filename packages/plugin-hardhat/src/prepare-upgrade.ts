@@ -33,10 +33,11 @@ export function makePrepareUpgrade(hre: HardhatRuntimeEnvironment): PrepareUpgra
     } else {
       throw new PrepareUpgradeUnsupportedError(proxyOrBeaconAddress);
     }
-    if (opts.getTxResponse !== undefined && opts.getTxResponse) {
-      return { address: deployedImpl.impl, txResponse: (deployedImpl as any).deployTransaction };
-    } else {
+
+    if (typeof deployedImpl.impl === 'string') {
       return deployedImpl.impl;
+    } else {
+      return { address: deployedImpl.impl.address, txResponse: (deployedImpl.impl as any).deployTransaction };
     }
   };
 }

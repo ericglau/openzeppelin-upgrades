@@ -20,6 +20,7 @@ const sleep = promisify(setTimeout);
 export interface Deployment {
   address: string;
   txHash?: string;
+  deployTransaction?: any; // TODO define a type for this
 }
 
 export interface DeployOpts {
@@ -67,9 +68,9 @@ export async function resumeOrDeploy<T extends Deployment>(
 ): Promise<T> {
   const validated = await validateCached(cached, provider, type, opts, deployment, merge);
   if (validated === undefined || merge) {
-    const deployment: any = await deploy();
+    const deployment: T = await deploy();
     debug('initiated deployment', 'transaction hash:', deployment.txHash, 'merge:', merge);
-    console.log('deployment.deployTransaction: ' + JSON.stringify(deployment.deployTransaction));
+    debug('deployment.deployTransaction: ' + JSON.stringify(deployment.deployTransaction));
     return deployment;
   } else {
     return validated;

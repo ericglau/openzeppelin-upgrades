@@ -32,15 +32,17 @@ test.afterEach.always(() => {
   sinon.restore();
 });
 
-test('proposes an upgrade', async t => {
+test('proposes an upgrade and get tx response', async t => {
   const { proposeUpgrade, fakeClient, greeter, GreeterV2 } = t.context;
   fakeClient.proposeUpgrade.resolves({ url: proposalUrl });
 
   const title = 'My upgrade';
   const description = 'My contract upgrade';
-  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description });
+  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description, getTxResponse: true });
 
   t.is(proposal.url, proposalUrl);
+  t.not(proposal.txResponse.hash, undefined);
+
   sinon.assert.calledWithExactly(
     fakeClient.proposeUpgrade,
     {
@@ -57,15 +59,19 @@ test('proposes an upgrade', async t => {
       abi: GreeterV2.interface.format(FormatTypes.json),
     },
   );
+
+  const proposal2 = await proposeUpgrade(greeter.address, GreeterV2, { title, description, getTxResponse: true });
+  // not expecting a tx response since impl was already deployed in first proposal
+  t.is(proposal2.txResponse, undefined);
 });
 
-test('proposes an upgrade and get tx response', async t => {
+test('proposes an upgrade', async t => {
   const { proposeUpgrade, fakeClient, greeter, GreeterV2 } = t.context;
   fakeClient.proposeUpgrade.resolves({ url: proposalUrl });
 
   const title = 'My upgrade';
   const description = 'My contract upgrade';
-  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description, getTxResponse: true });
+  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description });
 
   t.is(proposal.url, proposalUrl);
   sinon.assert.calledWithExactly(

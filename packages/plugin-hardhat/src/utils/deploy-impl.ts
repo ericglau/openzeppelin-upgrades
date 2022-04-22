@@ -2,6 +2,7 @@ import {
   assertNotProxy,
   assertStorageUpgradeSafe,
   assertUpgradeSafe,
+  Deployment,
   fetchOrDeploy,
   getImplementationAddress,
   getImplementationAddressFromBeacon,
@@ -24,12 +25,12 @@ import { Options, UpgradeProxyOptions, withDefaults } from './options';
 import { readValidations } from './validations';
 
 interface DeployedProxyImpl {
-  impl: string;
+  impl: string | Deployment;
   kind: NonNullable<ValidationOptions['kind']>;
 }
 
 interface DeployedBeaconImpl {
-  impl: string;
+  impl: string | Deployment;
 }
 
 export interface DeployData {

@@ -25,6 +25,8 @@ const testContracts = [
   'contracts/test/RenamedRetyped.sol:ConfusingRetypeV2',
   'contracts/test/RenamedRetyped.sol:NonHardcodedRetypeV1',
   'contracts/test/RenamedRetyped.sol:NonHardcodedRetypeV2',
+  'contracts/test/RenamedRetyped.sol:GapsV1',
+  'contracts/test/RenamedRetyped.sol:GapsV2',
 ];
 
 test.before(async t => {
@@ -100,6 +102,22 @@ test('confusing bad retype', t => {
 test('non-hardcoded retype', t => {
   const v1 = t.context.extractStorageLayout('NonHardcodedRetypeV1');
   const v2 = t.context.extractStorageLayout('NonHardcodedRetypeV2');
+  const report = getReport(v1, v2);
+  t.true(report.ok);
+  t.snapshot(report.explain());
+});
+
+test('wrongly use gap', t => {
+  const v1 = t.context.extractStorageLayout('GapsV1');
+  const v2 = t.context.extractStorageLayout('GapsV2Wrong');
+  const report = getReport(v1, v2);
+  t.false(report.ok);
+  t.snapshot(report.explain());
+});
+
+test('rightly use gap', t => {
+  const v1 = t.context.extractStorageLayout('GapsV1');
+  const v2 = t.context.extractStorageLayout('GapsV2');
   const report = getReport(v1, v2);
   t.true(report.ok);
   t.snapshot(report.explain());

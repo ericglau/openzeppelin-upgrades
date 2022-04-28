@@ -49,3 +49,20 @@ contract NonHardcodedRetypeV2 {
     /// @custom:oz-retyped-from address
     bytes20 a;
 }
+
+contract GapsV1 {
+    address a;
+    uint256[10] __gap;
+}
+
+contract GapsV2 {
+    address a;
+    address b;
+    uint256[9] __gap;
+}
+
+contract GapsV2Wrong {
+    address a;
+    address b;
+    uint256[10] __gap;
+}

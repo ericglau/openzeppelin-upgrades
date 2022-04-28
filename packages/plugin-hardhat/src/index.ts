@@ -204,6 +204,9 @@ task("verify")
     const address = await getImplementationAddressFromProxy(hre.network.provider, proxyAddress);
     console.log(`Verifying implementation ${address} for proxy ${proxyAddress}`);
 
+    runSuper({...args, address});
+    console.log(`implementation ${address} verified!`);
+
     const etherscanAPIEndpoints = await hre.run("verify:get-etherscan-endpoint");
     console.log(`Etherscan endpoint urls: ${JSON.stringify(etherscanAPIEndpoints)}`);
 
@@ -258,5 +261,4 @@ task("verify")
       console.log(verificationStatus.message);
     }
 
-    //return runSuper({...args, address});
   });

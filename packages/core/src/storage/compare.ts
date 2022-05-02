@@ -70,6 +70,14 @@ export class StorageLayoutComparator {
   constructor(readonly unsafeAllowCustomTypes = false, readonly unsafeAllowRenames = false) {}
 
   compareLayouts(original: StorageItem[], updated: StorageItem[]): LayoutCompatibilityReport {
+
+    console.log("original");
+    console.log(JSON.stringify(original, null, 4));
+    console.log("========================");
+    console.log("updated");
+    console.log(JSON.stringify(updated, null, 4));
+
+
     return new LayoutCompatibilityReport(this.layoutLevenshtein(original, updated, { allowAppend: true }));
   }
 

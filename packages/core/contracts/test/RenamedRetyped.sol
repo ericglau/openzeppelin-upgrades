@@ -53,16 +53,19 @@ contract NonHardcodedRetypeV2 {
 contract GapsV1 {
     address a;
     uint256[10] __gap;
+    address z;
 }
 
 contract GapsV2 {
     address a;
     address b;
     uint256[9] __gap;
+    address z;
 }
 
 contract GapsV2Wrong {
     address a;
     address b;
     uint256[10] __gap;
+    address z;
 }

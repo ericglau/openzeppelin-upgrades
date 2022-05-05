@@ -150,7 +150,7 @@ extendConfig((config: HardhatConfig) => {
 //     await hre.run("verify", { "address": address });
 //   });
 
-const solcInput = require('@openzeppelin/upgrades-core/artifacts/solc-input.json');
+const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
 
 // Override task:
@@ -175,7 +175,7 @@ task("verify")
       etherscanAPIEndpoints.network
     );
 
-    console.log("SOLC input: " + JSON.stringify(solcInput, null, 2));
+    console.log("Build info: " + JSON.stringify(buildInfo, null, 2));
     
 
     // const uupsProxyFactory = await getProxyFactory(hre);
@@ -184,14 +184,14 @@ task("verify")
     const params = {
       apiKey: etherscanAPIKey,
       contractAddress: proxyAddress,
-      sourceCode: JSON.stringify(solcInput),
+      sourceCode: JSON.stringify(buildInfo.input),
       sourceName: ERC1967Proxy.sourceName, //'@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol', //contractInformation.sourceName,
       contractName: ERC1967Proxy.contractName, //'ERC1967Proxy', //contractInformation.contractName,
-      compilerVersion:  "v0.8.2+commit.661d1103", //solcFullVersion,
+      compilerVersion:  `v${buildInfo.solcLongVersion}`, //solcFullVersion,
       constructorArguments: '0000000000000000000000006c32e2bb42ac4c402a3bb65c8f14bb71c89613de00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064f62d18880000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b48656c6c6f20576f726c6400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' //deployArgumentsEncoded,
     } //TODO encode proxy constructor with beacon or impl, and a separately encoded initializer call and arguments
 
-    //console.log("Params:\n"+JSON.stringify(params));
+    console.log("Params:\n"+JSON.stringify(params));
 
     const request = toVerifyRequest(params);
     //console.log("Verify request:\n"+JSON.stringify(request));

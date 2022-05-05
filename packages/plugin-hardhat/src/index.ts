@@ -5,8 +5,8 @@ import './type-extensions';
 import { subtask, extendEnvironment, extendConfig, task } from 'hardhat/config';
 import { TASK_COMPILE_SOLIDITY, TASK_COMPILE_SOLIDITY_COMPILE } from 'hardhat/builtin-tasks/task-names';
 import { lazyObject } from 'hardhat/plugins';
-import { HardhatConfig } from 'hardhat/types';
-import { getImplementationAddressFromBeacon, getImplementationAddressFromProxy, silenceWarnings, SolcInput } from '@openzeppelin/upgrades-core';
+import { EthereumProvider, HardhatConfig } from 'hardhat/types';
+import { getImplementationAddressFromBeacon, getImplementationAddressFromProxy, getTransactionByHash, Manifest, silenceWarnings, SolcInput } from '@openzeppelin/upgrades-core';
 import type { DeployFunction } from './deploy-proxy';
 import type { PrepareUpgradeFunction } from './prepare-upgrade';
 import type { UpgradeFunction } from './upgrade-proxy';
@@ -152,6 +152,15 @@ extendConfig((config: HardhatConfig) => {
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
+async function getTransactionHashFromManifest(provider: EthereumProvider, proxyAddress: string) {
+  const manifest = await Manifest.forNetwork(provider);
+  const { proxies } = await manifest.read();
+  for (const proxy of proxies) {
+    if (proxyAddress === proxy.address) {
+      return proxy.txHash;
+    }
+  }
+}
 
 // Override task:
 task("verify")
@@ -178,8 +187,29 @@ task("verify")
     console.log("Build info: " + JSON.stringify(buildInfo, null, 2));
     
 
-    // const uupsProxyFactory = await getProxyFactory(hre);
-    // console.log("Proxy: " + JSON.stringify(uupsProxyFactory));
+    const txHash = await getTransactionHashFromManifest(hre.network.provider, proxyAddress);
+    if (txHash === undefined) {
+      // TODO get constructor args from user input
+      return;
+    }
+    console.log("Got tx hash: " + txHash);
+
+    const uupsProxyFactory = await getProxyFactory(hre);
+    const creationCode = uupsProxyFactory.bytecode
+    console.log("UUPS creation code: " + creationCode);
+
+    const tx = await getTransactionByHash(hre.network.provider, txHash);
+    const txInput = tx?.input;
+    console.log("TX deploy code: " + txInput);
+
+    let constructorArguments;
+    if (txInput !== undefined && txInput.startsWith(creationCode)) {
+      constructorArguments = txInput.substring(creationCode.length);
+      console.log("Constructor args: " + constructorArguments);
+    } else {
+      // TODO get constructor args from user input
+      return;
+    }
 
     const params = {
       apiKey: etherscanAPIKey,
@@ -188,7 +218,7 @@ task("verify")
       sourceName: ERC1967Proxy.sourceName, //'@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol', //contractInformation.sourceName,
       contractName: ERC1967Proxy.contractName, //'ERC1967Proxy', //contractInformation.contractName,
       compilerVersion:  `v${buildInfo.solcLongVersion}`, //solcFullVersion,
-      constructorArguments: '0000000000000000000000006c32e2bb42ac4c402a3bb65c8f14bb71c89613de00000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000064f62d18880000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000b48656c6c6f20576f726c6400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000' //deployArgumentsEncoded,
+      constructorArguments: constructorArguments, //deployArgumentsEncoded,
     } //TODO encode proxy constructor with beacon or impl, and a separately encoded initializer call and arguments
 
     console.log("Params:\n"+JSON.stringify(params));

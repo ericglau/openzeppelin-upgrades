@@ -5,8 +5,9 @@ import { getProxyFactory } from './utils/factories';
 
 import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 
-import { Manifest, getImplementationAddressFromProxy, getTransactionByHash } from '@openzeppelin/upgrades-core';
+import { Manifest, getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError } from '@openzeppelin/upgrades-core';
 import { EthereumProvider, HardhatRuntimeEnvironment, RunSuperFunction } from 'hardhat/types';
+import { EtherscanConfig } from '@nomiclabs/hardhat-etherscan/dist/src/types';
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
@@ -30,89 +31,132 @@ async function getTransactionHashFromManifest(provider: EthereumProvider, proxyA
  * @returns 
  */
 export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper: RunSuperFunction<any>) {
-  const proxyAddress = args.address;
+  const provider = hre.network.provider;
+  let addresses: Addresses = await getRelatedAddresses(provider, args.address);
 
-  const address = await getImplementationAddressFromProxy(hre.network.provider, proxyAddress);
-  console.log(`Verifying implementation ${address} for proxy ${proxyAddress}`);
-
-  runSuper({...args, address});
-  console.log(`implementation ${address} verified!`);
-
-  const etherscanAPIEndpoints = await hre.run("verify:get-etherscan-endpoint");
-  console.log(`Etherscan endpoint urls: ${JSON.stringify(etherscanAPIEndpoints)}`);
-
-  const config: any = hre.config; // TODO use an interface
-  console.log(`Etherscan config: ${JSON.stringify(config.etherscan)}`);
-
-  const etherscanAPIKey = resolveEtherscanApiKey(
-    config.etherscan,
-    etherscanAPIEndpoints.network
-  );
-
-  console.log("Build info: " + JSON.stringify(buildInfo, null, 2));
-  
-
-  const txHash = await getTransactionHashFromManifest(hre.network.provider, proxyAddress);
-  if (txHash === undefined) {
-    // TODO get constructor args from user input
-    return;
-  }
-  console.log("Got tx hash: " + txHash);
-
-  const uupsProxyFactory = await getProxyFactory(hre);
-  const creationCode = uupsProxyFactory.bytecode
-  console.log("UUPS creation code: " + creationCode);
-
-  const tx = await getTransactionByHash(hre.network.provider, txHash);
-  const txInput = tx?.input;
-  console.log("TX deploy code: " + txInput);
-
-  let constructorArguments;
-  if (txInput !== undefined && txInput.startsWith(creationCode)) {
-    constructorArguments = txInput.substring(creationCode.length);
-    console.log("Constructor args: " + constructorArguments);
+  if (addresses.impl === undefined) {
+    // does not look like a proxy, so just verify directly
+    return hardhatVerify(args.address);
   } else {
-    // TODO get constructor args from user input
-    return;
+    const proxyAddress = args.address;
+    console.log(`Detected proxy ${proxyAddress.impl}`);
+
+    console.log(`Verifying implementation ${addresses.impl}`);
+    hardhatVerify(addresses.impl); // TODO if already verified, continue
+    console.log(`Implementation ${addresses.impl} verified!`);
+  
+    let etherscanApi: EtherscanAPI = await getEtherscanAPIFields(hre);
+  
+    const txHash = await getTransactionHashFromManifest(hre.network.provider, proxyAddress);
+    if (txHash === undefined) {
+      // TODO get constructor args from user input
+      throw new UpgradesError("Define constructor arguments");
+    }
+    console.log("Got tx hash: " + txHash);
+  
+    const uupsProxyFactory = await getProxyFactory(hre);
+    const creationCode = uupsProxyFactory.bytecode
+    console.log("UUPS creation code: " + creationCode);
+  
+    const tx = await getTransactionByHash(hre.network.provider, txHash);
+    const txInput = tx?.input;
+    console.log("TX deploy code: " + txInput);
+  
+    let constructorArguments;
+    if (txInput !== undefined && txInput.startsWith(creationCode)) {
+      constructorArguments = txInput.substring(creationCode.length);
+      console.log("Constructor args: " + constructorArguments);
+    } else {
+      // TODO get constructor args from user input
+      return;
+    }
+  
+    const params = {
+      apiKey: etherscanApi.key,
+      contractAddress: proxyAddress,
+      sourceCode: JSON.stringify(buildInfo.input),
+      sourceName: ERC1967Proxy.sourceName,
+      contractName: ERC1967Proxy.contractName,
+      compilerVersion:  `v${buildInfo.solcLongVersion}`,
+      constructorArguments: constructorArguments,
+    }
+    
+    const request = toVerifyRequest(params);
+    const response = await verifyContract(etherscanApi.endpoints.urls.apiURL, request);
+    const pollRequest = toCheckStatusRequest({
+      apiKey: etherscanApi.key,
+      guid: response.message,
+    });
+  
+    // Compilation is bound to take some time so there's no sense in requesting status immediately.
+    await delay(700);
+    const verificationStatus = await getVerificationStatus(
+      etherscanApi.endpoints.urls.apiURL,
+      pollRequest
+    );
+  
+    console.log("Verification STATUS : \n"+JSON.stringify(verificationStatus));
+  
+    if (
+      verificationStatus.isVerificationFailure() ||
+      verificationStatus.isVerificationSuccess()
+    ) {
+      console.log(verificationStatus.message);
+    }
   }
 
-  const params = {
-    apiKey: etherscanAPIKey,
-    contractAddress: proxyAddress,
-    sourceCode: JSON.stringify(buildInfo.input),
-    sourceName: ERC1967Proxy.sourceName, //'@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol', //contractInformation.sourceName,
-    contractName: ERC1967Proxy.contractName, //'ERC1967Proxy', //contractInformation.contractName,
-    compilerVersion:  `v${buildInfo.solcLongVersion}`, //solcFullVersion,
-    constructorArguments: constructorArguments, //deployArgumentsEncoded,
-  } //TODO encode proxy constructor with beacon or impl, and a separately encoded initializer call and arguments
+  function hardhatVerify(address: string) {
+    return runSuper({ ...args, address });
+  }
+}
 
-  console.log("Params:\n"+JSON.stringify(params));
+async function getEtherscanAPIFields(hre: HardhatRuntimeEnvironment): Promise<EtherscanAPI> {
 
-  const request = toVerifyRequest(params);
-  //console.log("Verify request:\n"+JSON.stringify(request));
+  const endpoints = await hre.run("verify:get-etherscan-endpoint");
+  console.log(`Etherscan endpoint urls: ${JSON.stringify(endpoints)}`);
 
-  const response = await verifyContract(etherscanAPIEndpoints.urls.apiURL, request);
+  const etherscanConfig: EtherscanConfig = (hre.config as any).etherscan;
 
-  console.log("Response:\n"+JSON.stringify(response));
+  console.log(`Etherscan config: ${JSON.stringify(etherscanConfig)}`); // TODO remove
 
-  const pollRequest = toCheckStatusRequest({
-    apiKey: etherscanAPIKey,
-    guid: response.message,
-  });
-
-  // Compilation is bound to take some time so there's no sense in requesting status immediately.
-  await delay(700);
-  const verificationStatus = await getVerificationStatus(
-    etherscanAPIEndpoints.urls.apiURL,
-    pollRequest
+  const apiKey = resolveEtherscanApiKey(
+    etherscanConfig,
+    endpoints.network
   );
 
-  console.log("Verification STATUS : \n"+JSON.stringify(verificationStatus));
+  return { key: apiKey, endpoints };
+}
 
-  if (
-    verificationStatus.isVerificationFailure() ||
-    verificationStatus.isVerificationSuccess()
-  ) {
-    console.log(verificationStatus.message);
+async function getRelatedAddresses(provider: EthereumProvider, inputAddress: string) {
+  let addresses: Addresses = {};
+  try {
+    addresses.impl = await getImplementationAddress(provider, inputAddress);
+  } catch (e: any) {
+    if (e instanceof EIP1967ImplementationNotFound) {
+      try {
+        addresses.beacon = await getBeaconAddress(provider, inputAddress);
+        addresses.impl = await getImplementationAddressFromBeacon(provider, addresses.beacon);
+      } catch (e: any) {
+        if (e instanceof EIP1967BeaconNotFound) {
+          return addresses;
+        } else {
+          throw e;
+        }
+      }
+    } else {
+      throw e;
+    }
   }
+  return addresses;
+}
+
+interface Addresses {
+  impl?: string;
+  beacon?: string;
+  admin?: string; // TODO
+}
+
+interface EtherscanAPI {
+  key: string;
+  endpoints: any;
 }

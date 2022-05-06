@@ -8,6 +8,7 @@ import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/co
 import { Manifest, getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError } from '@openzeppelin/upgrades-core';
 import { EthereumProvider, HardhatRuntimeEnvironment, RunSuperFunction } from 'hardhat/types';
 import { EtherscanConfig } from '@nomiclabs/hardhat-etherscan/dist/src/types';
+import { NomicLabsHardhatPluginError } from 'hardhat/plugins';
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
@@ -45,31 +46,9 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
     hardhatVerify(addresses.impl); // TODO if already verified, continue
     console.log(`Implementation ${addresses.impl} verified!`);
   
-    let etherscanApi: EtherscanAPI = await getEtherscanAPIFields(hre);
+    let etherscanApi: EtherscanAPI = await getEtherscanAPI(hre);
   
-    const txHash = await getTransactionHashFromManifest(hre.network.provider, proxyAddress);
-    if (txHash === undefined) {
-      // TODO get constructor args from user input
-      throw new UpgradesError("Define constructor arguments");
-    }
-    console.log("Got tx hash: " + txHash);
-  
-    const uupsProxyFactory = await getProxyFactory(hre);
-    const creationCode = uupsProxyFactory.bytecode
-    console.log("UUPS creation code: " + creationCode);
-  
-    const tx = await getTransactionByHash(hre.network.provider, txHash);
-    const txInput = tx?.input;
-    console.log("TX deploy code: " + txInput);
-  
-    let constructorArguments;
-    if (txInput !== undefined && txInput.startsWith(creationCode)) {
-      constructorArguments = txInput.substring(creationCode.length);
-      console.log("Constructor args: " + constructorArguments);
-    } else {
-      // TODO get constructor args from user input
-      return;
-    }
+    let constructorArguments = await getConstructorArgs(hre, proxyAddress);
   
     const params = {
       apiKey: etherscanApi.key,
@@ -90,19 +69,22 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   
     // Compilation is bound to take some time so there's no sense in requesting status immediately.
     await delay(700);
-    const verificationStatus = await getVerificationStatus(
-      etherscanApi.endpoints.urls.apiURL,
-      pollRequest
-    );
-  
-    console.log("Verification STATUS : \n"+JSON.stringify(verificationStatus));
-  
-    if (
-      verificationStatus.isVerificationFailure() ||
-      verificationStatus.isVerificationSuccess()
-    ) {
-      console.log(verificationStatus.message);
+    try {
+      const verificationStatus = await getVerificationStatus(
+        etherscanApi.endpoints.urls.apiURL,
+        pollRequest
+      );
+      
+      if (
+        verificationStatus.isVerificationFailure() ||
+        verificationStatus.isVerificationSuccess()
+      ) {
+        console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`);
+      }
+    } catch (e: any) {
+      console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
     }
+    
   }
 
   function hardhatVerify(address: string) {
@@ -110,21 +92,56 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   }
 }
 
-async function getEtherscanAPIFields(hre: HardhatRuntimeEnvironment): Promise<EtherscanAPI> {
+async function getConstructorArgs(hre: HardhatRuntimeEnvironment, proxyAddress: any) {
+  const txHash = await getTransactionHashFromManifest(hre.network.provider, proxyAddress);
+  if (txHash === undefined) {
+    // TODO get constructor args from user input
+    throw new UpgradesError("Define constructor arguments");
+  }
+  console.log("Got tx hash: " + txHash);
+
+  // Determine contract based on whether transaction deployment code starts with the contract's creation code 
+
+  const uupsProxyFactory = await getProxyFactory(hre);
+  const creationCode = uupsProxyFactory.bytecode;
+  console.log("UUPS creation code: " + creationCode);
+
+  const tx = await getTransactionByHash(hre.network.provider, txHash);
+  const txInput = tx?.input;
+  console.log("TX deploy code: " + txInput);
+
+  return await inferConstructorArgs(txHash, creationCode);
+}
+
+/**
+ * Gets the constructor args from the given transaction input and creation code.
+ *  
+ * @param txInput The transaction input that was used to deploy the contract.
+ * @param creationCode The contract creation code.
+ * @returns the encoded constructor args, or undefined if txInput does not start with the creationCode.
+ */
+async function inferConstructorArgs(txInput: string, creationCode: string) {
+  if (txInput.startsWith(creationCode)) {
+    return txInput.substring(creationCode.length);
+  } else {
+    return undefined;
+  }
+}
+
+async function getEtherscanAPI(hre: HardhatRuntimeEnvironment): Promise<EtherscanAPI> {
 
   const endpoints = await hre.run("verify:get-etherscan-endpoint");
   console.log(`Etherscan endpoint urls: ${JSON.stringify(endpoints)}`);
 
   const etherscanConfig: EtherscanConfig = (hre.config as any).etherscan;
-
   console.log(`Etherscan config: ${JSON.stringify(etherscanConfig)}`); // TODO remove
 
-  const apiKey = resolveEtherscanApiKey(
+  const key = resolveEtherscanApiKey(
     etherscanConfig,
     endpoints.network
   );
 
-  return { key: apiKey, endpoints };
+  return { key, endpoints };
 }
 
 async function getRelatedAddresses(provider: EthereumProvider, inputAddress: string) {

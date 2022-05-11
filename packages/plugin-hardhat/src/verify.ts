@@ -64,14 +64,38 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
     if (addresses.beacon !== undefined) {
       // it is a beacon proxy
-      const artifact: ContractArtifactJson = BeaconProxy;
-      const constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
+      console.log(`Beacon: verifying beacon proxy ${proxyAddress}`);
+
+      const constructorArguments = await getConstructorArgs(hre, await getFactory(hre, BeaconProxy), proxyAddress);
       if (constructorArguments === undefined) {
         console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
-        return await hardhatVerify(args.address);
+        await hardhatVerify(args.address);
       } else {
-        return await verifyProxy(etherscanApi, proxyAddress, constructorArguments, artifact);
+        await verifyProxy(etherscanApi, proxyAddress, constructorArguments, BeaconProxy);
       }
+
+      console.log(`Beacon: verifying beacon itself ${addresses.beacon}`);
+
+      //------
+      
+// Get txhash using etherscan api
+//https://api-kovan.etherscan.io/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=0xE14a4fc7b96E8a3B701fd3D821bDcE8f8c0AaeF4&topic0=0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e&apikey=MYKEY
+
+      // returns:
+     // {"status":"1","message":"OK","result":[{"address":"0xe14a4fc7b96e8a3b701fd3d821bdce8f8c0aaef4","topics":["0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e","0x00000000000000000000000065d493115f6f7a5152a3da9ca6c26a1ea0e29b85"],"data":"0x","blockNumber":"0x1e128ea","timeStamp":"0x627ac6dc","gasPrice":"0x306dc4200","gasUsed":"0x5a10b","logIndex":"0x1","transactionHash":"0x0109b0fa98ded9c63e9d38d4aa30dcb0c68073bb3288f5cb920abaed14f74ec5","transactionIndex":"0x1"}]}
+
+      /*
+        Beacon proxy: BeaconUpgraded(address)
+        Beacon: OwnershipTransferred(address,address)
+        ProxyAdmin: OwnershipTransferred(address,address)
+        TransparentUpgradeableProxy: AdminChanged(address,address)
+
+      */
+
+
+      // ----
+      await verifyProxy(etherscanApi, proxyAddress, '' /* TODO: determine constructor args from API response */, UpgradeableBeacon);
+
     } else {
       let artifact: ContractArtifactJson = ERC1967Proxy;
       let constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);

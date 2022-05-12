@@ -38,12 +38,12 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment): DeployBea
     args: unknown[] | DeployProxyOptions = [],
     opts: DeployProxyOptions = {},
   ) {
-    if (!(attachTo instanceof ContractFactory)) {
-      throw new UpgradesError(
-        `attachTo must specify a contract factory`,
-        () => `Include the contract factory for the beacon's current implementation in the attachTo parameter`,
-      );
-    }
+    // if (!(attachTo instanceof ContractFactory)) {
+    //   throw new UpgradesError(
+    //     `attachTo must specify a contract factory`,
+    //     () => `Include the contract factory for the beacon's current implementation in the attachTo parameter`,
+    //   );
+    // }
     if (!Array.isArray(args)) {
       opts = args;
       args = [];

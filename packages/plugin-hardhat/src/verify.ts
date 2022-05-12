@@ -14,6 +14,8 @@ import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppel
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 
+import { keccak256 } from 'ethereumjs-util';
+import { Dispatcher } from "undici";
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
@@ -66,7 +68,7 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
       // it is a beacon proxy
       console.log(`Beacon: verifying beacon proxy ${proxyAddress}`);
 
-      const constructorArguments = await getConstructorArgs(hre, await getFactory(hre, BeaconProxy), proxyAddress);
+      let constructorArguments = await getConstructorArgs(hre, await getFactory(hre, BeaconProxy), proxyAddress);
       if (constructorArguments === undefined) {
         console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
         await hardhatVerify(args.address);
@@ -75,6 +77,8 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
       }
 
       console.log(`Beacon: verifying beacon itself ${addresses.beacon}`);
+
+      const txHash = await getEtherscanTxCreationHash('https://api-kovan.etherscan.io/api', addresses.beacon, 'OwnershipTransferred(address,address)', etherscanApi.key);
 
       //------
       
@@ -94,7 +98,21 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
 
       // ----
-      await verifyProxy(etherscanApi, proxyAddress, '' /* TODO: determine constructor args from API response */, UpgradeableBeacon);
+      const tx = await getTransactionByHash(hre.network.provider, txHash);
+      if (tx === null) {
+        // TODO
+        throw new Error("txhash not found " + txHash);
+      }
+      const txInput = tx.input;
+      console.log("TX deploy code: " + txInput);
+      
+      constructorArguments= inferConstructorArgs(txInput, UpgradeableBeacon.bytecode);
+      if (constructorArguments === undefined) {
+        // TODO
+        throw new Error("constructor args not found");
+      }
+      console.log("verifying beacon: " + addresses.beacon);
+      await verifyProxy(etherscanApi, addresses.beacon, constructorArguments, UpgradeableBeacon);
 
     } else {
       let artifact: ContractArtifactJson = ERC1967Proxy;
@@ -117,6 +135,94 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
     return await runSuper({ ...args, address });
   }
 }
+
+
+
+export async function getEtherscanTxCreationHash(
+  url: string,
+  address: string,
+  topic: string,
+  apikey: string
+): Promise<any> {
+  const { request } = await import("undici");
+
+  const params = {
+    module: 'logs',
+    action: 'getLogs',
+    fromBlock: '0',
+    toBlock: 'latest',
+    address: address,
+    topic0: '0x' + keccak256(Buffer.from(topic)).toString('hex'),
+    apikey: apikey
+  }
+
+  const parameters = new URLSearchParams({ ...params });
+  const method: Dispatcher.HttpMethod = "POST";
+  const requestDetails = {
+    method,
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: parameters.toString(),
+  };
+
+  let response: Dispatcher.ResponseData;
+  try {
+    response = await request(url, requestDetails);
+    //console.log("ETHERSCAN LOGS RESPONSE " + JSON.stringify(response));
+    //console.log("ETHERSCAN LOGS RESPONSE BODY " + await response.body.text());
+    console.log("getting responsebody");
+    const responseBody = await response.body.json();
+    console.log("got responsebody");
+    console.log("ETHERSCAN LOGS RESPONSE BODY AS JSON " + JSON.stringify(responseBody));
+    const txHash = responseBody.result[0].transactionHash;
+    if (txHash !== undefined) {
+      console.log("Found tx hash! " + txHash);
+      return txHash;
+    } else {
+      // TODO
+      throw new Error("Failed to find tx hash for creation of address " + address);
+    }
+
+  } catch (error: any) {
+    throw new UpgradesError(
+      `Failed to get etherscan logs ${error}`
+    );
+  }
+
+//   if (!(response.statusCode >= 200 && response.statusCode <= 299)) {
+//     // This could be always interpreted as JSON if there were any such guarantee in the Etherscan API.
+//     const responseText = await response.body.text();
+//     throw new NomicLabsHardhatPluginError(
+//       pluginName,
+//       `Failed to send contract verification request.
+// Endpoint URL: ${url}
+// The HTTP server response is not ok. Status code: ${response.statusCode} Response text: ${responseText}`
+//     );
+//   }
+
+//   const etherscanResponse = new EtherscanResponse(await response.body.json());
+
+//   if (etherscanResponse.isBytecodeMissingInNetworkError()) {
+//     throw new NomicLabsHardhatPluginError(
+//       pluginName,
+//       `Failed to send contract verification request.
+// Endpoint URL: ${url}
+// Reason: The Etherscan API responded that the address ${req.contractaddress} does not have bytecode.
+// This can happen if the contract was recently deployed and this fact hasn't propagated to the backend yet.
+// Try waiting for a minute before verifying your contract. If you are invoking this from a script,
+// try to wait for five confirmations of your contract deployment transaction before running the verification subtask.`
+//     );
+//   }
+
+//   if (!etherscanResponse.isOk()) {
+//     throw new NomicLabsHardhatPluginError(
+//       pluginName,
+//       etherscanResponse.message
+//     );
+//   }
+
+  // return etherscanResponse;
+}
+
 
 interface ContractArtifactJson { 
   contractName: string;

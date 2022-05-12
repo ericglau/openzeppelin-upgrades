@@ -78,7 +78,7 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
       console.log(`Beacon: verifying beacon itself ${addresses.beacon}`);
 
-      const txHash = await getEtherscanTxCreationHash('https://api-kovan.etherscan.io/api', addresses.beacon, 'OwnershipTransferred(address,address)', etherscanApi.key);
+      const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, addresses.beacon, 'OwnershipTransferred(address,address)', etherscanApi.key);
 
       //------
       

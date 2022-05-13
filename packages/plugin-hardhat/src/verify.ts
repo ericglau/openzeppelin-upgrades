@@ -78,7 +78,7 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
       console.log(`Beacon: verifying beacon itself ${addresses.beacon}`);
 
-      const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, addresses.beacon, 'OwnershipTransferred(address,address)', etherscanApi.key);
+      const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, addresses.beacon, 'OwnershipTransferred(address,address)', etherscanApi);
 
       //------
       
@@ -137,26 +137,13 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 }
 
 
-
-export async function getEtherscanTxCreationHash(
-  url: string,
-  address: string,
-  topic: string,
-  apikey: string
-): Promise<any> {
+export async function callEtherscanApi(
+  etherscanApi: EtherscanAPI,
+  params: any
+): Promise<EtherscanResponse> {
   const { request } = await import("undici");
 
-  const params = {
-    module: 'logs',
-    action: 'getLogs',
-    fromBlock: '0',
-    toBlock: 'latest',
-    address: address,
-    topic0: '0x' + keccak256(Buffer.from(topic)).toString('hex'),
-    apikey: apikey
-  }
-
-  const parameters = new URLSearchParams({ ...params });
+  const parameters = new URLSearchParams({ ...params, apikey: etherscanApi.key });
   const method: Dispatcher.HttpMethod = "POST";
   const requestDetails = {
     method,
@@ -166,25 +153,18 @@ export async function getEtherscanTxCreationHash(
 
   let response: Dispatcher.ResponseData;
   try {
-    response = await request(url, requestDetails);
+    response = await request(etherscanApi.endpoints.urls.apiURL, requestDetails);
     //console.log("ETHERSCAN LOGS RESPONSE " + JSON.stringify(response));
     //console.log("ETHERSCAN LOGS RESPONSE BODY " + await response.body.text());
     console.log("getting responsebody");
     const responseBody = await response.body.json();
     console.log("got responsebody");
-    console.log("ETHERSCAN LOGS RESPONSE BODY AS JSON " + JSON.stringify(responseBody));
-    const txHash = responseBody.result[0].transactionHash;
-    if (txHash !== undefined) {
-      console.log("Found tx hash! " + txHash);
-      return txHash;
-    } else {
-      // TODO
-      throw new Error("Failed to find tx hash for creation of address " + address);
-    }
+    console.log("ETHERSCAN RESPONSE BODY AS JSON " + JSON.stringify(responseBody));
+    return responseBody;
 
   } catch (error: any) {
     throw new UpgradesError(
-      `Failed to get etherscan logs ${error}`
+      `Failed to get etherscan api response ${error}`
     );
   }
 
@@ -221,6 +201,39 @@ export async function getEtherscanTxCreationHash(
 //   }
 
   // return etherscanResponse;
+}
+
+interface EtherscanResponse {
+  result: any
+}
+
+export async function getEtherscanTxCreationHash(
+  url: string,
+  address: string,
+  topic: string,
+  etherscanApi : EtherscanAPI
+): Promise<any> {
+
+  const params = {
+    module: 'logs',
+    action: 'getLogs',
+    fromBlock: '0',
+    toBlock: 'latest',
+    address: address,
+    topic0: '0x' + keccak256(Buffer.from(topic)).toString('hex'),
+  }
+
+  const responseBody = await callEtherscanApi(etherscanApi, params);
+
+  const txHash = responseBody.result[0].transactionHash;
+  if (txHash !== undefined) {
+    console.log("Found tx hash! " + txHash);
+    return txHash;
+  } else {
+    // TODO
+    throw new Error("Failed to find tx hash for creation of address " + address);
+  }
+
 }
 
 

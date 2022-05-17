@@ -19,7 +19,7 @@ import { isEmptySlot } from '@openzeppelin/upgrades-core/src/eip-1967';
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
 interface ContractEventMapping {
-  contractJson: ContractArtifactJson,
+  artifact: ContractArtifactJson,
   event: string
 }
 
@@ -32,11 +32,11 @@ interface ContractTypes {
 }
 
 const contractEvents: ContractTypes = {
-  erc1967proxy: { contractJson: ERC1967Proxy, event: 'Upgraded(address)'},
-  beaconProxy: { contractJson: BeaconProxy, event: 'BeaconUpgraded(address)'},
-  upgradeableBeacon: { contractJson: UpgradeableBeacon, event: 'OwnershipTransferred(address,address)'},
-  transparentUpgradeableProxy: { contractJson: TransparentUpgradeableProxy, event: 'AdminChanged(address,address)'},
-  proxyAdmin: { contractJson: ProxyAdmin, event: 'OwnershipTransferred(address,address)'},
+  erc1967proxy: { artifact: ERC1967Proxy, event: 'Upgraded(address)'},
+  beaconProxy: { artifact: BeaconProxy, event: 'BeaconUpgraded(address)'},
+  upgradeableBeacon: { artifact: UpgradeableBeacon, event: 'OwnershipTransferred(address,address)'},
+  transparentUpgradeableProxy: { artifact: TransparentUpgradeableProxy, event: 'AdminChanged(address,address)'},
+  proxyAdmin: { artifact: ProxyAdmin, event: 'OwnershipTransferred(address,address)'},
 }
 
 /**
@@ -53,7 +53,7 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   const proxyAddress = args.address;
 
   if (await isTransparentOrUUPSProxy(provider, proxyAddress)) {
-    await fullVerifyTransparentOrUUPSProxy(provider, proxyAddress, hardhatVerify, hre);
+    await fullVerifyTransparentOrUUPS(provider, proxyAddress, hardhatVerify, hre);
   } else if (await isBeaconProxy(provider, proxyAddress)) {
     await fullVerifyBeaconProxy(provider, proxyAddress, hardhatVerify, hre);
   } else {
@@ -68,27 +68,34 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
 class EventNotFound extends UpgradesError {}
 
-async function fullVerifyTransparentOrUUPSProxy(provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>, hre: HardhatRuntimeEnvironment) {
+async function fullVerifyTransparentOrUUPS(provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>, hre: HardhatRuntimeEnvironment) {
   const implAddress = await getImplementationAddress(provider, proxyAddress);
   await verifyImplementation(hardhatVerify, implAddress);
 
   let etherscanApi = await getEtherscanAPI(hre);
+  await verifyTransparentOrUUPS();
 
-  console.log(`Attempting to verify as Transparent proxy ${proxyAddress}`);
-  try {
-    await verifyContractWithEvent(hre, etherscanApi, proxyAddress, TransparentUpgradeableProxy, 'AdminChanged(address,address)');
-  } catch (e: any) {
-    if (e instanceof EventNotFound) {
-      console.log(`Attempting to verify as UUPS proxy ${proxyAddress}`);
-      await verifyContractWithEvent(hre, etherscanApi, proxyAddress, ERC1967Proxy, 'Upgraded(address)');
+  // Either UUPS or Transparent proxy could have admin slot set, although typically this should only be for Transparent
+  await verifyAdmin();
+
+  async function verifyAdmin() {
+    const adminAddress = await getAdminAddress(provider, proxyAddress);
+    if (!isEmptySlot(adminAddress)) {
+      console.log(`Verifying admin: ${adminAddress}`);
+      await verifyContractWithEvent(hre, etherscanApi, adminAddress, contractEvents.proxyAdmin);
     }
   }
 
-  // Either UUPS or Transparent proxy could have admin slot set, although typically this should only be for Transparent
-  const adminAddress = await getAdminAddress(provider, proxyAddress);
-  if (!isEmptySlot(adminAddress)) {
-    console.log(`Verifying admin: ${adminAddress}`);
-    await verifyContractWithEvent(hre, etherscanApi, adminAddress, ProxyAdmin, 'OwnershipTransferred(address,address)');
+  async function verifyTransparentOrUUPS() {
+    console.log(`Attempting to verify as Transparent proxy: ${proxyAddress}`);
+    try {
+      await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.transparentUpgradeableProxy);
+    } catch (e: any) {
+      if (e instanceof EventNotFound) {
+        console.log(`Attempting to verify as UUPS proxy: ${proxyAddress}`);
+        await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.erc1967proxy);
+      }
+    }
   }
 }
 
@@ -100,32 +107,33 @@ async function fullVerifyBeaconProxy(provider: EthereumProvider, proxyAddress: a
 
   let etherscanApi = await getEtherscanAPI(hre);
 
-  console.log(`Verifying beacon ${beaconAddress}`);
-  await verifyContractWithEvent(hre, etherscanApi, beaconAddress, UpgradeableBeacon, 'OwnershipTransferred(address,address)');
+  console.log(`Verifying beacon: ${beaconAddress}`);
+  await verifyContractWithEvent(hre, etherscanApi, beaconAddress, contractEvents.upgradeableBeacon);
 
-  console.log(`Verifying beacon proxy ${proxyAddress}`);
-  await verifyContractWithEvent(hre, etherscanApi, proxyAddress, BeaconProxy, 'BeaconUpgraded(address)');
+  console.log(`Verifying beacon proxy: ${proxyAddress}`);
+  await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.beaconProxy);
 }
 
 async function verifyImplementation(hardhatVerify: (address: string) => Promise<any>, implAddress: string) {
   try {
-    console.log(`Verifying implementation ${implAddress}`);
+    console.log(`Verifying implementation: ${implAddress}`);
     await hardhatVerify(implAddress);
     console.log(`Implementation ${implAddress} verified!`);
   } catch (e: any) {
     if (e.message.toLowerCase().includes('already verified')) {
       console.log(`Implementation ${implAddress} already verified.`);
     } else {
-      throw e;
+      console.error(`Failed to verify implementation. ${e}`);
+      // TODO record error and fail at the end
     }
   }
 }
 
-async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string, contractJson: ContractArtifactJson, creationEvent: string) {
-  console.log(`Verifying contract ${contractJson.contractName} at ${address}`);
+async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string, contractEventMapping: ContractEventMapping) {
+  console.log(`Verifying contract ${contractEventMapping.artifact.contractName} at ${address}`);
 
   // TODO if address is EOA, this will fail
-  const txHash = await getEtherscanTxCreationHash(address, creationEvent, etherscanApi);
+  const txHash = await getEtherscanTxCreationHash(address, contractEventMapping.event, etherscanApi);
   if (txHash === undefined) {
     // TODO see how to handle this
     throw new EventNotFound("txhash not found " + txHash);
@@ -139,13 +147,13 @@ async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscan
   const txInput = tx.input;
   console.log("TX deploy code: " + txInput);
 
-  const constructorArguments = inferConstructorArgs(txInput, contractJson.bytecode);
+  const constructorArguments = inferConstructorArgs(txInput, contractEventMapping.artifact.bytecode);
   if (constructorArguments === undefined) {
     // TODO
     throw new Error("constructor args not found");
   }
   console.log("verifying contract: " + address);
-  await verifyProxy(etherscanApi, address, constructorArguments, contractJson);
+  await verifyProxy(etherscanApi, address, constructorArguments, contractEventMapping.artifact);
 }
 
 export async function callEtherscanApi(
@@ -165,17 +173,12 @@ export async function callEtherscanApi(
   let response: Dispatcher.ResponseData;
   try {
     response = await request(etherscanApi.endpoints.urls.apiURL, requestDetails);
-    //console.log("ETHERSCAN LOGS RESPONSE " + JSON.stringify(response));
-    //console.log("ETHERSCAN LOGS RESPONSE BODY " + await response.body.text());
-    console.log("getting responsebody");
     const responseBody = await response.body.json();
-    console.log("got responsebody");
-    console.log("ETHERSCAN RESPONSE BODY AS JSON " + JSON.stringify(responseBody));
+    console.log("Etherscan response body: " + JSON.stringify(responseBody));
     return responseBody;
-
   } catch (error: any) {
     throw new UpgradesError(
-      `Failed to get etherscan api response ${error}`
+      `Failed to get Etherscan API response: ${error}`
     );
   }
 

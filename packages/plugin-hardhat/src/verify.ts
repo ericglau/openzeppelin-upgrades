@@ -2,7 +2,7 @@ import { resolveEtherscanApiKey } from '@nomiclabs/hardhat-etherscan/dist/src/re
 import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanVerifyContractRequest';
 import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
 
-import { getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError, getAdminAddress } from '@openzeppelin/upgrades-core';
+import { getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError, getAdminAddress, isTransparentOrUUPSProxy, isBeaconProxy, isBeacon } from '@openzeppelin/upgrades-core';
 import { EthereumProvider, HardhatRuntimeEnvironment, RunSuperFunction } from 'hardhat/types';
 import { EtherscanConfig } from '@nomiclabs/hardhat-etherscan/dist/src/types';
 
@@ -14,7 +14,6 @@ import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/cont
 
 import { keccak256 } from 'ethereumjs-util';
 import { Dispatcher } from "undici";
-import BN from 'bn.js';
 import { isEmptySlot } from '@openzeppelin/upgrades-core/src/eip-1967';
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
@@ -51,59 +50,15 @@ const contractEvents: ContractTypes = {
  */
 export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper: RunSuperFunction<any>) {
   const provider = hre.network.provider;
-  let addresses: Addresses = await getRelatedAddresses(provider, args.address);
+  const proxyAddress = args.address;
 
-  // TODO log as debug
-  console.log(`Addresses: ${JSON.stringify(addresses)}`);
-
-/*
-1. check if logic contract slot has content
-2a. if yes, check transparent
-  2ai. if yes, check admin
-  2aii. else, check uups
-2b. else, check beacon
-*/
-
-
-
-
-  if (addresses.impl === undefined) {
-    // does not look like a proxy, so just verify directly
-    return hardhatVerify(args.address);
+  if (await isTransparentOrUUPSProxy(provider, proxyAddress)) {
+    await fullVerifyTransparentOrUUPSProxy(provider, proxyAddress, hardhatVerify, hre);
+  } else if (await isBeaconProxy(provider, proxyAddress)) {
+    await fullVerifyBeaconProxy(provider, proxyAddress, hardhatVerify, hre);
   } else {
-    const proxyAddress = args.address;
-    console.log(`Detected proxy ${proxyAddress}`);
-
-    console.log(`Verifying implementation ${addresses.impl}`);
-    await verifyImplementation(hardhatVerify, addresses.impl);
-  
-    let etherscanApi: EtherscanAPI = await getEtherscanAPI(hre);
-
-    if (addresses.beacon !== undefined) {
-      // it is a beacon proxy
-      console.log(`Verifying beacon proxy ${proxyAddress}`);
-      await verifyContractWithEvent(hre, etherscanApi, proxyAddress, BeaconProxy, 'BeaconUpgraded(address)');
-
-      console.log(`Verifying beacon ${addresses.beacon}`);
-      await verifyContractWithEvent(hre, etherscanApi, addresses.beacon, UpgradeableBeacon, 'OwnershipTransferred(address,address)');
-    } else {
-      console.log(`Checking if Transparent ${proxyAddress}`);
-      try {
-        await verifyContractWithEvent(hre, etherscanApi, proxyAddress, TransparentUpgradeableProxy, 'AdminChanged(address,address)');
-      } catch (e: any) {
-        if (e instanceof EventNotFound) {
-          console.log(`Checking if UUPS ${proxyAddress}`);
-          await verifyContractWithEvent(hre, etherscanApi, proxyAddress, ERC1967Proxy, 'Upgraded(address)');
-        }
-      }
-
-      if (addresses.admin !== undefined) {
-        // TODO check if admin is an EOA
-
-        console.log(`Verifying admin: ${addresses.admin}`);
-        await verifyContractWithEvent(hre, etherscanApi, addresses.admin, ProxyAdmin, 'OwnershipTransferred(address,address)');
-      }
-    }
+    // Doesn't look like a proxy, so just verify directly
+    return hardhatVerify(proxyAddress);
   }
 
   async function hardhatVerify(address: string) {
@@ -113,8 +68,48 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
 class EventNotFound extends UpgradesError {}
 
+async function fullVerifyTransparentOrUUPSProxy(provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>, hre: HardhatRuntimeEnvironment) {
+  const implAddress = await getImplementationAddress(provider, proxyAddress);
+  await verifyImplementation(hardhatVerify, implAddress);
+
+  let etherscanApi = await getEtherscanAPI(hre);
+
+  console.log(`Attempting to verify as Transparent proxy ${proxyAddress}`);
+  try {
+    await verifyContractWithEvent(hre, etherscanApi, proxyAddress, TransparentUpgradeableProxy, 'AdminChanged(address,address)');
+  } catch (e: any) {
+    if (e instanceof EventNotFound) {
+      console.log(`Attempting to verify as UUPS proxy ${proxyAddress}`);
+      await verifyContractWithEvent(hre, etherscanApi, proxyAddress, ERC1967Proxy, 'Upgraded(address)');
+    }
+  }
+
+  // Either UUPS or Transparent proxy could have admin slot set, although typically this should only be for Transparent
+  const adminAddress = await getAdminAddress(provider, proxyAddress);
+  if (!isEmptySlot(adminAddress)) {
+    console.log(`Verifying admin: ${adminAddress}`);
+    await verifyContractWithEvent(hre, etherscanApi, adminAddress, ProxyAdmin, 'OwnershipTransferred(address,address)');
+  }
+}
+
+async function fullVerifyBeaconProxy(provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>, hre: HardhatRuntimeEnvironment) {
+  const beaconAddress = await getBeaconAddress(provider, proxyAddress);
+  
+  const implAddress = await getImplementationAddressFromBeacon(provider, beaconAddress);
+  await verifyImplementation(hardhatVerify, implAddress);
+
+  let etherscanApi = await getEtherscanAPI(hre);
+
+  console.log(`Verifying beacon ${beaconAddress}`);
+  await verifyContractWithEvent(hre, etherscanApi, beaconAddress, UpgradeableBeacon, 'OwnershipTransferred(address,address)');
+
+  console.log(`Verifying beacon proxy ${proxyAddress}`);
+  await verifyContractWithEvent(hre, etherscanApi, proxyAddress, BeaconProxy, 'BeaconUpgraded(address)');
+}
+
 async function verifyImplementation(hardhatVerify: (address: string) => Promise<any>, implAddress: string) {
   try {
+    console.log(`Verifying implementation ${implAddress}`);
     await hardhatVerify(implAddress);
     console.log(`Implementation ${implAddress} verified!`);
   } catch (e: any) {
@@ -254,9 +249,7 @@ export async function getEtherscanTxCreationHash(
     // TODO
     throw new Error("Failed to find tx hash for creation of address " + address);
   }
-
 }
-
 
 interface ContractArtifactJson { 
   contractName: string;
@@ -333,55 +326,6 @@ async function getEtherscanAPI(hre: HardhatRuntimeEnvironment): Promise<Ethersca
   );
 
   return { key, endpoints };
-}
-
-/**
- * Gets the related addresses for a proxy: implementation, beacon, proxy admin.
- * 
- * According ERC1967, only consider the beacon slot if logic contract slot is empty.
- * e.g.
- *  - if UUPS or Tranparent proxy, return { impl, admin? }
- *  - else if Beacon, return { impl, beacon, admin? }
- *  - else return empty object
- * 
- * @param provider 
- * @param inputAddress 
- * @returns 
- */
-async function getRelatedAddresses(provider: EthereumProvider, inputAddress: string) {
-  let addresses: Addresses = {};
-  try {
-    addresses.impl = await getImplementationAddress(provider, inputAddress);
-
-    const admin = await getAdminAddress(provider, inputAddress);
-    console.log("Admin " + admin + " is zero? " + isEmptySlot(admin));
-    if (!isEmptySlot(admin)) {
-      addresses.admin = admin;
-    }
-  } catch (e: any) {
-    if (e instanceof EIP1967ImplementationNotFound) {
-      try {
-        addresses.beacon = await getBeaconAddress(provider, inputAddress);
-        addresses.impl = await getImplementationAddressFromBeacon(provider, addresses.beacon);
-      } catch (e: any) {
-        if (e instanceof EIP1967BeaconNotFound) {
-          // not an ERC1967 compatible proxy or beacon
-          return addresses;
-        } else {
-          throw e;
-        }
-      }
-    } else {
-      throw e;
-    }
-  }
-  return addresses;
-}
-
-interface Addresses {
-  impl?: string;
-  beacon?: string;
-  admin?: string;
 }
 
 interface EtherscanAPI {

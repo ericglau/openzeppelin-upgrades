@@ -2,7 +2,7 @@ import { resolveEtherscanApiKey } from '@nomiclabs/hardhat-etherscan/dist/src/re
 import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanVerifyContractRequest';
 import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
 
-import { getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError, getAdminAddress, isTransparentOrUUPSProxy, isBeaconProxy, isBeacon } from '@openzeppelin/upgrades-core';
+import { getTransactionByHash, getImplementationAddress, getBeaconAddress, getImplementationAddressFromBeacon, UpgradesError, getAdminAddress, isTransparentOrUUPSProxy, isBeaconProxy, isBeacon, isEmptySlot } from '@openzeppelin/upgrades-core';
 import { EthereumProvider, HardhatRuntimeEnvironment, RunSuperFunction } from 'hardhat/types';
 import { EtherscanConfig } from '@nomiclabs/hardhat-etherscan/dist/src/types';
 
@@ -14,7 +14,7 @@ import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/cont
 
 import { keccak256 } from 'ethereumjs-util';
 import { Dispatcher } from "undici";
-import { isEmptySlot } from '@openzeppelin/upgrades-core/src/eip-1967';
+
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
@@ -145,15 +145,14 @@ async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscan
     throw new Error("txhash not found " + txHash);
   }
   const txInput = tx.input;
-  console.log("TX deploy code: " + txInput);
-
+  
   const constructorArguments = inferConstructorArgs(txInput, contractEventMapping.artifact.bytecode);
   if (constructorArguments === undefined) {
     // TODO
     throw new Error("constructor args not found");
   }
-  console.log("verifying contract: " + address);
-  await verifyProxy(etherscanApi, address, constructorArguments, contractEventMapping.artifact);
+
+  await verifyProxyRelatedContract(etherscanApi, address, constructorArguments, contractEventMapping.artifact);
 }
 
 export async function callEtherscanApi(
@@ -261,7 +260,7 @@ interface ContractArtifactJson {
   bytecode: any;
 }
 
-async function verifyProxy(etherscanApi: EtherscanAPI, proxyAddress: any, constructorArguments: string, contractImport: ContractArtifactJson) {
+async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddress: any, constructorArguments: string, contractImport: ContractArtifactJson) {
   console.log(`Verifying proxy ${proxyAddress} with constructor args ${constructorArguments}...`);
 
   const params = {
@@ -275,27 +274,37 @@ async function verifyProxy(etherscanApi: EtherscanAPI, proxyAddress: any, constr
   };
 
   const request = toVerifyRequest(params);
-  const response = await verifyContract(etherscanApi.endpoints.urls.apiURL, request);
-  const pollRequest = toCheckStatusRequest({
-    apiKey: etherscanApi.key,
-    guid: response.message,
-  });
-
-  // Compilation is bound to take some time so there's no sense in requesting status immediately.
-  await delay(700);
   try {
-    const verificationStatus = await getVerificationStatus(
-      etherscanApi.endpoints.urls.apiURL,
-      pollRequest
-    );
-
-    if (verificationStatus.isVerificationFailure() ||
-      verificationStatus.isVerificationSuccess()) {
-      console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`);
+    const response = await verifyContract(etherscanApi.endpoints.urls.apiURL, request);
+    const pollRequest = toCheckStatusRequest({
+      apiKey: etherscanApi.key,
+      guid: response.message,
+    });
+  
+    // Compilation is bound to take some time so there's no sense in requesting status immediately.
+    await delay(700);
+    try {
+      const verificationStatus = await getVerificationStatus(
+        etherscanApi.endpoints.urls.apiURL,
+        pollRequest
+      );
+  
+      if (verificationStatus.isVerificationFailure() ||
+        verificationStatus.isVerificationSuccess()) {
+        console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`);
+      }
+    } catch (e: any) {
+      console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
     }
   } catch (e: any) {
-    console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
+    if (e.message.toLowerCase().includes('already verified')) {
+      console.log(`Contract at ${proxyAddress} already verified.`);
+    } else {
+      console.error(`Failed to verify contract. ${e}`);
+      // TODO record error and fail at the end
+    }
   }
+
 }
 
 /**
@@ -307,7 +316,7 @@ async function verifyProxy(etherscanApi: EtherscanAPI, proxyAddress: any, constr
  */
 function inferConstructorArgs(txInput: string, creationCode: string) {
   if (txInput.startsWith(creationCode)) {
-    console.log(`Returning constructor args ${txInput.substring(creationCode.length)}`);
+    //console.log(`Returning constructor args ${txInput.substring(creationCode.length)}`);
     return txInput.substring(creationCode.length);
   } else {
     console.log(`txinput ${txInput} does not start with creation code ${creationCode}`);

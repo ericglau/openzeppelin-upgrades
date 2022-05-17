@@ -15,21 +15,30 @@ import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/cont
 import { keccak256 } from 'ethereumjs-util';
 import { Dispatcher } from "undici";
 import BN from 'bn.js';
+import { isEmptySlot } from '@openzeppelin/upgrades-core/src/eip-1967';
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
+interface ContractEventMapping {
+  contractJson: ContractArtifactJson,
+  event: string
+}
 
-  /*
-    Beacon proxy: BeaconUpgraded(address)
-    Beacon: OwnershipTransferred(address,address)
-    ProxyAdmin: OwnershipTransferred(address,address)
-    TransparentUpgradeableProxy: AdminChanged(address,address) NOTE: also has Upgraded, 
-    ERC1967Proxy: Upgraded(address)  
+interface ContractTypes {
+  erc1967proxy: ContractEventMapping,
+  beaconProxy: ContractEventMapping,
+  upgradeableBeacon: ContractEventMapping,
+  transparentUpgradeableProxy: ContractEventMapping,
+  proxyAdmin: ContractEventMapping,
+}
 
-
-    if has AdminChanged, then transparent
-    else if has Upgraded, then uups
-  */
+const contractEvents: ContractTypes = {
+  erc1967proxy: { contractJson: ERC1967Proxy, event: 'Upgraded(address)'},
+  beaconProxy: { contractJson: BeaconProxy, event: 'BeaconUpgraded(address)'},
+  upgradeableBeacon: { contractJson: UpgradeableBeacon, event: 'OwnershipTransferred(address,address)'},
+  transparentUpgradeableProxy: { contractJson: TransparentUpgradeableProxy, event: 'AdminChanged(address,address)'},
+  proxyAdmin: { contractJson: ProxyAdmin, event: 'OwnershipTransferred(address,address)'},
+}
 
 /**
  * Verifies the contract at an address. If the address is a proxy, verifies the proxy and associated proxy contracts, 
@@ -43,6 +52,8 @@ const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json
 export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper: RunSuperFunction<any>) {
   const provider = hre.network.provider;
   let addresses: Addresses = await getRelatedAddresses(provider, args.address);
+
+  // TODO log as debug
   console.log(`Addresses: ${JSON.stringify(addresses)}`);
 
 /*
@@ -64,16 +75,7 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
     console.log(`Detected proxy ${proxyAddress}`);
 
     console.log(`Verifying implementation ${addresses.impl}`);
-    try {
-      await hardhatVerify(addresses.impl);
-      console.log(`Implementation ${addresses.impl} verified!`);
-    } catch (e: any) {
-      if (e.message.includes('already verified')) {
-        console.log(`Implementation ${addresses.impl} already verified.`);
-      } else {
-        throw e;
-      }
-    }
+    await verifyImplementation(hardhatVerify, addresses.impl);
   
     let etherscanApi: EtherscanAPI = await getEtherscanAPI(hre);
 
@@ -82,9 +84,8 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
       console.log(`Verifying beacon proxy ${proxyAddress}`);
       await verifyContractWithEvent(hre, etherscanApi, proxyAddress, BeaconProxy, 'BeaconUpgraded(address)');
 
-      console.log(`Beacon: verifying beacon ${addresses.beacon}`);
+      console.log(`Verifying beacon ${addresses.beacon}`);
       await verifyContractWithEvent(hre, etherscanApi, addresses.beacon, UpgradeableBeacon, 'OwnershipTransferred(address,address)');
-
     } else {
       console.log(`Checking if Transparent ${proxyAddress}`);
       try {
@@ -102,25 +103,6 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
         console.log(`Verifying admin: ${addresses.admin}`);
         await verifyContractWithEvent(hre, etherscanApi, addresses.admin, ProxyAdmin, 'OwnershipTransferred(address,address)');
       }
-
-      // let artifact: ContractArtifactJson = ERC1967Proxy;
-      // let constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
-      // console.log(`UUPS: got constructor args ${constructorArguments}`);
-      // if (constructorArguments === undefined) {
-      //   artifact = TransparentUpgradeableProxy;
-      //   constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
-      //   console.log(`Transparent: got constructor args ${constructorArguments}`);
-      //   if (constructorArguments === undefined) {
-      //     console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
-      //     return await hardhatVerify(args.address);
-      //   } else {
-      //     // this is a transparent proxy
-      //     // first: verify proxy admin
-
-      //     console.log(`Verifying transparent proxy: ${proxyAddress}`);
-      //   }
-      // }
-      // return await verifyProxy(etherscanApi, proxyAddress, constructorArguments, artifact);
     }
   }
 
@@ -130,6 +112,19 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 }
 
 class EventNotFound extends UpgradesError {}
+
+async function verifyImplementation(hardhatVerify: (address: string) => Promise<any>, implAddress: string) {
+  try {
+    await hardhatVerify(implAddress);
+    console.log(`Implementation ${implAddress} verified!`);
+  } catch (e: any) {
+    if (e.message.toLowerCase().includes('already verified')) {
+      console.log(`Implementation ${implAddress} already verified.`);
+    } else {
+      throw e;
+    }
+  }
+}
 
 async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string, contractJson: ContractArtifactJson, creationEvent: string) {
   console.log(`Verifying contract ${contractJson.contractName} at ${address}`);
@@ -340,14 +335,27 @@ async function getEtherscanAPI(hre: HardhatRuntimeEnvironment): Promise<Ethersca
   return { key, endpoints };
 }
 
+/**
+ * Gets the related addresses for a proxy: implementation, beacon, proxy admin.
+ * 
+ * According ERC1967, only consider the beacon slot if logic contract slot is empty.
+ * e.g.
+ *  - if UUPS or Tranparent proxy, return { impl, admin? }
+ *  - else if Beacon, return { impl, beacon, admin? }
+ *  - else return empty object
+ * 
+ * @param provider 
+ * @param inputAddress 
+ * @returns 
+ */
 async function getRelatedAddresses(provider: EthereumProvider, inputAddress: string) {
   let addresses: Addresses = {};
   try {
     addresses.impl = await getImplementationAddress(provider, inputAddress);
 
     const admin = await getAdminAddress(provider, inputAddress);
-    console.log("Admin " + admin + " is zero? " + isZero(admin));
-    if (!isZero(admin)) {
+    console.log("Admin " + admin + " is zero? " + isEmptySlot(admin));
+    if (!isEmptySlot(admin)) {
       addresses.admin = admin;
     }
   } catch (e: any) {
@@ -357,6 +365,7 @@ async function getRelatedAddresses(provider: EthereumProvider, inputAddress: str
         addresses.impl = await getImplementationAddressFromBeacon(provider, addresses.beacon);
       } catch (e: any) {
         if (e instanceof EIP1967BeaconNotFound) {
+          // not an ERC1967 compatible proxy or beacon
           return addresses;
         } else {
           throw e;
@@ -378,8 +387,4 @@ interface Addresses {
 interface EtherscanAPI {
   key: string;
   endpoints: any;
-}
-
-function isZero(admin: string) {
-  return new BN(admin, 'hex').isZero();
 }

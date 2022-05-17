@@ -73,8 +73,9 @@ async function fullVerifyTransparentOrUUPS(provider: EthereumProvider, proxyAddr
   await verifyImplementation(hardhatVerify, implAddress);
 
   let etherscanApi = await getEtherscanAPI(hre);
-  await verifyTransparentOrUUPS();
 
+  await verifyTransparentOrUUPS();
+  await linkProxyWithImplementation(etherscanApi, proxyAddress);
   // Either UUPS or Transparent proxy could have admin slot set, although typically this should only be for Transparent
   await verifyAdmin();
 
@@ -87,12 +88,11 @@ async function fullVerifyTransparentOrUUPS(provider: EthereumProvider, proxyAddr
   }
 
   async function verifyTransparentOrUUPS() {
-    console.log(`Attempting to verify as Transparent proxy: ${proxyAddress}`);
+    console.log(`Verifying proxy: ${proxyAddress}`);
     try {
       await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.transparentUpgradeableProxy);
     } catch (e: any) {
       if (e instanceof EventNotFound) {
-        console.log(`Attempting to verify as UUPS proxy: ${proxyAddress}`);
         await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.erc1967proxy);
       }
     }
@@ -107,11 +107,19 @@ async function fullVerifyBeaconProxy(provider: EthereumProvider, proxyAddress: a
 
   let etherscanApi = await getEtherscanAPI(hre);
 
-  console.log(`Verifying beacon: ${beaconAddress}`);
-  await verifyContractWithEvent(hre, etherscanApi, beaconAddress, contractEvents.upgradeableBeacon);
+  await verifyBeacon();
+  await verifyBeaconProxy();
+  await linkProxyWithImplementation(etherscanApi, proxyAddress);
 
-  console.log(`Verifying beacon proxy: ${proxyAddress}`);
-  await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.beaconProxy);
+  async function verifyBeaconProxy() {
+    console.log(`Verifying beacon proxy: ${proxyAddress}`);
+    await verifyContractWithEvent(hre, etherscanApi, proxyAddress, contractEvents.beaconProxy);
+  }
+
+  async function verifyBeacon() {
+    console.log(`Verifying beacon: ${beaconAddress}`);
+    await verifyContractWithEvent(hre, etherscanApi, beaconAddress, contractEvents.upgradeableBeacon);
+  }
 }
 
 async function verifyImplementation(hardhatVerify: (address: string) => Promise<any>, implAddress: string) {
@@ -155,7 +163,17 @@ async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscan
   await verifyProxyRelatedContract(etherscanApi, address, constructorArguments, contractEventMapping.artifact);
 }
 
-export async function callEtherscanApi(
+async function linkProxyWithImplementation(etherscanApi: EtherscanAPI, proxyAddress: string) {
+  console.log(`Linking proxy ${proxyAddress} with implementation`);
+  const params = {
+    module: 'contract',
+    action: 'verifyproxycontract',
+    address: proxyAddress,
+  }
+  await callEtherscanApi(etherscanApi, params);
+}
+
+async function callEtherscanApi(
   etherscanApi: EtherscanAPI,
   params: any
 ): Promise<EtherscanResponse> {
@@ -173,7 +191,7 @@ export async function callEtherscanApi(
   try {
     response = await request(etherscanApi.endpoints.urls.apiURL, requestDetails);
     const responseBody = await response.body.json();
-    console.log("Etherscan response body: " + JSON.stringify(responseBody));
+    console.log("Etherscan response: " + JSON.stringify(responseBody));
     return responseBody;
   } catch (error: any) {
     throw new UpgradesError(
@@ -245,7 +263,6 @@ export async function getEtherscanTxCreationHash(
   // TODO if call failed e.g. trying to get txhash from EOA, result[0] will be undefined
   const txHash = responseBody.result[0].transactionHash;
   if (txHash !== undefined) {
-    console.log("Found tx hash! " + txHash);
     return txHash;
   } else {
     // TODO

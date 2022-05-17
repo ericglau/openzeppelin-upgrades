@@ -15,6 +15,8 @@ import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/cont
 import { keccak256 } from 'ethereumjs-util';
 import { Dispatcher } from "undici";
 
+import debug from './utils/debug';
+
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
@@ -82,7 +84,7 @@ async function fullVerifyTransparentOrUUPS(provider: EthereumProvider, proxyAddr
   async function verifyAdmin() {
     const adminAddress = await getAdminAddress(provider, proxyAddress);
     if (!isEmptySlot(adminAddress)) {
-      console.log(`Verifying admin: ${adminAddress}`);
+      console.log(`Verifying proxy admin: ${adminAddress}`);
       await verifyContractWithEvent(hre, etherscanApi, adminAddress, contractEvents.proxyAdmin);
     }
   }
@@ -138,7 +140,7 @@ async function verifyImplementation(hardhatVerify: (address: string) => Promise<
 }
 
 async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string, contractEventMapping: ContractEventMapping) {
-  console.log(`Verifying contract ${contractEventMapping.artifact.contractName} at ${address}`);
+  debug(`verifying contract ${contractEventMapping.artifact.contractName} at ${address}`);
 
   // TODO if address is EOA, this will fail
   const txHash = await getEtherscanTxCreationHash(address, contractEventMapping.event, etherscanApi);
@@ -156,7 +158,7 @@ async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscan
   
   const constructorArguments = inferConstructorArgs(txInput, contractEventMapping.artifact.bytecode);
   if (constructorArguments === undefined) {
-    // TODO
+    // TODO tell user to provide constructor args
     throw new Error("constructor args not found");
   }
 
@@ -191,7 +193,7 @@ async function callEtherscanApi(
   try {
     response = await request(etherscanApi.endpoints.urls.apiURL, requestDetails);
     const responseBody = await response.body.json();
-    console.log("Etherscan response: " + JSON.stringify(responseBody));
+    debug("Etherscan response", JSON.stringify(responseBody));
     return responseBody;
   } catch (error: any) {
     throw new UpgradesError(
@@ -278,7 +280,7 @@ interface ContractArtifactJson {
 }
 
 async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddress: any, constructorArguments: string, contractImport: ContractArtifactJson) {
-  console.log(`Verifying proxy ${proxyAddress} with constructor args ${constructorArguments}...`);
+  debug(`verifying contract ${proxyAddress} with constructor args ${constructorArguments}`);
 
   const params = {
     apiKey: etherscanApi.key,
@@ -308,10 +310,16 @@ async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddre
   
       if (verificationStatus.isVerificationFailure() ||
         verificationStatus.isVerificationSuccess()) {
-        console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`);
+        console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`); // TODO if proxy already verified, return earlier
       }
     } catch (e: any) {
-      console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
+      if (e.message.toLowerCase().includes('already verified')) {
+        console.log(`Contract at ${proxyAddress} already verified.`);
+      } else {
+        console.error(`Failed to verify contract. ${e}`);
+        // TODO record error and fail at the end
+      }
+      //      console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
     }
   } catch (e: any) {
     if (e.message.toLowerCase().includes('already verified')) {
@@ -333,27 +341,23 @@ async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddre
  */
 function inferConstructorArgs(txInput: string, creationCode: string) {
   if (txInput.startsWith(creationCode)) {
-    //console.log(`Returning constructor args ${txInput.substring(creationCode.length)}`);
     return txInput.substring(creationCode.length);
   } else {
-    console.log(`txinput ${txInput} does not start with creation code ${creationCode}`);
     return undefined;
   }
 }
 
+/**
+ * Gets the Etherscan API parameters from Hardhat config. 
+ * Makes use of Hardhat Etherscan for error handling if Etherscan API not provided by user.
+ */
 async function getEtherscanAPI(hre: HardhatRuntimeEnvironment): Promise<EtherscanAPI> {
-
   const endpoints = await hre.run("verify:get-etherscan-endpoint");
-  console.log(`Etherscan endpoint urls: ${JSON.stringify(endpoints)}`);
-
   const etherscanConfig: EtherscanConfig = (hre.config as any).etherscan;
-  console.log(`Etherscan config: ${JSON.stringify(etherscanConfig)}`); // TODO remove
-
   const key = resolveEtherscanApiKey(
     etherscanConfig,
     endpoints.network
   );
-
   return { key, endpoints };
 }
 

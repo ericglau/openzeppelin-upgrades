@@ -128,7 +128,6 @@ async function verifyImplementation(hardhatVerify: (address: string) => Promise<
   try {
     console.log(`Verifying implementation: ${implAddress}`);
     await hardhatVerify(implAddress);
-    console.log(`Implementation ${implAddress} verified!`);
   } catch (e: any) {
     if (e.message.toLowerCase().includes('already verified')) {
       console.log(`Implementation ${implAddress} already verified.`);
@@ -300,8 +299,6 @@ async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddre
       guid: response.message,
     });
   
-    // Compilation is bound to take some time so there's no sense in requesting status immediately.
-    await delay(700);
     try {
       const verificationStatus = await getVerificationStatus(
         etherscanApi.endpoints.urls.apiURL,
@@ -310,7 +307,7 @@ async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddre
   
       if (verificationStatus.isVerificationFailure() ||
         verificationStatus.isVerificationSuccess()) {
-        console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`); // TODO if proxy already verified, return earlier
+        console.log(`Verification status for ${proxyAddress}: ${verificationStatus.message}`);
       }
     } catch (e: any) {
       if (e.message.toLowerCase().includes('already verified')) {
@@ -319,7 +316,6 @@ async function verifyProxyRelatedContract(etherscanApi: EtherscanAPI, proxyAddre
         console.error(`Failed to verify contract. ${e}`);
         // TODO record error and fail at the end
       }
-      //      console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
     }
   } catch (e: any) {
     if (e.message.toLowerCase().includes('already verified')) {

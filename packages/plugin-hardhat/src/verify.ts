@@ -1,12 +1,10 @@
 import { resolveEtherscanApiKey } from '@nomiclabs/hardhat-etherscan/dist/src/resolveEtherscanApiKey';
 import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanVerifyContractRequest';
 import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
-import { getBeaconProxyFactory, getProxyFactory, getTransparentUpgradeableProxyFactory } from './utils/factories';
 
-import { Manifest, getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError, getAdminAddress } from '@openzeppelin/upgrades-core';
+import { getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError, getAdminAddress } from '@openzeppelin/upgrades-core';
 import { EthereumProvider, HardhatRuntimeEnvironment, RunSuperFunction } from 'hardhat/types';
 import { EtherscanConfig } from '@nomiclabs/hardhat-etherscan/dist/src/types';
-import { ContractFactory } from 'ethers';
 
 import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 import BeaconProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.json';
@@ -20,15 +18,6 @@ import BN from 'bn.js';
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
-async function getTransactionHashFromManifest(provider: EthereumProvider, proxyAddress: string) {
-  const manifest = await Manifest.forNetwork(provider);
-  const { proxies } = await manifest.read();
-  for (const proxy of proxies) {
-    if (proxyAddress === proxy.address) {
-      return proxy.txHash;
-    }
-  }
-}
 
   /*
     Beacon proxy: BeaconUpgraded(address)
@@ -55,6 +44,17 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   const provider = hre.network.provider;
   let addresses: Addresses = await getRelatedAddresses(provider, args.address);
   console.log(`Addresses: ${JSON.stringify(addresses)}`);
+
+/*
+1. check if logic contract slot has content
+2a. if yes, check transparent
+  2ai. if yes, check admin
+  2aii. else, check uups
+2b. else, check beacon
+*/
+
+
+
 
   if (addresses.impl === undefined) {
     // does not look like a proxy, so just verify directly
@@ -270,10 +270,6 @@ interface ContractArtifactJson {
   bytecode: any;
 }
 
-async function getFactory(hre: HardhatRuntimeEnvironment, contractImport: ContractArtifactJson): Promise<ContractFactory> {
-  return hre.ethers.getContractFactory(contractImport.abi, contractImport.bytecode, undefined);
-}
-
 async function verifyProxy(etherscanApi: EtherscanAPI, proxyAddress: any, constructorArguments: string, contractImport: ContractArtifactJson) {
   console.log(`Verifying proxy ${proxyAddress} with constructor args ${constructorArguments}...`);
 
@@ -309,30 +305,6 @@ async function verifyProxy(etherscanApi: EtherscanAPI, proxyAddress: any, constr
   } catch (e: any) {
     console.log(`Verification for ${proxyAddress} failed: ${e.message}`);
   }
-}
-
-async function getConstructorArgs(hre: HardhatRuntimeEnvironment, proxyFactory: ContractFactory, proxyAddress: any) {
-  const txHash = await getTransactionHashFromManifest(hre.network.provider, proxyAddress);
-  if (txHash === undefined) {
-    // TODO get constructor args from user input
-    throw new UpgradesError("Define constructor arguments");
-  }
-  console.log("Got tx hash: " + txHash);
-
-  // Determine contract based on whether transaction deployment code starts with the contract's creation code 
-
-
-  const creationCode = proxyFactory.bytecode;
-  console.log("Creation code: " + creationCode);
-
-  const tx = await getTransactionByHash(hre.network.provider, txHash);
-  if (tx === null) {
-    return undefined;
-  }
-  const txInput = tx.input;
-  console.log("TX deploy code: " + txInput);
-  
-  return inferConstructorArgs(txInput, creationCode);
 }
 
 /**

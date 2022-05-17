@@ -3,7 +3,7 @@ import { toCheckStatusRequest, toVerifyRequest } from '@nomiclabs/hardhat-ethers
 import { delay, getVerificationStatus, verifyContract } from '@nomiclabs/hardhat-etherscan/dist/src/etherscan/EtherscanService';
 import { getBeaconProxyFactory, getProxyFactory, getTransparentUpgradeableProxyFactory } from './utils/factories';
 
-import { Manifest, getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError } from '@openzeppelin/upgrades-core';
+import { Manifest, getTransactionByHash, getImplementationAddress, EIP1967ImplementationNotFound, getBeaconAddress, getImplementationAddressFromBeacon, EIP1967BeaconNotFound, UpgradesError, getAdminAddress } from '@openzeppelin/upgrades-core';
 import { EthereumProvider, HardhatRuntimeEnvironment, RunSuperFunction } from 'hardhat/types';
 import { EtherscanConfig } from '@nomiclabs/hardhat-etherscan/dist/src/types';
 import { ContractFactory } from 'ethers';
@@ -16,6 +16,7 @@ import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/cont
 
 import { keccak256 } from 'ethereumjs-util';
 import { Dispatcher } from "undici";
+import BN from 'bn.js';
 
 const buildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
 
@@ -76,43 +77,7 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
         await verifyProxy(etherscanApi, proxyAddress, constructorArguments, BeaconProxy);
       }
 
-      console.log(`Beacon: verifying beacon itself ${addresses.beacon}`);
-
-      const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, addresses.beacon, 'OwnershipTransferred(address,address)', etherscanApi);
-
-      //------
-      
-// Get txhash using etherscan api
-//https://api-kovan.etherscan.io/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=0xE14a4fc7b96E8a3B701fd3D821bDcE8f8c0AaeF4&topic0=0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e&apikey=MYKEY
-
-      // returns:
-     // {"status":"1","message":"OK","result":[{"address":"0xe14a4fc7b96e8a3b701fd3d821bdce8f8c0aaef4","topics":["0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e","0x00000000000000000000000065d493115f6f7a5152a3da9ca6c26a1ea0e29b85"],"data":"0x","blockNumber":"0x1e128ea","timeStamp":"0x627ac6dc","gasPrice":"0x306dc4200","gasUsed":"0x5a10b","logIndex":"0x1","transactionHash":"0x0109b0fa98ded9c63e9d38d4aa30dcb0c68073bb3288f5cb920abaed14f74ec5","transactionIndex":"0x1"}]}
-
-      /*
-        Beacon proxy: BeaconUpgraded(address)
-        Beacon: OwnershipTransferred(address,address)
-        ProxyAdmin: OwnershipTransferred(address,address)
-        TransparentUpgradeableProxy: AdminChanged(address,address)
-
-      */
-
-
-      // ----
-      const tx = await getTransactionByHash(hre.network.provider, txHash);
-      if (tx === null) {
-        // TODO
-        throw new Error("txhash not found " + txHash);
-      }
-      const txInput = tx.input;
-      console.log("TX deploy code: " + txInput);
-      
-      constructorArguments= inferConstructorArgs(txInput, UpgradeableBeacon.bytecode);
-      if (constructorArguments === undefined) {
-        // TODO
-        throw new Error("constructor args not found");
-      }
-      console.log("verifying beacon: " + addresses.beacon);
-      await verifyProxy(etherscanApi, addresses.beacon, constructorArguments, UpgradeableBeacon);
+      await verifyBeacon(hre, etherscanApi, addresses.beacon);
 
     } else {
       let artifact: ContractArtifactJson = ERC1967Proxy;
@@ -125,6 +90,23 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
         if (constructorArguments === undefined) {
           console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
           return await hardhatVerify(args.address);
+        } else {
+          // this is a transparent proxy
+          // first: verify proxy admin
+          if (addresses.admin !== undefined) {
+            // TODO check if admin is an EOA
+
+            console.log(`Verifying admin: ${addresses.admin}`);
+            await verifyProxyAdmin(hre, etherscanApi, addresses.admin);
+            // constructorArguments = await getConstructorArgs(hre, await getFactory(hre, ProxyAdmin), addresses.admin);
+            // if (constructorArguments !== undefined) {
+            //   await verifyProxy(etherscanApi, addresses.admin, constructorArguments, ProxyAdmin);
+            // } else {
+            //   // TODO
+            //   throw new Error("cannot find constructor args for ProxyAdmin");
+            // }
+          }
+          console.log(`Verifying transparent proxy: ${proxyAddress}`);
         }
       }
       return await verifyProxy(etherscanApi, proxyAddress, constructorArguments, artifact);
@@ -136,6 +118,80 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   }
 }
 
+
+async function verifyProxyAdmin(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string) {
+  console.log(`Beacon: verifying proxy admin itself ${address}`);
+
+  // TODO if address is EOA, this will fail
+  const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, address, 'OwnershipTransferred(address,address)', etherscanApi);
+
+  //------
+  // Get txhash using etherscan api
+  //https://api-kovan.etherscan.io/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=0xE14a4fc7b96E8a3B701fd3D821bDcE8f8c0AaeF4&topic0=0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e&apikey=MYKEY
+  // returns:
+  // {"status":"1","message":"OK","result":[{"address":"0xe14a4fc7b96e8a3b701fd3d821bdce8f8c0aaef4","topics":["0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e","0x00000000000000000000000065d493115f6f7a5152a3da9ca6c26a1ea0e29b85"],"data":"0x","blockNumber":"0x1e128ea","timeStamp":"0x627ac6dc","gasPrice":"0x306dc4200","gasUsed":"0x5a10b","logIndex":"0x1","transactionHash":"0x0109b0fa98ded9c63e9d38d4aa30dcb0c68073bb3288f5cb920abaed14f74ec5","transactionIndex":"0x1"}]}
+  /*
+    Beacon proxy: BeaconUpgraded(address)
+    Beacon: OwnershipTransferred(address,address)
+    ProxyAdmin: OwnershipTransferred(address,address)
+    TransparentUpgradeableProxy: AdminChanged(address,address)
+
+  */
+  // ----
+  const tx = await getTransactionByHash(hre.network.provider, txHash);
+  if (tx === null) {
+    // TODO
+    throw new Error("txhash not found " + txHash);
+  }
+  const txInput = tx.input;
+  console.log("TX deploy code: " + txInput);
+
+  const constructorArguments = inferConstructorArgs(txInput, ProxyAdmin.bytecode);
+  if (constructorArguments === undefined) {
+    // TODO
+    throw new Error("constructor args not found");
+  }
+  console.log("verifying proxy admin: " + address);
+  await verifyProxy(etherscanApi, address, constructorArguments, ProxyAdmin);
+}
+
+
+async function verifyBeacon(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string) {
+
+
+  console.log(`Beacon: verifying beacon itself ${address}`);
+
+  const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, address, 'OwnershipTransferred(address,address)', etherscanApi);
+
+  //------
+  // Get txhash using etherscan api
+  //https://api-kovan.etherscan.io/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=0xE14a4fc7b96E8a3B701fd3D821bDcE8f8c0AaeF4&topic0=0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e&apikey=MYKEY
+  // returns:
+  // {"status":"1","message":"OK","result":[{"address":"0xe14a4fc7b96e8a3b701fd3d821bdce8f8c0aaef4","topics":["0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e","0x00000000000000000000000065d493115f6f7a5152a3da9ca6c26a1ea0e29b85"],"data":"0x","blockNumber":"0x1e128ea","timeStamp":"0x627ac6dc","gasPrice":"0x306dc4200","gasUsed":"0x5a10b","logIndex":"0x1","transactionHash":"0x0109b0fa98ded9c63e9d38d4aa30dcb0c68073bb3288f5cb920abaed14f74ec5","transactionIndex":"0x1"}]}
+  /*
+    Beacon proxy: BeaconUpgraded(address)
+    Beacon: OwnershipTransferred(address,address)
+    ProxyAdmin: OwnershipTransferred(address,address)
+    TransparentUpgradeableProxy: AdminChanged(address,address)
+
+  */
+  // ----
+  const tx = await getTransactionByHash(hre.network.provider, txHash);
+  if (tx === null) {
+    // TODO
+    throw new Error("txhash not found " + txHash);
+  }
+  const txInput = tx.input;
+  console.log("TX deploy code: " + txInput);
+
+  const constructorArguments = inferConstructorArgs(txInput, UpgradeableBeacon.bytecode);
+  if (constructorArguments === undefined) {
+    // TODO
+    throw new Error("constructor args not found");
+  }
+  console.log("verifying beacon: " + address);
+  await verifyProxy(etherscanApi, address, constructorArguments, UpgradeableBeacon);
+}
 
 export async function callEtherscanApi(
   etherscanApi: EtherscanAPI,
@@ -225,6 +281,7 @@ export async function getEtherscanTxCreationHash(
 
   const responseBody = await callEtherscanApi(etherscanApi, params);
 
+  // TODO if call failed e.g. trying to get txhash from EOA, result[0] will be undefined
   const txHash = responseBody.result[0].transactionHash;
   if (txHash !== undefined) {
     console.log("Found tx hash! " + txHash);
@@ -346,6 +403,12 @@ async function getRelatedAddresses(provider: EthereumProvider, inputAddress: str
   let addresses: Addresses = {};
   try {
     addresses.impl = await getImplementationAddress(provider, inputAddress);
+
+    const admin = await getAdminAddress(provider, inputAddress);
+    console.log("Admin " + admin + " is zero? " + isZero(admin));
+    if (!isZero(admin)) {
+      addresses.admin = admin;
+    }
   } catch (e: any) {
     if (e instanceof EIP1967ImplementationNotFound) {
       try {
@@ -368,10 +431,14 @@ async function getRelatedAddresses(provider: EthereumProvider, inputAddress: str
 interface Addresses {
   impl?: string;
   beacon?: string;
-  admin?: string; // TODO
+  admin?: string;
 }
 
 interface EtherscanAPI {
   key: string;
   endpoints: any;
+}
+
+function isZero(admin: string) {
+  return new BN(admin, 'hex').isZero();
 }

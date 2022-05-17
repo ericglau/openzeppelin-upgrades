@@ -30,6 +30,18 @@ async function getTransactionHashFromManifest(provider: EthereumProvider, proxyA
   }
 }
 
+  /*
+    Beacon proxy: BeaconUpgraded(address)
+    Beacon: OwnershipTransferred(address,address)
+    ProxyAdmin: OwnershipTransferred(address,address)
+    TransparentUpgradeableProxy: AdminChanged(address,address) NOTE: also has Upgraded, 
+    ERC1967Proxy: Upgraded(address)  
+
+
+    if has AdminChanged, then transparent
+    else if has Upgraded, then uups
+  */
+
 /**
  * Verifies the contract at an address. If the address is a proxy, verifies the proxy and associated proxy contracts, 
  * as well as the implementation. If the address is not a proxy, calls hardhat-etherscan's verify function directly.
@@ -67,49 +79,48 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
 
     if (addresses.beacon !== undefined) {
       // it is a beacon proxy
-      console.log(`Beacon: verifying beacon proxy ${proxyAddress}`);
+      console.log(`Verifying beacon proxy ${proxyAddress}`);
+      await verifyContractWithEvent(hre, etherscanApi, proxyAddress, BeaconProxy, 'BeaconUpgraded(address)');
 
-      let constructorArguments = await getConstructorArgs(hre, await getFactory(hre, BeaconProxy), proxyAddress);
-      if (constructorArguments === undefined) {
-        console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
-        await hardhatVerify(args.address);
-      } else {
-        await verifyProxy(etherscanApi, proxyAddress, constructorArguments, BeaconProxy);
-      }
-
-      await verifyBeacon(hre, etherscanApi, addresses.beacon);
+      console.log(`Beacon: verifying beacon ${addresses.beacon}`);
+      await verifyContractWithEvent(hre, etherscanApi, addresses.beacon, UpgradeableBeacon, 'OwnershipTransferred(address,address)');
 
     } else {
-      let artifact: ContractArtifactJson = ERC1967Proxy;
-      let constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
-      console.log(`UUPS: got constructor args ${constructorArguments}`);
-      if (constructorArguments === undefined) {
-        artifact = TransparentUpgradeableProxy;
-        constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
-        console.log(`Transparent: got constructor args ${constructorArguments}`);
-        if (constructorArguments === undefined) {
-          console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
-          return await hardhatVerify(args.address);
-        } else {
-          // this is a transparent proxy
-          // first: verify proxy admin
-          if (addresses.admin !== undefined) {
-            // TODO check if admin is an EOA
-
-            console.log(`Verifying admin: ${addresses.admin}`);
-            await verifyProxyAdmin(hre, etherscanApi, addresses.admin);
-            // constructorArguments = await getConstructorArgs(hre, await getFactory(hre, ProxyAdmin), addresses.admin);
-            // if (constructorArguments !== undefined) {
-            //   await verifyProxy(etherscanApi, addresses.admin, constructorArguments, ProxyAdmin);
-            // } else {
-            //   // TODO
-            //   throw new Error("cannot find constructor args for ProxyAdmin");
-            // }
-          }
-          console.log(`Verifying transparent proxy: ${proxyAddress}`);
+      console.log(`Checking if Transparent ${proxyAddress}`);
+      try {
+        await verifyContractWithEvent(hre, etherscanApi, proxyAddress, TransparentUpgradeableProxy, 'AdminChanged(address,address)');
+      } catch (e: any) {
+        if (e instanceof EventNotFound) {
+          console.log(`Checking if UUPS ${proxyAddress}`);
+          await verifyContractWithEvent(hre, etherscanApi, proxyAddress, ERC1967Proxy, 'Upgraded(address)');
         }
       }
-      return await verifyProxy(etherscanApi, proxyAddress, constructorArguments, artifact);
+
+      if (addresses.admin !== undefined) {
+        // TODO check if admin is an EOA
+
+        console.log(`Verifying admin: ${addresses.admin}`);
+        await verifyContractWithEvent(hre, etherscanApi, addresses.admin, ProxyAdmin, 'OwnershipTransferred(address,address)');
+      }
+
+      // let artifact: ContractArtifactJson = ERC1967Proxy;
+      // let constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
+      // console.log(`UUPS: got constructor args ${constructorArguments}`);
+      // if (constructorArguments === undefined) {
+      //   artifact = TransparentUpgradeableProxy;
+      //   constructorArguments = await getConstructorArgs(hre, await getFactory(hre, artifact), proxyAddress);
+      //   console.log(`Transparent: got constructor args ${constructorArguments}`);
+      //   if (constructorArguments === undefined) {
+      //     console.log("The proxy contract bytecode differs than the version defined in the OpenZeppelin Upgrades Plugin. Verifying directly instead...");
+      //     return await hardhatVerify(args.address);
+      //   } else {
+      //     // this is a transparent proxy
+      //     // first: verify proxy admin
+
+      //     console.log(`Verifying transparent proxy: ${proxyAddress}`);
+      //   }
+      // }
+      // return await verifyProxy(etherscanApi, proxyAddress, constructorArguments, artifact);
     }
   }
 
@@ -118,26 +129,18 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   }
 }
 
+class EventNotFound extends UpgradesError {}
 
-async function verifyProxyAdmin(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string) {
-  console.log(`Beacon: verifying proxy admin itself ${address}`);
+async function verifyContractWithEvent(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string, contractJson: ContractArtifactJson, creationEvent: string) {
+  console.log(`Verifying contract ${contractJson.contractName} at ${address}`);
 
   // TODO if address is EOA, this will fail
-  const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, address, 'OwnershipTransferred(address,address)', etherscanApi);
+  const txHash = await getEtherscanTxCreationHash(address, creationEvent, etherscanApi);
+  if (txHash === undefined) {
+    // TODO see how to handle this
+    throw new EventNotFound("txhash not found " + txHash);
+  }
 
-  //------
-  // Get txhash using etherscan api
-  //https://api-kovan.etherscan.io/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=0xE14a4fc7b96E8a3B701fd3D821bDcE8f8c0AaeF4&topic0=0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e&apikey=MYKEY
-  // returns:
-  // {"status":"1","message":"OK","result":[{"address":"0xe14a4fc7b96e8a3b701fd3d821bdce8f8c0aaef4","topics":["0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e","0x00000000000000000000000065d493115f6f7a5152a3da9ca6c26a1ea0e29b85"],"data":"0x","blockNumber":"0x1e128ea","timeStamp":"0x627ac6dc","gasPrice":"0x306dc4200","gasUsed":"0x5a10b","logIndex":"0x1","transactionHash":"0x0109b0fa98ded9c63e9d38d4aa30dcb0c68073bb3288f5cb920abaed14f74ec5","transactionIndex":"0x1"}]}
-  /*
-    Beacon proxy: BeaconUpgraded(address)
-    Beacon: OwnershipTransferred(address,address)
-    ProxyAdmin: OwnershipTransferred(address,address)
-    TransparentUpgradeableProxy: AdminChanged(address,address)
-
-  */
-  // ----
   const tx = await getTransactionByHash(hre.network.provider, txHash);
   if (tx === null) {
     // TODO
@@ -146,51 +149,13 @@ async function verifyProxyAdmin(hre: HardhatRuntimeEnvironment, etherscanApi: Et
   const txInput = tx.input;
   console.log("TX deploy code: " + txInput);
 
-  const constructorArguments = inferConstructorArgs(txInput, ProxyAdmin.bytecode);
+  const constructorArguments = inferConstructorArgs(txInput, contractJson.bytecode);
   if (constructorArguments === undefined) {
     // TODO
     throw new Error("constructor args not found");
   }
-  console.log("verifying proxy admin: " + address);
-  await verifyProxy(etherscanApi, address, constructorArguments, ProxyAdmin);
-}
-
-
-async function verifyBeacon(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPI, address: string) {
-
-
-  console.log(`Beacon: verifying beacon itself ${address}`);
-
-  const txHash = await getEtherscanTxCreationHash(etherscanApi.endpoints.urls.apiURL, address, 'OwnershipTransferred(address,address)', etherscanApi);
-
-  //------
-  // Get txhash using etherscan api
-  //https://api-kovan.etherscan.io/api?module=logs&action=getLogs&fromBlock=0&toBlock=latest&address=0xE14a4fc7b96E8a3B701fd3D821bDcE8f8c0AaeF4&topic0=0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e&apikey=MYKEY
-  // returns:
-  // {"status":"1","message":"OK","result":[{"address":"0xe14a4fc7b96e8a3b701fd3d821bdce8f8c0aaef4","topics":["0x1cf3b03a6cf19fa2baba4df148e9dcabedea7f8a5c07840e207e5c089be95d3e","0x00000000000000000000000065d493115f6f7a5152a3da9ca6c26a1ea0e29b85"],"data":"0x","blockNumber":"0x1e128ea","timeStamp":"0x627ac6dc","gasPrice":"0x306dc4200","gasUsed":"0x5a10b","logIndex":"0x1","transactionHash":"0x0109b0fa98ded9c63e9d38d4aa30dcb0c68073bb3288f5cb920abaed14f74ec5","transactionIndex":"0x1"}]}
-  /*
-    Beacon proxy: BeaconUpgraded(address)
-    Beacon: OwnershipTransferred(address,address)
-    ProxyAdmin: OwnershipTransferred(address,address)
-    TransparentUpgradeableProxy: AdminChanged(address,address)
-
-  */
-  // ----
-  const tx = await getTransactionByHash(hre.network.provider, txHash);
-  if (tx === null) {
-    // TODO
-    throw new Error("txhash not found " + txHash);
-  }
-  const txInput = tx.input;
-  console.log("TX deploy code: " + txInput);
-
-  const constructorArguments = inferConstructorArgs(txInput, UpgradeableBeacon.bytecode);
-  if (constructorArguments === undefined) {
-    // TODO
-    throw new Error("constructor args not found");
-  }
-  console.log("verifying beacon: " + address);
-  await verifyProxy(etherscanApi, address, constructorArguments, UpgradeableBeacon);
+  console.log("verifying contract: " + address);
+  await verifyProxy(etherscanApi, address, constructorArguments, contractJson);
 }
 
 export async function callEtherscanApi(
@@ -264,7 +229,6 @@ interface EtherscanResponse {
 }
 
 export async function getEtherscanTxCreationHash(
-  url: string,
   address: string,
   topic: string,
   etherscanApi : EtherscanAPI
@@ -280,6 +244,11 @@ export async function getEtherscanTxCreationHash(
   }
 
   const responseBody = await callEtherscanApi(etherscanApi, params);
+
+  if (responseBody.result === undefined || responseBody.result[0] === undefined) {
+    console.log("getlogs API returned with no result")
+    return undefined;
+  }
 
   // TODO if call failed e.g. trying to get txhash from EOA, result[0] will be undefined
   const txHash = responseBody.result[0].transactionHash;

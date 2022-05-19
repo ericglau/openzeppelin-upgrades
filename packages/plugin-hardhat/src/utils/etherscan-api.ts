@@ -29,18 +29,17 @@ export async function callEtherscanApi(
     body: parameters.toString(),
   };
 
-  let response: Dispatcher.ResponseData;
-  try {
-    response = await request(etherscanApi.endpoints.urls.apiURL, requestDetails);
-    const responseBody = await response.body.json();
-    debug("Etherscan response", JSON.stringify(responseBody));
+  const response = await request(etherscanApi.endpoints.urls.apiURL, requestDetails);
 
-    return responseBody;
-  } catch (error: any) {
-    throw new UpgradesError(
-      `Failed to get Etherscan API response: ${error}`
-    );
+  if (!(response.statusCode >= 200 && response.statusCode <= 299)) {
+    const responseBodyText = await response.body.text();
+    throw new UpgradesError(`Etherscan API call failed with status ${response.statusCode}, response: ${responseBodyText}`);
   }
+
+  const responseBodyJson = await response.body.json();
+  debug("Etherscan response", JSON.stringify(responseBodyJson));
+
+  return responseBodyJson;
 }
 
 /**

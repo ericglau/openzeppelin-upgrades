@@ -307,7 +307,7 @@ export async function getContractCreationTxHash(
       debug(`no result found for event topic ${topic} at address ${address}`);
       return undefined;
     }
-    return result[0].transactionHash;
+    return result[0].transactionHash; // get the txhash from the first instance of this event
   } else {
     throw new UpgradesError(`Failed to get logs for contract at address ${address}.`,
       () => `Etherscan returned with reason: ${responseBody.result}`);

@@ -71,9 +71,9 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   const proxyAddress = args.address;
 
   if (await isTransparentOrUUPSProxy(provider, proxyAddress)) {
-    await fullVerifyTransparentOrUUPS(provider, proxyAddress, hardhatVerify, hre);
+    await fullVerifyTransparentOrUUPS(hre, provider, proxyAddress, hardhatVerify);
   } else if (await isBeaconProxy(provider, proxyAddress)) {
-    await fullVerifyBeaconProxy(provider, proxyAddress, hardhatVerify, hre);
+    await fullVerifyBeaconProxy(hre, provider, proxyAddress, hardhatVerify);
   } else {
     // Doesn't look like a proxy, so just verify directly
     return hardhatVerify(proxyAddress);
@@ -99,12 +99,12 @@ class EventNotFound extends UpgradesError {}
  * Note: this function does not use the admin slot to determine whether the proxy is transparent or UUPS, but will always verify 
  * the admin address as long as the admin storage slot has an address.
  * 
+ * @param hre
  * @param provider The Ethereum provider
  * @param proxyAddress The transparent or UUPS proxy address
  * @param hardhatVerify A function that invokes the hardhat-etherscan plugin's verify command
- * @param hre
  */
-async function fullVerifyTransparentOrUUPS(provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>, hre: HardhatRuntimeEnvironment) {
+async function fullVerifyTransparentOrUUPS(hre: HardhatRuntimeEnvironment, provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>) {
   const implAddress = await getImplementationAddress(provider, proxyAddress);
   await verifyImplementation(hardhatVerify, implAddress);
 
@@ -139,12 +139,12 @@ async function fullVerifyTransparentOrUUPS(provider: EthereumProvider, proxyAddr
  * Fully verifies all contracts related to the given beacon proxy address: implementation, beacon, and beacon proxy.
  * Also links the proxy to the implementation ABI on Etherscan.
  * 
+ * @param hre
  * @param provider The Ethereum provider
  * @param proxyAddress The beacon proxy address
  * @param hardhatVerify A function that invokes the hardhat-etherscan plugin's verify command
- * @param hre
  */
-async function fullVerifyBeaconProxy(provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>, hre: HardhatRuntimeEnvironment) {
+async function fullVerifyBeaconProxy(hre: HardhatRuntimeEnvironment, provider: EthereumProvider, proxyAddress: any, hardhatVerify: (address: string) => Promise<any>) {
   const beaconAddress = await getBeaconAddress(provider, proxyAddress);
   
   const implAddress = await getImplementationAddressFromBeacon(provider, beaconAddress);
@@ -191,12 +191,10 @@ async function verifyImplementation(hardhatVerify: (address: string) => Promise<
  * Verifies a contract by looking up an event that should have been logged during contract construction,
  * finds the txhash for that, and infers the constructor args to use for verification.
  * 
- * Throw
- * 
  * @param hre 
- * @param etherscanApi 
- * @param address 
- * @param contractEventMapping 
+ * @param etherscanApi The Etherscan API config
+ * @param address The contract address to verify
+ * @param contractEventMapping The contract artifact to use for verification along with the creation event expected in the logs.
  * @throws {EventNotFound} if the event was not found in the contract's logs according to Etherscan.
  */
 async function verifyContractWithCreationEvent(hre: HardhatRuntimeEnvironment, etherscanApi: EtherscanAPIConfig, address: string, contractEventMapping: ContractEventMapping) {
@@ -253,23 +251,17 @@ async function verifyContractWithConstructorArgs(etherscanApi: EtherscanAPIConfi
       guid: response.message,
     });
   
-    try {
-      const verificationStatus = await getVerificationStatus(
-        etherscanApi.endpoints.urls.apiURL,
-        pollRequest
-      );
-  
-      if (verificationStatus.isVerificationFailure() ||
-        verificationStatus.isVerificationSuccess()) {
-        console.log(`Verification status for ${address}: ${verificationStatus.message}`);
-      }
-    } catch (e: any) {
-      if (e.message.toLowerCase().includes('already verified')) {
-        console.log(`Contract at ${address} already verified.`);
-      } else {
-        console.error(`Failed to verify contract. ${e}`);
-        // TODO record error and fail at the end
-      }
+    const verificationStatus = await getVerificationStatus(
+      etherscanApi.endpoints.urls.apiURL,
+      pollRequest
+    );
+
+    if (verificationStatus.isVerificationSuccess()) {
+      console.log(`Contract ${address} verified!`);
+      // TODO print contract type
+    } else {
+      // TODO record failure at the end
+      console.error(`Verification failed for address ${address}: ${verificationStatus.message}`);
     }
   } catch (e: any) {
     if (e.message.toLowerCase().includes('already verified')) {
@@ -279,7 +271,6 @@ async function verifyContractWithConstructorArgs(etherscanApi: EtherscanAPIConfi
       // TODO record error and fail at the end
     }
   }
-
 }
 
 /**
@@ -291,6 +282,7 @@ async function verifyContractWithConstructorArgs(etherscanApi: EtherscanAPIConfi
  * @param etherscanApi The Etherscan API config
  * @returns The txhash corresponding to the logged event, or undefined if not found or if
  *   the address is not a contract.
+ * @throws {UpgradesError} if the Etherscan API returned with not OK status
  */
 export async function getContractCreationTxHash(
   address: string,
@@ -307,14 +299,19 @@ export async function getContractCreationTxHash(
     topic0: '0x' + keccak256(Buffer.from(topic)).toString('hex'),
   }
 
-  const result = (await callEtherscanApi(etherscanApi, params)).result;
+  const responseBody = await callEtherscanApi(etherscanApi, params);
 
-  if (result === undefined || result[0] === undefined) {
-    debug(`no result found for event topic ${topic} at address ${address}`);
-    return undefined;
+  if (responseBody.status === '1') { // OK
+    const result = responseBody.result;
+    if (result === undefined || result[0] === undefined) {
+      debug(`no result found for event topic ${topic} at address ${address}`);
+      return undefined;
+    }
+    return result[0].transactionHash;
+  } else {
+    throw new UpgradesError(`Failed to get logs for contract at address ${address}.`,
+      () => `Etherscan returned with reason: ${responseBody.result}`);
   }
-
-  return result[0].transactionHash;
 }
 
 /**
@@ -330,7 +327,12 @@ export async function linkProxyWithImplementationAbi(etherscanApi: EtherscanAPIC
     action: 'verifyproxycontract',
     address: proxyAddress,
   }
-  await callEtherscanApi(etherscanApi, params);
+  const responseBody = await callEtherscanApi(etherscanApi, params);
+
+  if (responseBody.status !== '1') { // not OK
+    throw new UpgradesError(`Failed to link proxy ${proxyAddress} with its implementation.`,
+    () => `Etherscan returned with reason: ${responseBody.result}`);
+  }
 }
 
 /**

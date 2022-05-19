@@ -329,7 +329,9 @@ export async function linkProxyWithImplementationAbi(etherscanApi: EtherscanAPIC
   }
   const responseBody = await callEtherscanApi(etherscanApi, params);
 
-  if (responseBody.status !== '1') { // not OK
+  if (responseBody.status === '1') { // OK 
+    console.log("Proxy linked to implementation.");
+  } else {
     throw new UpgradesError(`Failed to link proxy ${proxyAddress} with its implementation.`,
     () => `Etherscan returned with reason: ${responseBody.result}`);
   }

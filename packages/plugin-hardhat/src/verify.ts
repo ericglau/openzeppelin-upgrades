@@ -119,7 +119,13 @@ async function fullVerifyTransparentOrUUPS(hre: HardhatRuntimeEnvironment, provi
     const adminAddress = await getAdminAddress(provider, proxyAddress);
     if (!isEmptySlot(adminAddress)) {
       console.log(`Verifying proxy admin: ${adminAddress}`);
-      await verifyContractWithCreationEvent(hre, etherscanApi, adminAddress, contractEventsMap.proxyAdmin);
+      try {
+        await verifyContractWithCreationEvent(hre, etherscanApi, adminAddress, contractEventsMap.proxyAdmin);
+      } catch (e: any) {
+        if (e instanceof EventNotFound) {
+          console.log('Verification skipped for proxy admin - the admin address does not appear to contain a ProxyAdmin contract.');
+        }
+      }
     }
   }
 
@@ -303,14 +309,13 @@ export async function getContractCreationTxHash(
 
   if (responseBody.status === '1') { // OK
     const result = responseBody.result;
-    if (result === undefined || result[0] === undefined) {
-      debug(`no result found for event topic ${topic} at address ${address}`);
-      return undefined;
-    }
     return result[0].transactionHash; // get the txhash from the first instance of this event
+  } else if (responseBody.message === 'No records found') {
+    debug(`no result found for event topic ${topic} at address ${address}`);
+    return undefined;
   } else {
     throw new UpgradesError(`Failed to get logs for contract at address ${address}.`,
-      () => `Etherscan returned with reason: ${responseBody.result}`);
+      () => `Etherscan returned with message: ${responseBody.message}, reason: ${responseBody.result}`);
   }
 }
 

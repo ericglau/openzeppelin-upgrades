@@ -11,6 +11,7 @@ import debug from './debug';
 
 /**
  * Call the configured Etherscan API with the given parameters.
+ * 
  * @param etherscanApi The Etherscan API config
  * @param params The API parameters to call with
  * @returns The Etherscan API response

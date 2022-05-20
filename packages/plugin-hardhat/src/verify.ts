@@ -57,13 +57,7 @@ const contractEventsMap: ContractEventsMap = {
   proxyAdmin: { artifact: ProxyAdmin, event: 'OwnershipTransferred(address,address)'},
 }
 
-let errors: VerificationError[] = [];
-
-interface VerificationError {
-  address: string;
-  contractType: string;
-  details: string;
-}
+let errors: string[] = [];
 
 /**
  * Overrides hardhat-etherscan's verify function to fully verify a proxy.
@@ -115,17 +109,15 @@ function getVerificationErrors() {
   let str = 'Verification completed with the following errors.';
   for (let i = 0; i < errors.length; i++) {
     const error = errors[i];
-    str += `\n\nError ${i+1}: Failed to verify ${error.contractType} contract at ${error.address}: ${error.details}`;
+    str += `\n\nError ${i+1}: ${error}`;
   }
   return str;
 }
 
-function pushVerificationError(address: string, contractType: string, details: string) {
-  errors.push({
-    address,
-    contractType,
-    details
-  });
+function recordVerificationError(address: string, contractType: string, details: string) {
+  const message = `Failed to verify ${contractType} contract at ${address}: ${details}`;
+  console.error(message);
+  errors.push(message);
 }
 
 /**
@@ -231,7 +223,7 @@ async function verifyImplementation(hardhatVerify: (address: string) => Promise<
     if (e.message.toLowerCase().includes('already verified')) {
       console.log(`Implementation ${implAddress} already verified.`);
     } else {
-      pushVerificationError(implAddress, 'implementation', e.message);
+      recordVerificationError(implAddress, 'implementation', e.message);
     }
   }
 }
@@ -264,12 +256,11 @@ async function verifyContractWithCreationEvent(hre: HardhatRuntimeEnvironment, e
   if (constructorArguments === undefined) {
     // The creation bytecode for the address does not match with the expected artifact.
     // This may be because a different version of the contract was deployed compared to what is in the plugins.
-    pushVerificationError(
+    recordVerificationError(
       address, 
       contractEventMapping.artifact.contractName, 
       `Bytecode does not match with the current version of ${contractEventMapping.artifact.contractName} in the Hardhat Upgrades plugin.`
     );
-    // TODO record the error and tell the user to verify it manually (fail at the end)
   } else {
     await verifyContractWithConstructorArgs(etherscanApi, address, contractEventMapping.artifact, constructorArguments);
   }
@@ -312,13 +303,13 @@ async function verifyContractWithConstructorArgs(etherscanApi: EtherscanAPIConfi
     if (verificationStatus.isVerificationSuccess()) {
       console.log(`Contract ${artifact.contractName} at ${address} verified!`);
     } else {
-      pushVerificationError(address, artifact.contractName, verificationStatus.message);
+      recordVerificationError(address, artifact.contractName, verificationStatus.message);
     }
   } catch (e: any) {
     if (e.message.toLowerCase().includes('already verified')) {
       console.log(`Contract at ${address} already verified.`);
     } else {
-      pushVerificationError(address, artifact.contractName, e.message);
+      recordVerificationError(address, artifact.contractName, e.message);
     }
   }
 }

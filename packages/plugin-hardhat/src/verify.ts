@@ -105,6 +105,9 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
   }
 }
 
+/**
+ * @returns Formatted summary of all of the verification errors that have been recorded.
+ */
 function getVerificationErrors() {
   let str = 'Verification completed with the following errors.';
   for (let i = 0; i < errors.length; i++) {
@@ -114,6 +117,13 @@ function getVerificationErrors() {
   return str;
 }
 
+/**
+ * Log an error about the given contract's verification attempt, and save it so it can be summarized at the end.
+ * 
+ * @param address The address that failed to verify
+ * @param contractType The type or name of the contract
+ * @param details The error details
+ */
 function recordVerificationError(address: string, contractType: string, details: string) {
   const message = `Failed to verify ${contractType} contract at ${address}: ${details}`;
   console.error(message);

@@ -16,7 +16,7 @@ import type { UpgradeBeaconFunction } from './upgrade-beacon';
 import type { ForceImportFunction } from './force-import';
 import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInstanceFunction } from './admin';
 
-import { verify } from './verify';
+import { verify } from './verify-proxy';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;

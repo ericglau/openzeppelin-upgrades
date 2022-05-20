@@ -57,7 +57,7 @@ const contractEventsMap: ContractEventsMap = {
   proxyAdmin: { artifact: ProxyAdmin, event: 'OwnershipTransferred(address,address)'},
 }
 
-let errors: VerificationError[];
+let errors: VerificationError[] = [];
 
 interface VerificationError {
   address: string;
@@ -79,7 +79,7 @@ interface VerificationError {
 export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper: RunSuperFunction<any>) {
 
   if (!runSuper.isDefined) {
-    throw new UpgradesError("The hardhat-etherscan plugin must be defined before the hardhat-upgrades plugin",
+    throw new UpgradesError("The hardhat-etherscan plugin must be defined before the hardhat-upgrades plugin.",
       () => 'Define the plugins in the following order in hardhat.config.js:\n' +
        '  require("@nomiclabs/hardhat-etherscan");\n' +
        '  require("@openzeppelin/hardhat-upgrades");\n' + 
@@ -104,16 +104,19 @@ export async function verify(args: any, hre: HardhatRuntimeEnvironment, runSuper
     throw new UpgradesError(getVerificationErrors());
   }
 
+  console.info("\nProxy fully verified.");
+
   async function hardhatVerify(address: string) {
     return await runSuper({ ...args, address });
   }
 }
 
 function getVerificationErrors() {
-  let str = 'Verification completed with the following errors:';
-  errors.forEach(error => {
-    str += `\n  ${error.contractType} at ${error.address}: ${error.details}`;
-  });
+  let str = 'Verification completed with the following errors.';
+  for (let i = 0; i < errors.length; i++) {
+    const error = errors[i];
+    str += `\n\nError ${i+1}: Failed to verify ${error.contractType} contract at ${error.address}: ${error.details}`;
+  }
   return str;
 }
 

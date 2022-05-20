@@ -311,7 +311,7 @@ async function verifyContractWithConstructorArgs(etherscanApi: EtherscanAPIConfi
     );
 
     if (verificationStatus.isVerificationSuccess()) {
-      console.log(`Contract ${artifact.contractName} at ${address} verified!`);
+      console.log(`Successfully verified contract ${artifact.contractName} at ${address}.`);
     } else {
       recordVerificationError(address, artifact.contractName, verificationStatus.message);
     }
@@ -380,7 +380,7 @@ export async function linkProxyWithImplementationAbi(etherscanApi: EtherscanAPIC
   const responseBody = await callEtherscanApi(etherscanApi, params);
 
   if (responseBody.status === '1') { // OK 
-    console.log("Proxy linked to implementation.");
+    console.log("Successfully linked proxy to implementation.");
   } else {
     throw new UpgradesError(`Failed to link proxy ${proxyAddress} with its implementation.`,
     () => `Etherscan returned with reason: ${responseBody.result}`);

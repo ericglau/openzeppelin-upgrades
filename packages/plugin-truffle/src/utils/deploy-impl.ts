@@ -15,7 +15,6 @@ import {
   ValidationRunData,
   Version,
   processProxyKind,
-  Deployment,
 } from '@openzeppelin/upgrades-core';
 
 import { deploy } from './deploy';

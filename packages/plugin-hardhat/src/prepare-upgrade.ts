@@ -16,7 +16,7 @@ export type PrepareUpgradeFunction = (
   opts?: Options,
 ) => Promise<PrepareUpgradeResponse>;
 
-export type PrepareUpgradeResponse = string | { txResponse: ethers.providers.TransactionResponse, address: string };
+export type PrepareUpgradeResponse = string | ethers.providers.TransactionResponse;
 
 export function makePrepareUpgrade(hre: HardhatRuntimeEnvironment): PrepareUpgradeFunction {
   return async function prepareUpgrade(proxyOrBeacon, ImplFactory, opts: Options = {}) {
@@ -37,7 +37,7 @@ export function makePrepareUpgrade(hre: HardhatRuntimeEnvironment): PrepareUpgra
     if (typeof deployedImpl.impl === 'string') {
       return deployedImpl.impl;
     } else {
-      return { address: deployedImpl.impl.address, txResponse: (deployedImpl.impl as any).deployTransaction };
+      return (deployedImpl.impl as any).deployTransaction;
     }
   };
 }

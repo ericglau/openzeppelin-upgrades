@@ -10,7 +10,7 @@ import {
 } from '@openzeppelin/upgrades-core';
 import { AdminClient, ProposalResponse } from 'defender-admin-client';
 import type { ContractFactory } from 'ethers';
-import { FormatTypes } from 'ethers/lib/utils';
+import { FormatTypes, getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { fromChainId } from 'defender-base-client';
 
@@ -26,7 +26,6 @@ export interface ProposalOptions extends ValidationOptions {
   proxyAdmin?: string;
   multisig?: string;
   multisigType?: 'Gnosis Safe' | 'Gnosis Multisig' | 'EOA';
-  getTxResponse?: boolean;
 }
 
 export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgradeFunction {
@@ -58,33 +57,36 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
       // try getting the implementation address so that it will give an error if it's not a transparent/uups proxy
       await getImplementationAddress(hre.network.provider, proxyAddress);
     }
-
-    const prepareUpgradeResponse = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, moreOpts);
-
-    console.log('Defender propose upgrade got : ' + JSON.stringify(prepareUpgradeResponse));
-
-    const { newImplementation, txResponse } = typeof prepareUpgradeResponse === 'string' ? 
-      { newImplementation: prepareUpgradeResponse, txResponse: undefined } :
-      { newImplementation: prepareUpgradeResponse.address, txResponse: prepareUpgradeResponse.txResponse };
-    
+  
     const contract = { address: proxyAddress, network, abi: ImplFactory.interface.format(FormatTypes.json) as string };
 
-    const proposeUpgradeResponse = 
-      {
-        ...await client.proposeUpgrade(
-          {
-            newImplementation,
-            title,
-            description,
-            proxyAdmin,
-            via: multisig,
-            viaType: multisigType,
-          },
-          contract,
-        ),
-        txResponse
-      };
+    const prepareUpgradeResult = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, { getTxResponse: true, ...moreOpts });
+    console.log('Defender propose upgrade result : ' + prepareUpgradeResult);
+    console.log('Defender propose upgrade as JSON : ' + JSON.stringify(prepareUpgradeResult, null, 2));
 
-    return proposeUpgradeResponse;
+    if (typeof prepareUpgradeResult === 'string') {
+      console.log('returning from string');
+      return clientProposeUpgrade(prepareUpgradeResult);      
+    } else {
+      console.log('returning from txresponse');
+      return {
+        ...await clientProposeUpgrade(getContractAddress(prepareUpgradeResult)),
+        prepareUpgradeResult
+      }
+    }
+
+    async function clientProposeUpgrade(newImplementation: string) {
+      return client.proposeUpgrade(
+        {
+          newImplementation,
+          title,
+          description,
+          proxyAdmin,
+          via: multisig,
+          viaType: multisigType,
+        },
+        contract
+      );
+    }
   };
 }

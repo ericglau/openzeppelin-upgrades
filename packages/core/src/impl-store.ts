@@ -76,7 +76,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
 
     await waitAndValidateDeployment(provider, deployment, lens.type, opts);
 
-    if (opts !== undefined && opts.getTxResponse) {
+    if (opts !== undefined && opts.getTxResponse && deployment.deployTransaction !== undefined) {
       return deployment;
     } else {
       return deployment.address;

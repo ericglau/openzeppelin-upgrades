@@ -1,8 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.15.0 (2022-05-31)
 
 - Support `unsafeSkipStorageCheck` option in `ValidationOptions`. ([#566](https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/566))
+- Support verifying a proxy on Etherscan using Hardhat. ([#579](https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/579))
 
 ## 1.14.2 (2022-04-18)
 

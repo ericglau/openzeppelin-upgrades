@@ -33,7 +33,7 @@ export type FetchOrDeployResult = string | FetchOrDeployResponse;
  * @param deploy the deploy function
  * @param opts options containing the timeout and pollingInterval parameters. If undefined, assumes the timeout is not configurable and will not mention those parameters in the error message for TransactionMinedTimeout.
  * @param merge if true, adds a deployment to existing deployment by merging their addresses. Defaults to false.
- * @returns the deployment address
+ * @returns the deployment
  * @throws {InvalidDeployment} if the deployment is invalid
  * @throws {TransactionMinedTimeout} if the transaction was not confirmed within the timeout period
  */
@@ -43,7 +43,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
   deploy: () => Promise<T>,
   opts?: DeployOpts,
   merge?: boolean,
-): Promise<string | Deployment> {
+): Promise<Deployment> {
   const manifest = await Manifest.forNetwork(provider);
 
   try {
@@ -76,11 +76,7 @@ async function fetchOrDeployGeneric<T extends Deployment>(
 
     await waitAndValidateDeployment(provider, deployment, lens.type, opts);
 
-    if (opts !== undefined && opts.getTxResponse && deployment.deployTransaction !== undefined) {
-      return deployment;
-    } else {
-      return deployment.address;
-    }
+    return deployment;
   } catch (e) {
     // If we run into a deployment error, we remove it from the manifest.
     if (e instanceof InvalidDeployment) {
@@ -115,7 +111,17 @@ export async function fetchOrDeploy(
   deploy: () => Promise<ImplDeployment>,
   opts?: DeployOpts,
   merge?: boolean,
-): Promise<string | Deployment> {
+): Promise<string> {
+  return (await fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, merge)).address;
+}
+
+export async function fetchOrDeployGetDeployment(
+  version: Version,
+  provider: EthereumProvider,
+  deploy: () => Promise<ImplDeployment>,
+  opts?: DeployOpts,
+  merge?: boolean,
+): Promise<Deployment> {
   return fetchOrDeployGeneric(implLens(version.linkedWithoutMetadata), provider, deploy, opts, merge);
 }
 
@@ -156,8 +162,8 @@ export async function fetchOrDeployAdmin(
   provider: EthereumProvider,
   deploy: () => Promise<Deployment>,
   opts?: DeployOpts,
-): Promise<string | Deployment> {
-  return fetchOrDeployGeneric(adminLens, provider, deploy, opts);
+): Promise<string> {
+  return (await fetchOrDeployGeneric(adminLens, provider, deploy, opts)).address;
 }
 
 const adminLens = lens('proxy admin', 'proxy admin', data => ({

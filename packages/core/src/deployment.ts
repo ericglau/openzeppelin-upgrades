@@ -20,7 +20,11 @@ const sleep = promisify(setTimeout);
 export interface Deployment {
   address: string;
   txHash?: string;
-  deployTransaction?: any; // TODO define a type for this
+
+  /**
+   * The ethers transaction response if a transaction was newly deployed. Only applicable for Hardhat.
+   */
+  deployTransaction?: any;
 }
 
 export interface DeployOpts {
@@ -33,9 +37,6 @@ export interface DeployOpts {
    * Polling interval in milliseconds between checks for the transaction confirmation when deploying an implementation contract or proxy admin contract.
    */
   pollingInterval?: number;
-
-  // TODO
-  getTxResponse?: boolean;
 }
 
 /**

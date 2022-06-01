@@ -11,7 +11,6 @@ export function withDefaults(opts: Options = {}): Required<Options> {
     timeout: opts.timeout ?? 60e3,
     pollingInterval: opts.pollingInterval ?? 5e3,
     ...withValidationDefaults(opts),
-    getTxResponse: false
   };
 }
 
@@ -22,4 +21,8 @@ export interface DeployProxyOptions extends Options {
 export interface UpgradeProxyOptions extends Options {
   call?: { fn: string; args?: unknown[] } | string;
   unsafeSkipStorageCheck?: boolean;
+}
+
+export interface PrepareUpgradeOptions extends Options {
+  getTxResponse?: boolean;
 }

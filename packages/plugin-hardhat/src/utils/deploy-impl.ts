@@ -2,8 +2,7 @@ import {
   assertNotProxy,
   assertStorageUpgradeSafe,
   assertUpgradeSafe,
-  Deployment,
-  fetchOrDeploy,
+  fetchOrDeployGetDeployment,
   getImplementationAddress,
   getImplementationAddressFromBeacon,
   getStorageLayout,
@@ -17,7 +16,7 @@ import {
   ValidationOptions,
   Version,
 } from '@openzeppelin/upgrades-core';
-import type { ContractFactory } from 'ethers';
+import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
@@ -25,12 +24,14 @@ import { Options, UpgradeProxyOptions, withDefaults } from './options';
 import { readValidations } from './validations';
 
 interface DeployedProxyImpl {
-  impl: string | Deployment;
+  impl: string;
   kind: NonNullable<ValidationOptions['kind']>;
+  deployTransaction?: ethers.providers.TransactionResponse;
 }
 
 interface DeployedBeaconImpl {
-  impl: string | Deployment;
+  impl: string;
+  deployTransaction?: ethers.providers.TransactionResponse;
 }
 
 export interface DeployData {
@@ -112,18 +113,16 @@ async function deployImpl(
     }
   }
 
-  const impl = await fetchOrDeploy(
+  const deployment = await fetchOrDeployGetDeployment(
     deployData.version,
     deployData.provider,
     async () => {
       const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
-      const deployResult = await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs);
-
-      const deployment = Object.assign({ abi }, deployResult);
+      const deployment = Object.assign({ abi }, await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs));
       return { ...deployment, layout };
     },
     opts,
   );
 
-  return { impl, kind: opts.kind };
+  return { impl: deployment.address, deployTransaction: deployment.deployTransaction, kind: opts.kind };
 }

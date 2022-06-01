@@ -26,7 +26,7 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment): UpgradeFunctio
     // upgrade kind is inferred above
     const upgradeTo = await getUpgrader(proxyAddress, ImplFactory.signer);
     const call = encodeCall(ImplFactory, opts.call);
-    const upgradeTx = await upgradeTo(nextImpl as string, call); // TODO don't just coerce this
+    const upgradeTx = await upgradeTo(nextImpl, call);
 
     const inst = ImplFactory.attach(proxyAddress);
     // @ts-ignore Won't be readonly because inst was created through attach.

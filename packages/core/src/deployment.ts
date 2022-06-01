@@ -68,9 +68,8 @@ export async function resumeOrDeploy<T extends Deployment>(
 ): Promise<T> {
   const validated = await validateCached(cached, provider, type, opts, deployment, merge);
   if (validated === undefined || merge) {
-    const deployment: T = await deploy();
+    const deployment = await deploy();
     debug('initiated deployment', 'transaction hash:', deployment.txHash, 'merge:', merge);
-    debug('deployment.deployTransaction: ' + JSON.stringify(deployment.deployTransaction));
     return deployment;
   } else {
     return validated;

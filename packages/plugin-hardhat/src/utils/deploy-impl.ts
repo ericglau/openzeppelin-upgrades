@@ -124,5 +124,5 @@ async function deployImpl(
     opts,
   );
 
-  return { impl: deployment.address, deployTransaction: deployment.deployTransaction, kind: opts.kind };
+  return { impl: deployment.address, kind: opts.kind, deployTransaction: (deployment as any).deployTransaction };
 }

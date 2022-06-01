@@ -20,11 +20,6 @@ const sleep = promisify(setTimeout);
 export interface Deployment {
   address: string;
   txHash?: string;
-
-  /**
-   * The ethers transaction response if a transaction was newly deployed. Only applicable for Hardhat.
-   */
-  deployTransaction?: any;
 }
 
 export interface DeployOpts {

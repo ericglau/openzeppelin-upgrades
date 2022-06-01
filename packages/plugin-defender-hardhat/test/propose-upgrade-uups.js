@@ -39,29 +39,12 @@ test('proposes an upgrade and get tx response', async t => {
 
   const title = 'My upgrade';
   const description = 'My contract upgrade';
-  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description, getTxResponse: true });
+  const proposal = await proposeUpgrade(greeter.address, GreeterV2, { title, description, multisig });
 
   t.is(proposal.url, proposalUrl);
   t.not(proposal.txResponse.hash, undefined);
 
-  sinon.assert.calledWithExactly(
-    fakeClient.proposeUpgrade,
-    {
-      newImplementation: sinon.match(/^0x[A-Fa-f0-9]{40}$/),
-      title,
-      description,
-      proxyAdmin: undefined,
-      via: undefined,
-      viaType: undefined,
-    },
-    {
-      address: greeter.address,
-      network: 'goerli',
-      abi: GreeterV2.interface.format(FormatTypes.json),
-    },
-  );
-
-  const proposal2 = await proposeUpgrade(greeter.address, GreeterV2, { title, description, getTxResponse: true });
+  const proposal2 = await proposeUpgrade(greeter.address, GreeterV2, { title, description, multisig });
   // not expecting a tx response since impl was already deployed in first proposal
   t.is(proposal2.txResponse, undefined);
 });

@@ -9,10 +9,11 @@ import {
   isTransparentOrUUPSProxy,
 } from '@openzeppelin/upgrades-core';
 import { AdminClient, ProposalResponse } from 'defender-admin-client';
-import type { ContractFactory } from 'ethers';
+import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes, getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { fromChainId } from 'defender-base-client';
+import { ProposalResponseWithUrl } from 'defender-admin-client/lib/api';
 
 export type ProposeUpgradeFunction = (
   proxyAddress: string,
@@ -69,10 +70,11 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
       return clientProposeUpgrade(prepareUpgradeResult);      
     } else {
       console.log('returning from txresponse');
-      return {
+      const proposalResponse: ProposalResponseWithUrlAndTx = {
         ...await clientProposeUpgrade(getContractAddress(prepareUpgradeResult)),
-        prepareUpgradeResult
+        txResponse: prepareUpgradeResult
       }
+      return proposalResponse;
     }
 
     async function clientProposeUpgrade(newImplementation: string) {
@@ -89,4 +91,8 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
       );
     }
   };
+}
+
+export interface ProposalResponseWithUrlAndTx extends ProposalResponseWithUrl {
+  txResponse?: ethers.providers.TransactionResponse;
 }

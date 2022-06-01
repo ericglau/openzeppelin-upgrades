@@ -1,7 +1,13 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, ethers } from 'ethers';
 
-import { ContractAddressOrInstance, getContractAddress, deployProxyImpl, deployBeaconImpl, PrepareUpgradeOptions } from './utils';
+import {
+  ContractAddressOrInstance,
+  getContractAddress,
+  deployProxyImpl,
+  deployBeaconImpl,
+  PrepareUpgradeOptions,
+} from './utils';
 import {
   getBeaconAddress,
   isBeaconProxy,

@@ -58,18 +58,21 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
       // try getting the implementation address so that it will give an error if it's not a transparent/uups proxy
       await getImplementationAddress(hre.network.provider, proxyAddress);
     }
-  
+
     const contract = { address: proxyAddress, network, abi: ImplFactory.interface.format(FormatTypes.json) as string };
 
-    const prepareUpgradeResult = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, { getTxResponse: true, ...moreOpts });
+    const prepareUpgradeResult = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, {
+      getTxResponse: true,
+      ...moreOpts,
+    });
 
     if (typeof prepareUpgradeResult === 'string') {
-      return clientProposeUpgrade(prepareUpgradeResult);      
+      return clientProposeUpgrade(prepareUpgradeResult);
     } else {
       const proposalResponse: ProposalResponseWithUrlAndTx = {
-        ...await clientProposeUpgrade(getContractAddress(prepareUpgradeResult)),
-        txResponse: prepareUpgradeResult
-      }
+        ...(await clientProposeUpgrade(getContractAddress(prepareUpgradeResult))),
+        txResponse: prepareUpgradeResult,
+      };
       return proposalResponse;
     }
 
@@ -83,7 +86,7 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
           via: multisig,
           viaType: multisigType,
         },
-        contract
+        contract,
       );
     }
   };

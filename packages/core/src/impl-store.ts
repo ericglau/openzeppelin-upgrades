@@ -18,12 +18,12 @@ export interface ManifestField<T> {
   merge?(value: T | undefined): void;
 }
 
-export interface FetchOrDeployResponse { 
-  address: string,
-  txResponse: any
-};
+export interface FetchOrDeployResponse {
+  address: string;
+  txResponse: any;
+}
 
-export type FetchOrDeployResult = string | FetchOrDeployResponse; 
+export type FetchOrDeployResult = string | FetchOrDeployResponse;
 
 /**
  * Fetches the deployment from the manifest, or deploys it if not found.

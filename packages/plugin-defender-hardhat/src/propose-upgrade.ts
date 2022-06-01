@@ -62,14 +62,10 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
     const contract = { address: proxyAddress, network, abi: ImplFactory.interface.format(FormatTypes.json) as string };
 
     const prepareUpgradeResult = await hre.upgrades.prepareUpgrade(proxyAddress, ImplFactory, { getTxResponse: true, ...moreOpts });
-    console.log('Defender propose upgrade result : ' + prepareUpgradeResult);
-    console.log('Defender propose upgrade as JSON : ' + JSON.stringify(prepareUpgradeResult, null, 2));
 
     if (typeof prepareUpgradeResult === 'string') {
-      console.log('returning from string');
       return clientProposeUpgrade(prepareUpgradeResult);      
     } else {
-      console.log('returning from txresponse');
       const proposalResponse: ProposalResponseWithUrlAndTx = {
         ...await clientProposeUpgrade(getContractAddress(prepareUpgradeResult)),
         txResponse: prepareUpgradeResult
@@ -94,5 +90,5 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment): ProposeUpgra
 }
 
 export interface ProposalResponseWithUrlAndTx extends ProposalResponseWithUrl {
-  txResponse?: ethers.providers.TransactionResponse;
+  txResponse: ethers.providers.TransactionResponse;
 }

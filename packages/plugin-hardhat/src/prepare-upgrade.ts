@@ -34,8 +34,6 @@ export function makePrepareUpgrade(hre: HardhatRuntimeEnvironment): PrepareUpgra
       throw new PrepareUpgradeUnsupportedError(proxyOrBeaconAddress);
     }
 
-    console.log('PREPARE UPGRADE GOT FROM DEPLOYEDIMPL.IMPL : ' + JSON.stringify(deployedImpl.impl, null, 2));
-
     if (opts.getTxResponse && typeof deployedImpl.impl !== 'string' && deployedImpl.impl.deployTransaction !== undefined) {
       return deployedImpl.impl.deployTransaction;
     } else {

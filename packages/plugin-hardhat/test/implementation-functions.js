@@ -28,6 +28,28 @@ test('validate implementation - invalid', async t => {
   );
 });
 
+test('deploy implementation - happy path', async t => {
+  const { Greeter } = t.context;
+
+  const greeterImplAddr = await upgrades.deployImplementation(Greeter);
+  const greeter = Greeter.attach(greeterImplAddr);
+  await greeter.greet();
+});
+
+test('deploy implementation - with txresponse', async t => {
+  const { Greeter } = t.context;
+
+  const txResponse = await upgrades.deployImplementation(Greeter, { getTxResponse: true });
+
+  const precomputedAddress = ethers.utils.getContractAddress(txResponse);
+  const txReceipt = await txResponse.wait();
+
+  t.is(txReceipt.contractAddress, precomputedAddress);
+
+  const greeter = Greeter.attach(txReceipt.contractAddress);
+  await greeter.greet();
+});
+
 test('validate upgrade beacon - happy path', async t => {
   const { Greeter, GreeterV2 } = t.context;
 

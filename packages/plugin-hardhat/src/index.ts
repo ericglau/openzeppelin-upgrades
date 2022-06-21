@@ -15,10 +15,16 @@ import type { DeployBeaconProxyFunction } from './deploy-beacon-proxy';
 import type { UpgradeBeaconFunction } from './upgrade-beacon';
 import type { ForceImportFunction } from './force-import';
 import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInstanceFunction } from './admin';
+import type { ValidateImplementationFunction } from './validate-implementation';
+import type { ValidateUpgradeFunction } from './validate-upgrade';
+import type { DeployImplementationFunction } from './deploy-implementation';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
   upgradeProxy: UpgradeFunction;
+  validateImplementation: ValidateImplementationFunction;
+  validateUpgrade: ValidateUpgradeFunction;
+  deployImplementation: DeployImplementationFunction;
   prepareUpgrade: PrepareUpgradeFunction;
   deployBeacon: DeployBeaconFunction;
   deployBeaconProxy: DeployBeaconProxyFunction;
@@ -87,6 +93,9 @@ extendEnvironment(hre => {
     } = require('@openzeppelin/upgrades-core');
     const { makeDeployProxy } = require('./deploy-proxy');
     const { makeUpgradeProxy } = require('./upgrade-proxy');
+    const { makeValidateImplementation } = require('./validate-implementation');
+    const { makeValidateUpgrade } = require('./validate-upgrade');
+    const { makeDeployImplementation } = require('./deploy-implementation');
     const { makePrepareUpgrade } = require('./prepare-upgrade');
     const { makeDeployBeacon } = require('./deploy-beacon');
     const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
@@ -98,6 +107,9 @@ extendEnvironment(hre => {
       silenceWarnings,
       deployProxy: makeDeployProxy(hre),
       upgradeProxy: makeUpgradeProxy(hre),
+      validateImplementation: makeValidateImplementation(hre),
+      validateUpgrade: makeValidateUpgrade(hre),
+      deployImplementation: makeDeployImplementation(hre),
       prepareUpgrade: makePrepareUpgrade(hre),
       deployBeacon: makeDeployBeacon(hre),
       deployBeaconProxy: makeDeployBeaconProxy(hre),

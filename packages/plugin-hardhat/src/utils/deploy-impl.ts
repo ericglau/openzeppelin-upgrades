@@ -1,15 +1,11 @@
 import {
   assertNotProxy,
-  assertStorageUpgradeSafe,
-  assertUpgradeSafe,
   fetchOrDeployGetDeployment,
   getImplementationAddress,
   getImplementationAddressFromBeacon,
   getStorageLayout,
-  getStorageLayoutForAddress,
   getUnlinkedBytecode,
   getVersion,
-  Manifest,
   processProxyKind,
   StorageLayout,
   ValidationDataCurrent,
@@ -21,7 +17,7 @@ import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
 import { Options, DeployImplementationOptions, withDefaults } from './options';
-import { validateImpl, validateProxyImpl, validateStandaloneImpl, validateUpgradeImpl } from './validate-impl';
+import { validateUpgradeImpl } from './validate-impl';
 import { readValidations } from './validations';
 
 interface DeployedProxyImpl {

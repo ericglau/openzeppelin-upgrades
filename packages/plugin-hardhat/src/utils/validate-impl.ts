@@ -2,27 +2,16 @@ import {
   assertNotProxy,
   assertStorageUpgradeSafe,
   assertUpgradeSafe,
-  fetchOrDeployGetDeployment,
   getImplementationAddress,
   getImplementationAddressFromBeacon,
-  getStorageLayout,
   getStorageLayoutForAddress,
-  getUnlinkedBytecode,
-  getVersion,
   Manifest,
   processProxyKind,
-  StorageLayout,
-  ValidationDataCurrent,
-  ValidationOptions,
-  Version,
 } from '@openzeppelin/upgrades-core';
-import type { ContractFactory, ethers } from 'ethers';
-import { FormatTypes } from 'ethers/lib/utils';
-import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
-import { deploy } from './deploy';
+import type { ContractFactory } from 'ethers';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployData, getDeployData } from './deploy-impl';
-import { Options, DeployImplementationOptions, withDefaults } from './options';
-import { readValidations } from './validations';
+import { Options, DeployImplementationOptions } from './options';
 
 export function validateStandaloneImpl(
   deployData: DeployData,

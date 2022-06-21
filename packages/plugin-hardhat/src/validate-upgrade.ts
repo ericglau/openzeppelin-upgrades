@@ -1,11 +1,9 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { ContractFactory, ethers } from 'ethers';
+import type { ContractFactory } from 'ethers';
 
 import {
   ContractAddressOrInstance,
   getContractAddress,
-  deployProxyImpl,
-  deployBeaconImpl,
   DeployImplementationOptions,
 } from './utils';
 import {
@@ -15,7 +13,7 @@ import {
   isBeacon,
   ValidateUpgradeUnsupportedError,
 } from '@openzeppelin/upgrades-core';
-import { validateBeaconImpl, validateImpl, validateProxyImpl } from './utils/validate-impl';
+import { validateBeaconImpl, validateProxyImpl } from './utils/validate-impl';
 
 export type ValidateUpgradeFunction = (
   proxyOrBeaconAddress: ContractAddressOrInstance,

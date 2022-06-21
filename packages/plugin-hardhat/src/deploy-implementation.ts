@@ -2,19 +2,8 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, ethers } from 'ethers';
 
 import {
-  ContractAddressOrInstance,
-  getContractAddress,
-  deployProxyImpl,
-  deployBeaconImpl,
   DeployImplementationOptions,
 } from './utils';
-import {
-  getBeaconAddress,
-  isBeaconProxy,
-  isTransparentOrUUPSProxy,
-  isBeacon,
-  PrepareUpgradeUnsupportedError,
-} from '@openzeppelin/upgrades-core';
 import { deployStandaloneImpl } from './utils/deploy-impl';
 
 export type DeployImplementationFunction = (

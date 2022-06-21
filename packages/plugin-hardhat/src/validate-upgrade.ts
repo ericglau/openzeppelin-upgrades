@@ -6,7 +6,7 @@ import {
   getContractAddress,
   deployProxyImpl,
   deployBeaconImpl,
-  PrepareUpgradeOptions,
+  DeployImplementationOptions,
 } from './utils';
 import {
   getBeaconAddress,
@@ -20,11 +20,11 @@ import { validateBeaconImpl, validateImpl, validateProxyImpl } from './utils/val
 export type ValidateUpgradeFunction = (
   proxyOrBeaconAddress: ContractAddressOrInstance,
   ImplFactory: ContractFactory,
-  opts?: PrepareUpgradeOptions,
+  opts?: DeployImplementationOptions,
 ) => Promise<void>;
 
 export function makeValidateUpgrade(hre: HardhatRuntimeEnvironment): ValidateUpgradeFunction {
-  return async function validateUpgrade(proxyOrBeacon, ImplFactory, opts: PrepareUpgradeOptions = {}) {
+  return async function validateUpgrade(proxyOrBeacon, ImplFactory, opts: DeployImplementationOptions = {}) {
     const proxyOrBeaconAddress = getContractAddress(proxyOrBeacon);
     const { provider } = hre.network;
     if (await isTransparentOrUUPSProxy(provider, proxyOrBeaconAddress)) {

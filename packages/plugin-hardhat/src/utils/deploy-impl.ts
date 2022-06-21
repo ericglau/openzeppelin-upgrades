@@ -20,7 +20,7 @@ import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
-import { Options, PrepareUpgradeOptions, withDefaults } from './options';
+import { Options, DeployImplementationOptions, withDefaults } from './options';
 import { validateImpl, validateProxyImpl, validateStandaloneImpl, validateUpgradeImpl } from './validate-impl';
 import { readValidations } from './validations';
 
@@ -58,6 +58,16 @@ export async function getDeployData(
   const layout = getStorageLayout(validations, version);
   const fullOpts = withDefaults(opts);
   return { provider, validations, unlinkedBytecode, encodedArgs, version, layout, fullOpts };
+}
+
+export async function deployStandaloneImpl(
+  hre: HardhatRuntimeEnvironment,
+  ImplFactory: ContractFactory,
+  opts: Options,
+): Promise<DeployedProxyImpl> {
+  const deployData = await getDeployData(hre, ImplFactory, opts);
+
+  return deployImpl(hre, deployData, ImplFactory, opts);
 }
 
 export async function deployProxyImpl(
@@ -100,14 +110,14 @@ async function deployImpl(
   hre: HardhatRuntimeEnvironment,
   deployData: DeployData,
   ImplFactory: ContractFactory,
-  opts: PrepareUpgradeOptions,
+  opts: DeployImplementationOptions,
   currentImplAddress?: string,
 ): Promise<any> {
   await validateUpgradeImpl(deployData, opts, currentImplAddress);
   return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
 }
 
-async function fetchOrDeployImpl(deployData: DeployData, ImplFactory: ContractFactory, opts: PrepareUpgradeOptions, hre: HardhatRuntimeEnvironment) {
+async function fetchOrDeployImpl(deployData: DeployData, ImplFactory: ContractFactory, opts: DeployImplementationOptions, hre: HardhatRuntimeEnvironment) {
   const layout = deployData.layout;
 
   const deployment = await fetchOrDeployGetDeployment(

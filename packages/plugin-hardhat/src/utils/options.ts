@@ -22,6 +22,6 @@ export interface UpgradeProxyOptions extends Options {
   call?: { fn: string; args?: unknown[] } | string;
 }
 
-export interface PrepareUpgradeOptions extends Options {
+export interface DeployImplementationOptions extends Options {
   getTxResponse?: boolean;
 }

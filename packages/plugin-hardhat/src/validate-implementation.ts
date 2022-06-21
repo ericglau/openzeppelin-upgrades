@@ -6,7 +6,7 @@ import {
   getContractAddress,
   deployProxyImpl,
   deployBeaconImpl,
-  PrepareUpgradeOptions,
+  DeployImplementationOptions,
 } from './utils';
 import {
   getBeaconAddress,
@@ -19,11 +19,11 @@ import { validateImpl } from './utils/validate-impl';
 
 export type ValidateImplementationFunction = (
   ImplFactory: ContractFactory,
-  opts?: PrepareUpgradeOptions,
+  opts?: DeployImplementationOptions,
 ) => Promise<void>;
 
 export function makeValidateImplementation(hre: HardhatRuntimeEnvironment): ValidateImplementationFunction {
-  return async function validateImplementation(ImplFactory, opts: PrepareUpgradeOptions = {}) {
+  return async function validateImplementation(ImplFactory, opts: DeployImplementationOptions = {}) {
     await validateImpl(hre, ImplFactory, opts);
   };
 }

@@ -21,7 +21,7 @@ import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
 import { DeployData, getDeployData } from './deploy-impl';
-import { Options, PrepareUpgradeOptions, withDefaults } from './options';
+import { Options, DeployImplementationOptions, withDefaults } from './options';
 import { readValidations } from './validations';
 
 export function validateStandaloneImpl(
@@ -32,7 +32,7 @@ export function validateStandaloneImpl(
 
 export async function validateUpgradeImpl(
   deployData: DeployData,
-  opts: PrepareUpgradeOptions,
+  opts: DeployImplementationOptions,
   currentImplAddress?: string,
 ): Promise<any> {
   validateStandaloneImpl(deployData);

@@ -21,6 +21,7 @@ import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
 import { Options, PrepareUpgradeOptions, withDefaults } from './options';
+import { validateImpl, validateProxyImpl, validateStandaloneImpl, validateUpgradeImpl } from './validate-impl';
 import { readValidations } from './validations';
 
 interface DeployedProxyImpl {
@@ -102,17 +103,12 @@ async function deployImpl(
   opts: PrepareUpgradeOptions,
   currentImplAddress?: string,
 ): Promise<any> {
-  assertUpgradeSafe(deployData.validations, deployData.version, deployData.fullOpts);
+  validateUpgradeImpl(deployData, opts, currentImplAddress);
+  return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
+}
 
+async function fetchOrDeployImpl(deployData: DeployData, ImplFactory: ContractFactory, opts: PrepareUpgradeOptions, hre: HardhatRuntimeEnvironment) {
   const layout = deployData.layout;
-
-  if (currentImplAddress !== undefined) {
-    const manifest = await Manifest.forNetwork(deployData.provider);
-    const currentLayout = await getStorageLayoutForAddress(manifest, deployData.validations, currentImplAddress);
-    if (opts.unsafeSkipStorageCheck !== true) {
-      assertStorageUpgradeSafe(currentLayout, deployData.layout, deployData.fullOpts);
-    }
-  }
 
   const deployment = await fetchOrDeployGetDeployment(
     deployData.version,
@@ -122,7 +118,7 @@ async function deployImpl(
       const deployment = Object.assign({ abi }, await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs));
       return { ...deployment, layout };
     },
-    opts,
+    opts
   );
 
   let txResponse;

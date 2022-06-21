@@ -51,6 +51,15 @@ export class PrepareUpgradeUnsupportedError extends UpgradesError {
   }
 }
 
+export class ValidateUpgradeUnsupportedError extends UpgradesError {
+  constructor(proxyOrBeaconAddress: string) {
+    super(
+      `Contract at address ${proxyOrBeaconAddress} doesn't look like a supported proxy or beacon`,
+      () => `Only transparent, UUPS, or beacon proxies or beacons can be used with the validateUpgrade() function.`,
+    );
+  }
+}
+
 export class ForceImportUnsupportedError extends UpgradesError {
   constructor(proxyOrBeaconAddress: string) {
     super(

@@ -1,16 +1,12 @@
 import {
-  assertNotProxy,
   assertStorageUpgradeSafe,
   assertUpgradeSafe,
-  getImplementationAddress,
-  getImplementationAddressFromBeacon,
   getStorageLayoutForAddress,
   Manifest,
-  processProxyKind,
 } from '@openzeppelin/upgrades-core';
 import type { ContractFactory } from 'ethers';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { DeployData, getDeployData } from './deploy-impl';
+import { DeployData, getDeployData, processBeaconImpl, processProxyImpl } from './deploy-impl';
 import { Options, DeployImplementationOptions } from './options';
 
 export async function validateUpgradeImpl(
@@ -37,13 +33,7 @@ export async function validateProxyImpl(
 ): Promise<void> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
 
-  await processProxyKind(deployData.provider, proxyAddress, opts, deployData.validations, deployData.version);
-
-  let currentImplAddress: string | undefined;
-  if (proxyAddress !== undefined) {
-    // upgrade scenario
-    currentImplAddress = await getImplementationAddress(deployData.provider, proxyAddress);
-  }
+  let currentImplAddress: string | undefined = await processProxyImpl(deployData, proxyAddress, opts);
 
   return validateUpgradeImpl(deployData, opts, currentImplAddress);
 }
@@ -56,11 +46,7 @@ export async function validateBeaconImpl(
 ): Promise<void> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
 
-  let currentImplAddress;
-  if (beaconAddress !== undefined) {
-    // upgrade scenario
-    await assertNotProxy(deployData.provider, beaconAddress);
-    currentImplAddress = await getImplementationAddressFromBeacon(deployData.provider, beaconAddress);
-  }
+  let currentImplAddress: string | undefined =  await processBeaconImpl(beaconAddress, deployData);
+  
   return validateUpgradeImpl(deployData, opts, currentImplAddress);
 }

@@ -66,6 +66,27 @@ export async function deployStandaloneImpl(
   return deployImpl(hre, deployData, ImplFactory, opts);
 }
 
+export async function processProxyImpl(deployData: DeployData, proxyAddress: string | undefined, opts: Options) {
+  await processProxyKind(deployData.provider, proxyAddress, opts, deployData.validations, deployData.version);
+
+  let currentImplAddress: string | undefined;
+  if (proxyAddress !== undefined) {
+    // upgrade scenario
+    currentImplAddress = await getImplementationAddress(deployData.provider, proxyAddress);
+  }
+  return currentImplAddress;
+}
+
+export async function processBeaconImpl(beaconAddress: string | undefined, deployData: DeployData) {
+  let currentImplAddress: string | undefined;
+  if (beaconAddress !== undefined) {
+    // upgrade scenario
+    await assertNotProxy(deployData.provider, beaconAddress);
+    currentImplAddress = await getImplementationAddressFromBeacon(deployData.provider, beaconAddress);
+  }
+  return currentImplAddress;
+}
+
 export async function deployProxyImpl(
   hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,
@@ -74,13 +95,7 @@ export async function deployProxyImpl(
 ): Promise<DeployedProxyImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
 
-  await processProxyKind(deployData.provider, proxyAddress, opts, deployData.validations, deployData.version);
-
-  let currentImplAddress: string | undefined;
-  if (proxyAddress !== undefined) {
-    // upgrade scenario
-    currentImplAddress = await getImplementationAddress(deployData.provider, proxyAddress);
-  }
+  let currentImplAddress: string | undefined = await processProxyImpl(deployData, proxyAddress, opts);
 
   return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
 }
@@ -93,12 +108,8 @@ export async function deployBeaconImpl(
 ): Promise<DeployedBeaconImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
 
-  let currentImplAddress;
-  if (beaconAddress !== undefined) {
-    // upgrade scenario
-    await assertNotProxy(deployData.provider, beaconAddress);
-    currentImplAddress = await getImplementationAddressFromBeacon(deployData.provider, beaconAddress);
-  }
+  let currentImplAddress: string | undefined = await processBeaconImpl(beaconAddress, deployData);
+
   return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
 }
 

@@ -13,18 +13,12 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployData, getDeployData } from './deploy-impl';
 import { Options, DeployImplementationOptions } from './options';
 
-export function validateStandaloneImpl(
-  deployData: DeployData,
-) {
-  assertUpgradeSafe(deployData.validations, deployData.version, deployData.fullOpts);
-}
-
 export async function validateUpgradeImpl(
   deployData: DeployData,
   opts: DeployImplementationOptions,
   currentImplAddress?: string,
 ): Promise<any> {
-  validateStandaloneImpl(deployData);
+  assertUpgradeSafe(deployData.validations, deployData.version, deployData.fullOpts);
 
   if (currentImplAddress !== undefined) {
     const manifest = await Manifest.forNetwork(deployData.provider);
@@ -69,14 +63,4 @@ export async function validateBeaconImpl(
     currentImplAddress = await getImplementationAddressFromBeacon(deployData.provider, beaconAddress);
   }
   return validateUpgradeImpl(deployData, opts, currentImplAddress);
-}
-
-export async function validateImpl(
-  hre: HardhatRuntimeEnvironment,
-  ImplFactory: ContractFactory,
-  opts: Options,
-): Promise<void> {
-  const deployData = await getDeployData(hre, ImplFactory, opts);
-
-  validateStandaloneImpl(deployData);
 }

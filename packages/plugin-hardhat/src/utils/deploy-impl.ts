@@ -103,7 +103,7 @@ async function deployImpl(
   opts: PrepareUpgradeOptions,
   currentImplAddress?: string,
 ): Promise<any> {
-  validateUpgradeImpl(deployData, opts, currentImplAddress);
+  await validateUpgradeImpl(deployData, opts, currentImplAddress);
   return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
 }
 

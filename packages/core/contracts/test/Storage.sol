@@ -549,3 +549,75 @@ contract StorageUpgrade_Gap_Array_V2_Bad {
     uint256[48] __gap; // only shrank 1 instead of 2 slots
     bool z;
 }
+
+contract StorageUpgrade_Gap_One_Element_V1 {
+    uint256 a;
+    uint256 b;
+    uint256[1] __gap;
+    uint256 z;
+}
+
+contract StorageUpgrade_Gap_One_Element_V2_Ok {
+    uint256 a;
+    uint256 b;
+    uint256 c;
+    uint256 z;
+}
+
+contract StorageUpgrade_Gap_One_Element_V2_Bad {
+    uint256 a;
+    uint256 b;
+    uint256 c;
+    uint256[1] __gap;
+    uint256 z;
+}
+
+contract StorageUpgrade_Gap_Bool_Array_V1 {
+    bool[32] a;
+    bool[32] b;
+    bool[32] __gap;
+    bool z;
+}
+
+contract StorageUpgrade_Gap_Bool_Array_V2_Ok {
+    bool[32] a;
+    bool[32] b;
+    bool[16] c; // does not use a full slot, but items before and after array are aligned to slots
+    bool z;
+}
+
+contract StorageUpgrade_Gap_Bool_Array_V2_Bad {
+    bool[32] a;
+    bool[32] b;
+    bool[16] c;
+    bool[16] __gap; // array starts at next slot
+    bool[32] z;
+}
+
+contract StorageUpgrade_Gap_Bool_Not_Array_V1 {
+    bool a;
+    bool b;
+    bool __gap; // not a gap
+    bool z;
+}
+
+contract StorageUpgrade_Gap_Bool_Not_Array_V2_Bad {
+    bool a;
+    bool b;
+    bool c;
+    bool z;
+}
+
+contract StorageUpgrade_Gap_Uint256_Not_Array_V1 {
+    uint256 a;
+    uint256 b;
+    uint256 __gap; // not a gap
+    uint256 z;
+}
+
+contract StorageUpgrade_Gap_Uint256_Not_Array_V2_Bad {
+    uint256 a;
+    uint256 b;
+    uint256 c;
+    uint256 z;
+}

@@ -113,7 +113,7 @@ export class StorageLayoutComparator {
 
       // For each gap in the original layout, we try to do a cut. If that is possible, we isolate
       // the section that is before the cut and continue looking for other sections.
-      const gaps = original.filter(entry => entry.label === '__gap');
+      const gaps = original.filter(entry => entry.label === '__gap' && entry.type.head === 't_array');
       for (let i = 0; i < gaps.length; ++i) {
         // Beginning of the gap(s) is the end of the previous section
         const gapBegin = storageItemBegin(gaps[i]);

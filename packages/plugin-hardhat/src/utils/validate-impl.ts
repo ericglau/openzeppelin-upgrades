@@ -13,7 +13,7 @@ export async function validateUpgradeImpl(
   deployData: DeployData,
   opts: DeployImplementationOptions,
   currentImplAddress?: string,
-): Promise<any> {
+): Promise<void> {
   assertUpgradeSafe(deployData.validations, deployData.version, deployData.fullOpts);
 
   if (currentImplAddress !== undefined) {

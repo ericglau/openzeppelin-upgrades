@@ -72,7 +72,7 @@ function storageItemBegin(entry: StorageItemFull): number {
 }
 
 function storageItemEnd(entry: StorageItemFull): number {
-  return storageItemBegin(entry) + roundUpBytes(Number(entry.type.item.numberOfBytes));
+  return storageItemBegin(entry) + Number(entry.type.item.numberOfBytes);
 }
 
 /**
@@ -88,10 +88,10 @@ function subLayout(begin: number, end: number, layout: StorageItemFull[]): Stora
     return [];
   }
 
-  const sublayout = layout.filter(entry => begin <= storageItemBegin(entry) && storageItemEnd(entry) <= end);
+  const sublayout = layout.filter(entry => begin <= storageItemBegin(entry) && roundUpBytes(storageItemEnd(entry)) <= end);
   return sublayout.length > 0 &&
     begin === storageItemBegin(sublayout[0]) &&
-    (end === storageItemEnd(sublayout[sublayout.length - 1]) || end === Infinity)
+    (end === roundUpBytes(storageItemEnd(sublayout[sublayout.length - 1])) || end === Infinity)
     ? sublayout
     : undefined;
 }
@@ -128,15 +128,15 @@ export class StorageLayoutComparator {
         // End of the gap(s) is the begining of the next section
         const gapEnd = storageItemEnd(gaps[i]);
 
-        // if previous section end is not valid cut in the updated layout, don't do the cut
-        if (!updated.some(entry => storageItemEnd(entry) === gapBegin)) {
+        // if previous section end (aligned to next slot) is not valid cut in the updated layout, don't do the cut
+        if (!updated.some(entry => roundUpBytes(storageItemEnd(entry)) === gapBegin)) {
           continue;
         }
 
         // if next section start is not a valid cut in the updated layout and there are still items remaining, don't do the cut
         if (
           !updated.some(entry => storageItemBegin(entry) === gapEnd) &&
-          gapEnd < storageItemEnd(original[original.length - 1])
+          gapEnd < roundUpBytes(storageItemEnd(original[original.length - 1]))
         ) {
           continue;
         }
@@ -149,14 +149,14 @@ export class StorageLayoutComparator {
 
       // If there is more data in the original layout after the last gap, add an additional section.
       // There might be more data in the updated layout, but that is not an issue (appended data)
-      if (original.length > 0 && ptr < storageItemEnd(original[original.length - 1])) {
+      if (original.length > 0 && ptr < roundUpBytes(storageItemEnd(original[original.length - 1]))) {
         sections.push({ begin: ptr, end: Infinity });
       }
 
       // Now that sections are isolated, we can compare them one by one
       const ops = sections.flatMap(({ begin, end }) =>
         this.layoutLevenshtein(subLayout(begin, end, original) || [], subLayout(begin, end, updated) || [], {
-          allowAppend: end === Infinity,
+          allowAppend: true, // allow append within sublayouts to use any empty space between a variable and a gap
         }),
       );
 

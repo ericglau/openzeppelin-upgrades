@@ -489,7 +489,7 @@ contract StorageUpgrade_EndGap_V2b {
 contract StorageUpgrade_Gap_Address_V1 {
     address a;
     address b;
-    uint256[48] __gap;
+    address[48] __gap;
     address z;
 }
 
@@ -497,20 +497,20 @@ contract StorageUpgrade_Gap_Address_V2 {
     address a;
     address b;
     address c;
-    uint256[47] __gap;
+    address[47] __gap;
     address z;
 }
 
 contract StorageUpgrade_Gap_Uint128_V1 {
     uint128 a;
-    uint256[49] __gap;
+    uint128[49] __gap;
     uint128 z;
 }
 
 contract StorageUpgrade_Gap_Uint128_V2_Ok {
     uint128 a; // half slot
     uint128 b; // half slot
-    uint256[49] __gap;
+    uint128[49] __gap;
     uint128 z;
 }
 
@@ -518,7 +518,7 @@ contract StorageUpgrade_Gap_Uint128_V2b_Ok {
     uint128 a;
     uint128 b;
     uint128 c;
-    uint256[48] __gap;
+    uint128[48] __gap;
     uint128 z;
 }
 
@@ -526,7 +526,7 @@ contract StorageUpgrade_Gap_Uint128_V2_Bad {
     uint128 a;
     uint128 b;
     uint128 c;
-    uint256[49] __gap;
+    uint128[49] __gap;
     uint128 z;
 }
 

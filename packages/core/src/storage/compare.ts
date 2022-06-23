@@ -88,7 +88,7 @@ function subLayout(begin: number, end: number, layout: StorageItemFull[]): Stora
     return [];
   }
 
-  const sublayout = layout.filter(entry => begin <= storageItemBegin(entry) && roundUpBytes(storageItemEnd(entry)) <= end);
+  const sublayout = layout.filter(entry => begin <= storageItemBegin(entry) && storageItemEnd(entry) <= end);
   return sublayout.length > 0 &&
     begin === storageItemBegin(sublayout[0]) &&
     (end === roundUpBytes(storageItemEnd(sublayout[sublayout.length - 1])) || end === Infinity)

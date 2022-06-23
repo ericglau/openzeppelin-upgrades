@@ -136,7 +136,7 @@ export class StorageLayoutComparator {
         // if next section start is not a valid cut in the updated layout and there are still items remaining, don't do the cut
         if (
           !updated.some(entry => storageItemBegin(entry) === gapEnd) &&
-          gapEnd < roundUpBytes(storageItemEnd(original[original.length - 1]))
+          gapEnd < storageItemEnd(original[original.length - 1])
         ) {
           continue;
         }

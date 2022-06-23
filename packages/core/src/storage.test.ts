@@ -605,7 +605,6 @@ test('storage upgrade with different typed gaps', t => {
       updated: { label: '__gap' },
     },
   });
-
 });
 
 test('storage upgrade with one element gap', t => {
@@ -640,7 +639,7 @@ test('storage upgrade with bool non-array named as __gap', t => {
 test('storage upgrade with uint256 non-array named as __gap', t => {
   const v1 = t.context.extractStorageLayout('StorageUpgrade_Gap_Uint256_Not_Array_V1');
   const v2_Bad = t.context.extractStorageLayout('StorageUpgrade_Gap_Uint256_Not_Array_V2_Bad');
-  
+
   t.like(getStorageUpgradeErrors(v1, v2_Bad), {
     length: 1,
     0: {

@@ -56,16 +56,6 @@ export async function getDeployData(
   return { provider, validations, unlinkedBytecode, encodedArgs, version, layout, fullOpts };
 }
 
-export async function deployStandaloneImpl(
-  hre: HardhatRuntimeEnvironment,
-  ImplFactory: ContractFactory,
-  opts: Options,
-): Promise<DeployedProxyImpl> {
-  const deployData = await getDeployData(hre, ImplFactory, opts);
-
-  return deployImpl(hre, deployData, ImplFactory, opts);
-}
-
 export async function processProxyImpl(deployData: DeployData, proxyAddress: string | undefined, opts: Options) {
   await processProxyKind(deployData.provider, proxyAddress, opts, deployData.validations, deployData.version);
 
@@ -87,6 +77,15 @@ export async function processBeaconImpl(beaconAddress: string | undefined, deplo
   return currentImplAddress;
 }
 
+export async function deployStandaloneImpl(
+  hre: HardhatRuntimeEnvironment,
+  ImplFactory: ContractFactory,
+  opts: Options,
+): Promise<DeployedProxyImpl> {
+  const deployData = await getDeployData(hre, ImplFactory, opts);
+  return deployImpl(hre, deployData, ImplFactory, opts);
+}
+
 export async function deployProxyImpl(
   hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,
@@ -94,9 +93,7 @@ export async function deployProxyImpl(
   proxyAddress?: string,
 ): Promise<DeployedProxyImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-
-  let currentImplAddress: string | undefined = await processProxyImpl(deployData, proxyAddress, opts);
-
+  const currentImplAddress = await processProxyImpl(deployData, proxyAddress, opts);
   return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
 }
 
@@ -107,9 +104,7 @@ export async function deployBeaconImpl(
   beaconAddress?: string,
 ): Promise<DeployedBeaconImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-
-  let currentImplAddress: string | undefined = await processBeaconImpl(beaconAddress, deployData);
-
+  const currentImplAddress = await processBeaconImpl(beaconAddress, deployData);
   return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
 }
 
@@ -124,7 +119,12 @@ async function deployImpl(
   return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
 }
 
-async function fetchOrDeployImpl(deployData: DeployData, ImplFactory: ContractFactory, opts: DeployImplementationOptions, hre: HardhatRuntimeEnvironment) {
+async function fetchOrDeployImpl(
+  deployData: DeployData,
+  ImplFactory: ContractFactory,
+  opts: DeployImplementationOptions,
+  hre: HardhatRuntimeEnvironment,
+) {
   const layout = deployData.layout;
 
   const deployment = await fetchOrDeployGetDeployment(
@@ -135,7 +135,7 @@ async function fetchOrDeployImpl(deployData: DeployData, ImplFactory: ContractFa
       const deployment = Object.assign({ abi }, await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs));
       return { ...deployment, layout };
     },
-    opts
+    opts,
   );
 
   let txResponse;

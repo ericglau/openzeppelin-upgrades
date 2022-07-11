@@ -124,4 +124,3 @@ test('validate upgrade uups - incompatible storage - forced', async t => {
   const greeter = await upgrades.deployProxy(GreeterProxiable, ['Hola mundo!'], { kind: 'uups' });
   await upgrades.validateUpgrade(greeter, GreeterStorageConflictProxiable, { unsafeSkipStorageCheck: true });
 });
-

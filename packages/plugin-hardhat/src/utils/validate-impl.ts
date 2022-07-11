@@ -32,9 +32,7 @@ export async function validateProxyImpl(
   proxyAddress?: string,
 ): Promise<void> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-
-  let currentImplAddress: string | undefined = await processProxyImpl(deployData, proxyAddress, opts);
-
+  const currentImplAddress = await processProxyImpl(deployData, proxyAddress, opts);
   return validateUpgradeImpl(deployData, opts, currentImplAddress);
 }
 
@@ -45,8 +43,6 @@ export async function validateBeaconImpl(
   beaconAddress?: string,
 ): Promise<void> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-
-  let currentImplAddress: string | undefined =  await processBeaconImpl(beaconAddress, deployData);
-  
+  const currentImplAddress = await processBeaconImpl(beaconAddress, deployData);
   return validateUpgradeImpl(deployData, opts, currentImplAddress);
 }

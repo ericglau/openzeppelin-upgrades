@@ -1,9 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, ethers } from 'ethers';
 
-import {
-  DeployImplementationOptions,
-} from './utils';
+import { DeployImplementationOptions } from './utils';
 import { deployStandaloneImpl } from './utils/deploy-impl';
 
 export type DeployImplementationFunction = (
@@ -15,7 +13,7 @@ export type DeployImplementationResponse = string | ethers.providers.Transaction
 
 export function makeDeployImplementation(hre: HardhatRuntimeEnvironment): DeployImplementationFunction {
   return async function deployImplementation(ImplFactory, opts: DeployImplementationOptions = {}) {
-    let deployedImpl = await deployStandaloneImpl(hre, ImplFactory, opts);
+    const deployedImpl = await deployStandaloneImpl(hre, ImplFactory, opts);
 
     if (opts.getTxResponse && deployedImpl.txResponse !== undefined) {
       return deployedImpl.txResponse;

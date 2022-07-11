@@ -124,3 +124,25 @@ test('validate upgrade uups - incompatible storage - forced', async t => {
   const greeter = await upgrades.deployProxy(GreeterProxiable, ['Hola mundo!'], { kind: 'uups' });
   await upgrades.validateUpgrade(greeter, GreeterStorageConflictProxiable, { unsafeSkipStorageCheck: true });
 });
+
+test('validate upgrade - contracts only - happy path', async t => {
+  const { GreeterProxiable, GreeterV2Proxiable } = t.context;
+
+  upgrades.validateUpgrade(GreeterProxiable, GreeterV2Proxiable);
+});
+
+test('validate upgrade - contracts only - incompatible storage', async t => {
+  const { Greeter, GreeterStorageConflict } = t.context;
+
+  await t.throwsAsync(
+    () => upgrades.validateUpgrade(Greeter, GreeterStorageConflict),
+    undefined,
+    'New storage layout is incompatible due to the following changes',
+  );
+});
+
+test('validate upgrade - contracts only - incompatible storage - forced', async t => {
+  const { Greeter, GreeterStorageConflict } = t.context;
+
+  await upgrades.validateUpgrade(Greeter, GreeterStorageConflict, { unsafeSkipStorageCheck: true });
+});

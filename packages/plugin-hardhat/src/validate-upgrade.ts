@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { ContractFactory } from 'ethers';
+import { ContractFactory } from 'ethers';
 
 import { ContractAddressOrInstance, getContractAddress, DeployImplementationOptions } from './utils';
 import {
@@ -8,28 +8,52 @@ import {
   isTransparentOrUUPSProxy,
   isBeacon,
   ValidateUpgradeUnsupportedError,
+  assertUpgradeSafe,
+  assertStorageUpgradeSafe,
 } from '@openzeppelin/upgrades-core';
 import { validateBeaconImpl, validateProxyImpl } from './utils/validate-impl';
+import { getDeployData } from './utils/deploy-impl';
 
-export type ValidateUpgradeFunction = (
-  proxyOrBeaconAddress: ContractAddressOrInstance,
-  ImplFactory: ContractFactory,
-  opts?: DeployImplementationOptions,
-) => Promise<void>;
+export interface ValidateUpgradeFunction {
+  (
+    origImplFactory: ContractFactory,
+    newImplFactory: ContractFactory,
+    opts?: DeployImplementationOptions,
+  ): Promise<void>;
+  (
+    proxyOrBeaconAddress: ContractAddressOrInstance,
+    newImplFactory: ContractFactory,
+    opts?: DeployImplementationOptions,
+  ): Promise<void>;
+}
 
 export function makeValidateUpgrade(hre: HardhatRuntimeEnvironment): ValidateUpgradeFunction {
-  return async function validateUpgrade(proxyOrBeacon, ImplFactory, opts: DeployImplementationOptions = {}) {
-    const proxyOrBeaconAddress = getContractAddress(proxyOrBeacon);
-    const { provider } = hre.network;
-    if (await isTransparentOrUUPSProxy(provider, proxyOrBeaconAddress)) {
-      await validateProxyImpl(hre, ImplFactory, opts, proxyOrBeaconAddress);
-    } else if (await isBeaconProxy(provider, proxyOrBeaconAddress)) {
-      const beaconAddress = await getBeaconAddress(provider, proxyOrBeaconAddress);
-      await validateBeaconImpl(hre, ImplFactory, opts, beaconAddress);
-    } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
-      await validateBeaconImpl(hre, ImplFactory, opts, proxyOrBeaconAddress);
+  return async function validateUpgrade(
+    addressOrImplFactory: ContractAddressOrInstance | ContractFactory,
+    newImplFactory: ContractFactory,
+    opts: DeployImplementationOptions = {},
+  ) {
+    if (addressOrImplFactory instanceof ContractFactory) {
+      const newDeployData = await getDeployData(hre, newImplFactory, opts);
+      assertUpgradeSafe(newDeployData.validations, newDeployData.version, newDeployData.fullOpts);
+
+      const origDeployData = await getDeployData(hre, addressOrImplFactory, opts);
+      if (opts.unsafeSkipStorageCheck !== true) {
+        assertStorageUpgradeSafe(origDeployData.layout, newDeployData.layout, newDeployData.fullOpts);
+      }
     } else {
-      throw new ValidateUpgradeUnsupportedError(proxyOrBeaconAddress);
+      const proxyOrBeaconAddress = getContractAddress(addressOrImplFactory);
+      const { provider } = hre.network;
+      if (await isTransparentOrUUPSProxy(provider, proxyOrBeaconAddress)) {
+        await validateProxyImpl(hre, newImplFactory, opts, proxyOrBeaconAddress);
+      } else if (await isBeaconProxy(provider, proxyOrBeaconAddress)) {
+        const beaconAddress = await getBeaconAddress(provider, proxyOrBeaconAddress);
+        await validateBeaconImpl(hre, newImplFactory, opts, beaconAddress);
+      } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
+        await validateBeaconImpl(hre, newImplFactory, opts, proxyOrBeaconAddress);
+      } else {
+        throw new ValidateUpgradeUnsupportedError(proxyOrBeaconAddress);
+      }
     }
   };
 }

@@ -37,10 +37,9 @@ test('proposes an upgrade using deployed implementation - implementation not dep
   const { proposeUpgrade, fakeClient, greeter, GreeterV2 } = t.context;
   fakeClient.proposeUpgrade.resolves({ url: proposalUrl });
 
-  await t.throwsAsync(
-    () => proposeUpgrade(greeter.address, GreeterV2, { multisig, useDeployedImplementation: true }),
-    { message: /(The implementation contract was not previously deployed.)/ }
-  );
+  await t.throwsAsync(() => proposeUpgrade(greeter.address, GreeterV2, { multisig, useDeployedImplementation: true }), {
+    message: /(The implementation contract was not previously deployed.)/,
+  });
 });
 
 test('proposes an upgrade using deployed implementation', async t => {

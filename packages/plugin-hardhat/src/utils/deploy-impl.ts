@@ -100,8 +100,11 @@ async function fetchOrDeployImpl(
       const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
       const deployImpl = () => {
         if (opts.useDeployedImplementation) {
-          throw new UpgradesError('The implementation contract was not previously deployed.', 
-          () => 'The useDeployedImplementation option was set to true but the implementation contract was not previously deployed on this network.');
+          throw new UpgradesError(
+            'The implementation contract was not previously deployed.',
+            () =>
+              'The useDeployedImplementation option was set to true but the implementation contract was not previously deployed on this network.',
+          );
         } else {
           return deploy(ImplFactory, ...deployData.fullOpts.constructorArgs);
         }
@@ -123,4 +126,3 @@ async function fetchOrDeployImpl(
 
   return { impl: deployment.address, kind: opts.kind, txResponse };
 }
-

@@ -1,20 +1,13 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, Contract } from 'ethers';
 
-import {
-  Manifest,
-  fetchOrDeployAdmin,
-  logWarning,
-  ProxyDeployment,
-  BeaconProxyUnsupportedError,
-} from '@openzeppelin/upgrades-core';
+import { Manifest, logWarning, ProxyDeployment, BeaconProxyUnsupportedError } from '@openzeppelin/upgrades-core';
 
 import {
   DeployProxyOptions,
   deploy,
   getProxyFactory,
   getTransparentUpgradeableProxyFactory,
-  getProxyAdminFactory,
   DeployTransaction,
   deployProxyImpl,
   getInitializerData,

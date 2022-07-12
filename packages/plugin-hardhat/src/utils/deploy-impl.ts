@@ -17,7 +17,7 @@ import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
 import { Options, DeployImplementationOptions, withDefaults } from './options';
-import { validateUpgradeImpl } from './validate-impl';
+import { validateBeaconImpl, validateProxyImpl, validateStandaloneImpl } from './validate-impl';
 import { readValidations } from './validations';
 
 interface DeployedProxyImpl {
@@ -83,7 +83,8 @@ export async function deployStandaloneImpl(
   opts: Options,
 ): Promise<DeployedProxyImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-  return deployImpl(hre, deployData, ImplFactory, opts);
+  await validateStandaloneImpl(deployData, opts);
+  return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
 }
 
 export async function deployProxyImpl(
@@ -93,8 +94,8 @@ export async function deployProxyImpl(
   proxyAddress?: string,
 ): Promise<DeployedProxyImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-  const currentImplAddress = await processProxyImpl(deployData, proxyAddress, opts);
-  return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
+  await validateProxyImpl(deployData, opts, proxyAddress);
+  return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
 }
 
 export async function deployBeaconImpl(
@@ -104,18 +105,7 @@ export async function deployBeaconImpl(
   beaconAddress?: string,
 ): Promise<DeployedBeaconImpl> {
   const deployData = await getDeployData(hre, ImplFactory, opts);
-  const currentImplAddress = await processBeaconImpl(beaconAddress, deployData);
-  return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
-}
-
-async function deployImpl(
-  hre: HardhatRuntimeEnvironment,
-  deployData: DeployData,
-  ImplFactory: ContractFactory,
-  opts: DeployImplementationOptions,
-  currentImplAddress?: string,
-): Promise<any> {
-  await validateUpgradeImpl(deployData, opts, currentImplAddress);
+  await validateBeaconImpl(deployData, opts, beaconAddress);
   return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
 }
 
@@ -124,7 +114,7 @@ async function fetchOrDeployImpl(
   ImplFactory: ContractFactory,
   opts: DeployImplementationOptions,
   hre: HardhatRuntimeEnvironment,
-) {
+): Promise<any> {
   const layout = deployData.layout;
 
   const deployment = await fetchOrDeployGetDeployment(

@@ -44,13 +44,14 @@ export function makeValidateUpgrade(hre: HardhatRuntimeEnvironment): ValidateUpg
     } else {
       const proxyOrBeaconAddress = getContractAddress(addressOrImplFactory);
       const { provider } = hre.network;
+      const deployData = await getDeployData(hre, newImplFactory, opts);
       if (await isTransparentOrUUPSProxy(provider, proxyOrBeaconAddress)) {
-        await validateProxyImpl(hre, newImplFactory, opts, proxyOrBeaconAddress);
+        await validateProxyImpl(deployData, opts, proxyOrBeaconAddress);
       } else if (await isBeaconProxy(provider, proxyOrBeaconAddress)) {
         const beaconAddress = await getBeaconAddress(provider, proxyOrBeaconAddress);
-        await validateBeaconImpl(hre, newImplFactory, opts, beaconAddress);
+        await validateBeaconImpl(deployData, opts, beaconAddress);
       } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
-        await validateBeaconImpl(hre, newImplFactory, opts, proxyOrBeaconAddress);
+        await validateBeaconImpl(deployData, opts, proxyOrBeaconAddress);
       } else {
         throw new ValidateUpgradeUnsupportedError(proxyOrBeaconAddress);
       }

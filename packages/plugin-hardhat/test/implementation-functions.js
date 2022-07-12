@@ -50,6 +50,16 @@ test('deploy implementation - with txresponse', async t => {
   await greeter.greet();
 });
 
+test('deploy implementation - invalid', async t => {
+  const { Invalid } = t.context;
+
+  await t.throwsAsync(
+    () => upgrades.deployImplementation(Invalid),
+    undefined,
+    'Contract `Invalid` is not upgrade safe',
+  );
+});
+
 test('validate upgrade beacon - happy path', async t => {
   const { Greeter, GreeterV2 } = t.context;
 

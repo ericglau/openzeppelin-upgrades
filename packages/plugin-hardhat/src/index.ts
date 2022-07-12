@@ -18,6 +18,7 @@ import type { ChangeAdminFunction, TransferProxyAdminOwnershipFunction, GetInsta
 import type { ValidateImplementationFunction } from './validate-implementation';
 import type { ValidateUpgradeFunction } from './validate-upgrade';
 import type { DeployImplementationFunction } from './deploy-implementation';
+import { DeployAdminFunction, makeDeployProxyAdmin } from './deploy-proxy-admin';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -29,6 +30,7 @@ export interface HardhatUpgrades {
   deployBeacon: DeployBeaconFunction;
   deployBeaconProxy: DeployBeaconProxyFunction;
   upgradeBeacon: UpgradeBeaconFunction;
+  deployProxyAdmin: DeployAdminFunction;
   forceImport: ForceImportFunction;
   silenceWarnings: typeof silenceWarnings;
   admin: {
@@ -114,6 +116,7 @@ extendEnvironment(hre => {
       deployBeacon: makeDeployBeacon(hre),
       deployBeaconProxy: makeDeployBeaconProxy(hre),
       upgradeBeacon: makeUpgradeBeacon(hre),
+      deployProxyAdmin: makeDeployProxyAdmin(hre),
       forceImport: makeForceImport(hre),
       admin: {
         getInstance: makeGetInstanceFunction(hre),

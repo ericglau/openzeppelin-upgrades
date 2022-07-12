@@ -1,12 +1,8 @@
 import {
-  assertNotProxy,
   fetchOrDeployGetDeployment,
-  getImplementationAddress,
-  getImplementationAddressFromBeacon,
   getStorageLayout,
   getUnlinkedBytecode,
   getVersion,
-  processProxyKind,
   StorageLayout,
   ValidationDataCurrent,
   ValidationOptions,
@@ -54,27 +50,6 @@ export async function getDeployData(
   const layout = getStorageLayout(validations, version);
   const fullOpts = withDefaults(opts);
   return { provider, validations, unlinkedBytecode, encodedArgs, version, layout, fullOpts };
-}
-
-export async function processProxyImpl(deployData: DeployData, proxyAddress: string | undefined, opts: Options) {
-  await processProxyKind(deployData.provider, proxyAddress, opts, deployData.validations, deployData.version);
-
-  let currentImplAddress: string | undefined;
-  if (proxyAddress !== undefined) {
-    // upgrade scenario
-    currentImplAddress = await getImplementationAddress(deployData.provider, proxyAddress);
-  }
-  return currentImplAddress;
-}
-
-export async function processBeaconImpl(beaconAddress: string | undefined, deployData: DeployData) {
-  let currentImplAddress: string | undefined;
-  if (beaconAddress !== undefined) {
-    // upgrade scenario
-    await assertNotProxy(deployData.provider, beaconAddress);
-    currentImplAddress = await getImplementationAddressFromBeacon(deployData.provider, beaconAddress);
-  }
-  return currentImplAddress;
 }
 
 export async function deployStandaloneImpl(

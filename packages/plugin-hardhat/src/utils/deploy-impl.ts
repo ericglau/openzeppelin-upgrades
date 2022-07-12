@@ -17,7 +17,7 @@ import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
 import { Options, DeployImplementationOptions, withDefaults } from './options';
-import { validateUpgradeImpl } from './validate-impl';
+import { BeaconValidator, ProxyValidator, validateUpgradeImpl, Validator } from './validate-impl';
 import { readValidations } from './validations';
 
 interface DeployedProxyImpl {
@@ -92,9 +92,8 @@ export async function deployProxyImpl(
   opts: Options,
   proxyAddress?: string,
 ): Promise<DeployedProxyImpl> {
-  const deployData = await getDeployData(hre, ImplFactory, opts);
-  const currentImplAddress = await processProxyImpl(deployData, proxyAddress, opts);
-  return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
+  const deployer = new ProxyDeployer(proxyAddress);
+  return await deployer.deploy(hre, ImplFactory, opts);
 }
 
 export async function deployBeaconImpl(
@@ -103,9 +102,8 @@ export async function deployBeaconImpl(
   opts: Options,
   beaconAddress?: string,
 ): Promise<DeployedBeaconImpl> {
-  const deployData = await getDeployData(hre, ImplFactory, opts);
-  const currentImplAddress = await processBeaconImpl(beaconAddress, deployData);
-  return deployImpl(hre, deployData, ImplFactory, opts, currentImplAddress);
+  const deployer = new BeaconDeployer(beaconAddress);
+  return await deployer.deploy(hre, ImplFactory, opts);
 }
 
 async function deployImpl(
@@ -148,4 +146,24 @@ async function fetchOrDeployImpl(
   }
 
   return { impl: deployment.address, kind: opts.kind, txResponse };
+}
+
+export class ProxyDeployer extends ProxyValidator {
+  async deploy(hre: HardhatRuntimeEnvironment,
+    ImplFactory: ContractFactory,
+    opts: Options): Promise<any> {
+    super.validate(hre, ImplFactory, opts);
+    const deployData = await Validator.getDeployData(hre, ImplFactory, opts);
+    return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
+  }
+}
+
+export class BeaconDeployer extends BeaconValidator {
+  async deploy(hre: HardhatRuntimeEnvironment,
+    ImplFactory: ContractFactory,
+    opts: Options): Promise<any> {
+    super.validate(hre, ImplFactory, opts);
+    const deployData = await Validator.getDeployData(hre, ImplFactory, opts);
+    return await fetchOrDeployImpl(deployData, ImplFactory, opts, hre);
+  }
 }

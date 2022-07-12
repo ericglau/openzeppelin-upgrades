@@ -4,6 +4,7 @@ import {
   getUnlinkedBytecode,
   getVersion,
   StorageLayout,
+  UpgradesError,
   ValidationDataCurrent,
   ValidationOptions,
   Version,
@@ -97,7 +98,15 @@ async function fetchOrDeployImpl(
     deployData.provider,
     async () => {
       const abi = ImplFactory.interface.format(FormatTypes.minimal) as string[];
-      const deployment = Object.assign({ abi }, await deploy(ImplFactory, ...deployData.fullOpts.constructorArgs));
+      const deployImpl = () => {
+        if (opts.useDeployedImplementation) {
+          throw new UpgradesError('The implementation contract was not previously deployed.', 
+          () => 'The useDeployedImplementation option was set to true but the implementation contract was not previously deployed on this network.');
+        } else {
+          return deploy(ImplFactory, ...deployData.fullOpts.constructorArgs);
+        }
+      };
+      const deployment = Object.assign({ abi }, await deployImpl());
       return { ...deployment, layout };
     },
     opts,
@@ -114,3 +123,4 @@ async function fetchOrDeployImpl(
 
   return { impl: deployment.address, kind: opts.kind, txResponse };
 }
+

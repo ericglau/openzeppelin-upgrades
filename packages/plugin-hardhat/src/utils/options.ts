@@ -24,4 +24,5 @@ export interface UpgradeProxyOptions extends Options {
 
 export interface DeployImplementationOptions extends Options {
   getTxResponse?: boolean;
+  useDeployedImplementation?: boolean;
 }

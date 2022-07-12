@@ -5,6 +5,7 @@ const { ethers, upgrades } = require('hardhat');
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
+  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
   t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable');
   t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable');
   t.context.Invalid = await ethers.getContractFactory('Invalid');
@@ -34,6 +35,33 @@ test('deploy implementation - happy path', async t => {
   const greeterImplAddr = await upgrades.deployImplementation(Greeter);
   const greeter = Greeter.attach(greeterImplAddr);
   await greeter.greet();
+});
+
+test('deploy implementation - multiple times', async t => {
+  const { Greeter, GreeterV2 } = t.context;
+
+  const greeterImplAddr = await upgrades.deployImplementation(Greeter);
+  const greeterImplAddrB = await upgrades.deployImplementation(Greeter);
+  t.is(greeterImplAddr, greeterImplAddrB);
+
+  const greeterImplAddr2 = await upgrades.deployImplementation(GreeterV2);
+  t.not(greeterImplAddr, greeterImplAddr2);
+});
+
+test('deploy implementation - before proxy deployment', async t => {
+  const { Greeter } = t.context;
+
+  const greeterImplAddr = await upgrades.deployImplementation(Greeter);
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+  t.is(greeterImplAddr, await upgrades.erc1967.getImplementationAddress(greeter.address));
+});
+
+test('deploy implementation - after proxy deployment', async t => {
+  const { Greeter } = t.context;
+
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+  const greeterImplAddr = await upgrades.deployImplementation(Greeter);
+  t.is(greeterImplAddr, await upgrades.erc1967.getImplementationAddress(greeter.address));
 });
 
 test('deploy implementation - with txresponse', async t => {

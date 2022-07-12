@@ -5,9 +5,10 @@ const { ethers, upgrades } = require('hardhat');
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
+  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
 });
 
-test('deployProxy with useDeployedImplementation - implementation not deployed', async t => {
+test('deployProxy - implementation not deployed', async t => {
   const { Greeter } = t.context;
 
   await t.throwsAsync(
@@ -16,7 +17,7 @@ test('deployProxy with useDeployedImplementation - implementation not deployed',
   );
 });
 
-test('deployBeacon with useDeployedImplementation - implementation not deployed', async t => {
+test('deployBeacon - implementation not deployed', async t => {
   const { Greeter } = t.context;
 
   await t.throwsAsync(
@@ -25,17 +26,70 @@ test('deployBeacon with useDeployedImplementation - implementation not deployed'
   );
 });
 
-test('deployProxy with useDeployedImplementation - happy path', async t => {
-  const { Greeter } = t.context;
+test('prepareUpgrade - implementation not deployed', async t => {
+  const { Greeter, GreeterV2 } = t.context;
 
-  await upgrades.deployImplementation(Greeter);
-  const greeter = await upgrades.deployProxy(Greeter, ['Hola mundo!'], { kind: 'transparent', useDeployedImplementation: true });
-  t.is(await greeter.greet(), 'Hola mundo!');
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+
+  await t.throwsAsync(
+    () => upgrades.prepareUpgrade(greeter, GreeterV2, { useDeployedImplementation: true }),
+    { message: /(The implementation contract was not previously deployed.)/ }
+  );
 });
 
-test('deployBeacon with useDeployedImplementation - happy path', async t => {
+test('upgradeProxy - implementation not deployed', async t => {
+  const { Greeter, GreeterV2, GreeterV3 } = t.context;
+
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+  const origImplAddress = await upgrades.erc1967.getImplementationAddress(greeter.address);
+
+  const wrongImplAddress = await upgrades.deployImplementation(GreeterV3); // wrong contract deployed
+
+  await t.throwsAsync(
+    () => upgrades.upgradeProxy(greeter, GreeterV2, { useDeployedImplementation: true }),
+    { message: /(The implementation contract was not previously deployed.)/ }
+  );
+  const newImplAddress = await upgrades.erc1967.getImplementationAddress(greeter.address);
+  t.is(newImplAddress, origImplAddress);
+  t.not(newImplAddress, wrongImplAddress);
+});
+
+test('deployProxy - happy path', async t => {
   const { Greeter } = t.context;
 
-  await upgrades.deployImplementation(Greeter);
-  await upgrades.deployBeacon(Greeter, { useDeployedImplementation: true });
+  const greeterImplAddr = await upgrades.deployImplementation(Greeter);
+  const greeter = await upgrades.deployProxy(Greeter, ['Hola mundo!'], { kind: 'transparent', useDeployedImplementation: true });
+  t.is(await greeter.greet(), 'Hola mundo!');
+  t.is(greeterImplAddr, await upgrades.erc1967.getImplementationAddress(greeter.address));
+});
+
+test('deployBeacon - happy path', async t => {
+  const { Greeter } = t.context;
+
+  const greeterImplAddr = await upgrades.deployImplementation(Greeter);
+  const beacon = await upgrades.deployBeacon(Greeter, { useDeployedImplementation: true });
+  t.is(greeterImplAddr, await upgrades.beacon.getImplementationAddress(beacon.address));
+});
+
+test('prepareUpgrade - happy path', async t => {
+  const { Greeter, GreeterV2 } = t.context;
+
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+  const deployedImplAddress = await upgrades.deployImplementation(GreeterV2);
+  const preparedImplAddress = await upgrades.prepareUpgrade(greeter, GreeterV2, { useDeployedImplementation: true });
+  t.is(preparedImplAddress, deployedImplAddress);
+});
+
+test('upgradeProxy - happy path', async t => {
+  const { Greeter, GreeterV2 } = t.context;
+
+  const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
+  const origImplAddress = await upgrades.erc1967.getImplementationAddress(greeter.address);
+
+  const deployedImplAddress = await upgrades.deployImplementation(GreeterV2);
+  await upgrades.upgradeProxy(greeter, GreeterV2, { useDeployedImplementation: true });
+
+  const newImplAddress = await upgrades.erc1967.getImplementationAddress(greeter.address);
+  t.not(newImplAddress, origImplAddress);
+  t.is(newImplAddress, deployedImplAddress);
 });

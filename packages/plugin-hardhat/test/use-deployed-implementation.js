@@ -8,6 +8,16 @@ test.before(async t => {
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
 });
 
+test('deployImplementation - implementation not deployed', async t => {
+  const { Greeter } = t.context;
+
+  // this isn't a realistic scenario but we should still handle it
+  await t.throwsAsync(
+    () => upgrades.deployImplementation(Greeter, { useDeployedImplementation: true }),
+    { message: /(The implementation contract was not previously deployed.)/ }
+  );
+});
+
 test('deployProxy - implementation not deployed', async t => {
   const { Greeter } = t.context;
 
@@ -66,6 +76,15 @@ test('upgradeBeacon - implementation not deployed', async t => {
   );
   const newImplAddress = await upgrades.beacon.getImplementationAddress(greeterBeacon.address);
   t.is(newImplAddress, origImplAddress);
+});
+
+test('deployImplementation - happy path', async t => {
+  const { Greeter } = t.context;
+
+  const impl1 = await upgrades.deployImplementation(Greeter);
+  // this isn't a realistic scenario but we should still handle it
+  const impl2 = await upgrades.deployImplementation(Greeter, { useDeployedImplementation: true });
+  t.is(impl2, impl1);
 });
 
 test('deployProxy - happy path', async t => {

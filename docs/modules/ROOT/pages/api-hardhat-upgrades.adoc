@@ -147,6 +147,78 @@ async function forceImport(
 ): Promise<ethers.Contract>
 ----
 
+[[validate-implementation]]
+== validateImplementation
+
+Validates an implementation contract.
+
+* See <<common-options>>.
+
+[source,ts]
+----
+async function validateImplementation(
+  Contract: ethers.ContractFactory,
+  opts: {
+    unsafeAllow: ValidationError[],
+  } = {},
+): Promise<void>
+----
+
+[[deploy-implementation]]
+== deployImplementation
+
+Validates and deploys an implementation contract, and returns its address.
+
+* `getTxResponse`: if set to `true`, causes this function to return an ethers transaction response corresponding to the deployment of the new implementation contract instead of its address. Note that if the new implementation contract was originally imported as a result of `forceImport`, only the address will be returned.
+* See <<common-options>>.
+
+[source,ts]
+----
+async function validateImplementation(
+  Contract: ethers.ContractFactory,
+  opts: {
+    unsafeAllow: ValidationError[],
+    getTxResponse?: boolean,
+  } = {},
+): Promise<string | ethers.providers.TransactionResponse>
+----
+
+[[validate-upgrade]]
+== validateUpgrade
+
+Validates a new implementation contract and compares with the original implementation contract (given a proxy or beacon address that uses the original implementation, or an ethers contract factory corresponding to the original implementation) to check for storage layout compatibility errors.
+
+* See <<common-options>>.
+
+[source,ts]
+----
+async function validateUpgrade(
+  addressOrImplFactory: string | ethers.ContractFactory,
+  newImplFactory: ethers.ContractFactory,
+  opts: {
+    unsafeAllow: ValidationError[],
+    unsafeSkipStorageCheck: boolean,
+  } = {},
+): Promise<string | ethers.providers.TransactionResponse>
+----
+
+Examples:
+
+Validate upgrade for an existing proxy to a new contract:
+[source,ts]
+----
+const GreeterV2 = await ethers.getContractFactory('GreeterV2');
+await upgrades.validateUpgrade('PROXY_ADDRESS', GreeterV2);
+----
+
+Validate upgrade between two contract implementations:
+[source,ts]
+----
+const Greeter = await ethers.getContractFactory('Greeter');
+const GreeterV2 = await ethers.getContractFactory('GreeterV2');
+await upgrades.validateUpgrade(Greeter, GreeterV2);
+----
+
 [[prepare-upgrade]]
 == prepareUpgrade
 

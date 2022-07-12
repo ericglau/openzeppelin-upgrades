@@ -150,7 +150,7 @@ async function forceImport(
 [[validate-implementation]]
 == validateImplementation
 
-Validates an implementation contract.
+Validates an implementation contract without deploying it.
 
 * See <<common-options>>.
 
@@ -186,7 +186,7 @@ async function validateImplementation(
 [[validate-upgrade]]
 == validateUpgrade
 
-Validates a new implementation contract and compares with the original implementation contract (given a proxy or beacon address that uses the original implementation, or an ethers contract factory corresponding to the original implementation) to check for storage layout compatibility errors.
+Validates a new implementation contract without deploying it and without actually upgrading to it, and compares it with the current implementation contract (given a proxy or beacon address that uses the current implementation, or an ethers contract factory corresponding to the current implementation) to check for storage layout compatibility errors.
 
 * See <<common-options>>.
 
@@ -204,14 +204,14 @@ async function validateUpgrade(
 
 Examples:
 
-Validate upgrade for an existing proxy to a new contract:
+Validate upgrading an existing proxy to a new contract (replace `PROXY_ADDRESS` with the address of your proxy):
 [source,ts]
 ----
 const GreeterV2 = await ethers.getContractFactory('GreeterV2');
-await upgrades.validateUpgrade('PROXY_ADDRESS', GreeterV2);
+await upgrades.validateUpgrade(PROXY_ADDRESS, GreeterV2);
 ----
 
-Validate upgrade between two contract implementations:
+Validate upgrading between two contract implementations:
 [source,ts]
 ----
 const Greeter = await ethers.getContractFactory('Greeter');

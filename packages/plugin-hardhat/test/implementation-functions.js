@@ -92,7 +92,7 @@ test('validate upgrade beacon - happy path', async t => {
   const { Greeter, GreeterV2 } = t.context;
 
   const beacon = await upgrades.deployBeacon(Greeter);
-  upgrades.validateUpgrade(beacon, GreeterV2);
+  await upgrades.validateUpgrade(beacon, GreeterV2);
 });
 
 test('validate upgrade beacon - incompatible storage', async t => {
@@ -117,7 +117,7 @@ test('validate upgrade transparent - happy path', async t => {
   const { Greeter, GreeterV2 } = t.context;
 
   const greeter = await upgrades.deployProxy(Greeter, ['Hola mundo!'], { kind: 'transparent' });
-  upgrades.validateUpgrade(greeter, GreeterV2);
+  await upgrades.validateUpgrade(greeter, GreeterV2);
 });
 
 test('validate upgrade transparent - incompatible storage', async t => {
@@ -142,7 +142,7 @@ test('validate upgrade uups - happy path', async t => {
   const { GreeterProxiable, GreeterV2Proxiable } = t.context;
 
   const greeter = await upgrades.deployProxy(GreeterProxiable, ['Hola mundo!'], { kind: 'uups' });
-  upgrades.validateUpgrade(greeter, GreeterV2Proxiable);
+  await upgrades.validateUpgrade(greeter, GreeterV2Proxiable);
 });
 
 test('validate upgrade uups - incompatible storage', async t => {
@@ -166,7 +166,7 @@ test('validate upgrade uups - incompatible storage - forced', async t => {
 test('validate upgrade - contracts only - happy path', async t => {
   const { GreeterProxiable, GreeterV2Proxiable } = t.context;
 
-  upgrades.validateUpgrade(GreeterProxiable, GreeterV2Proxiable);
+  await upgrades.validateUpgrade(GreeterProxiable, GreeterV2Proxiable);
 });
 
 test('validate upgrade - contracts only - incompatible storage', async t => {

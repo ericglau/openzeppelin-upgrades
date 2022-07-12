@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ContractFactory } from 'ethers';
 
-import { ContractAddressOrInstance, getContractAddress, DeployImplementationOptions } from './utils';
+import { ContractAddressOrInstance, getContractAddress } from './utils';
 import {
   getBeaconAddress,
   isBeaconProxy,
@@ -10,6 +10,7 @@ import {
   ValidateUpgradeUnsupportedError,
   assertUpgradeSafe,
   assertStorageUpgradeSafe,
+  ValidationOptions,
 } from '@openzeppelin/upgrades-core';
 import { validateBeaconImpl, validateProxyImpl } from './utils/validate-impl';
 import { getDeployData } from './utils/deploy-impl';
@@ -18,12 +19,12 @@ export interface ValidateUpgradeFunction {
   (
     origImplFactory: ContractFactory,
     newImplFactory: ContractFactory,
-    opts?: DeployImplementationOptions,
+    opts?: ValidationOptions,
   ): Promise<void>;
   (
     proxyOrBeaconAddress: ContractAddressOrInstance,
     newImplFactory: ContractFactory,
-    opts?: DeployImplementationOptions,
+    opts?: ValidationOptions,
   ): Promise<void>;
 }
 
@@ -31,7 +32,7 @@ export function makeValidateUpgrade(hre: HardhatRuntimeEnvironment): ValidateUpg
   return async function validateUpgrade(
     addressOrImplFactory: ContractAddressOrInstance | ContractFactory,
     newImplFactory: ContractFactory,
-    opts: DeployImplementationOptions = {},
+    opts: ValidationOptions = {},
   ) {
     if (addressOrImplFactory instanceof ContractFactory) {
       const newDeployData = await getDeployData(hre, newImplFactory, opts);

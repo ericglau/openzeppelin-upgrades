@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ContractFactory } from 'ethers';
 
-import { ContractAddressOrInstance, getContractAddress, DeployImplementationOptions } from './utils';
+import { ContractAddressOrInstance, getContractAddress, DeployImplementationOptions, Options } from './utils';
 import {
   getBeaconAddress,
   isBeaconProxy,
@@ -10,9 +10,11 @@ import {
   ValidateUpgradeUnsupportedError,
   assertUpgradeSafe,
   assertStorageUpgradeSafe,
+  getStorageLayoutForAddress,
+  Manifest,
 } from '@openzeppelin/upgrades-core';
-import { validateBeaconImpl, validateProxyImpl } from './utils/validate-impl';
-import { getDeployData } from './utils/deploy-impl';
+import { validateBeaconImpl, validateProxyImpl, validateUpgradeImpl } from './utils/validate-impl';
+import { DeployData, getDeployData, processBeaconImpl, processProxyImpl } from './utils/deploy-impl';
 
 export interface ValidateUpgradeFunction {
   (
@@ -44,16 +46,65 @@ export function makeValidateUpgrade(hre: HardhatRuntimeEnvironment): ValidateUpg
     } else {
       const proxyOrBeaconAddress = getContractAddress(addressOrImplFactory);
       const { provider } = hre.network;
+
+      let validator: Validator;
       if (await isTransparentOrUUPSProxy(provider, proxyOrBeaconAddress)) {
-        await validateProxyImpl(hre, newImplFactory, opts, proxyOrBeaconAddress);
+        validator = new ProxyValidator(proxyOrBeaconAddress);
       } else if (await isBeaconProxy(provider, proxyOrBeaconAddress)) {
         const beaconAddress = await getBeaconAddress(provider, proxyOrBeaconAddress);
-        await validateBeaconImpl(hre, newImplFactory, opts, beaconAddress);
+        validator = new BeaconValidator(beaconAddress);
       } else if (await isBeacon(provider, proxyOrBeaconAddress)) {
-        await validateBeaconImpl(hre, newImplFactory, opts, proxyOrBeaconAddress);
+        validator = new BeaconValidator(proxyOrBeaconAddress);
       } else {
         throw new ValidateUpgradeUnsupportedError(proxyOrBeaconAddress);
       }
+      await validator.run(hre, newImplFactory, opts);
     }
   };
+}
+
+abstract class Validator {
+  proxyOrBeaconAddress: string | undefined;
+
+  constructor(proxyOrBeaconAddress?: string) {
+    this.proxyOrBeaconAddress = proxyOrBeaconAddress;
+  }
+
+  async run(hre: HardhatRuntimeEnvironment,
+    ImplFactory: ContractFactory,
+    opts: Options) {
+    const deployData = await getDeployData(hre, ImplFactory, opts);
+    const currentImplAddress = await this.processImpl(deployData, this.proxyOrBeaconAddress, opts);
+    return validateUpgradeImpl(deployData, opts, currentImplAddress);
+  }
+
+  abstract processImpl(deployData: DeployData, proxyOrBeaconAddress: any, opts: Options): Promise<string | undefined>;
+
+  async validateUpgradeImpl(
+    deployData: DeployData,
+    opts: DeployImplementationOptions,
+    currentImplAddress?: string,
+  ): Promise<void> {
+    assertUpgradeSafe(deployData.validations, deployData.version, deployData.fullOpts);
+  
+    if (currentImplAddress !== undefined) {
+      const manifest = await Manifest.forNetwork(deployData.provider);
+      const currentLayout = await getStorageLayoutForAddress(manifest, deployData.validations, currentImplAddress);
+      if (opts.unsafeSkipStorageCheck !== true) {
+        assertStorageUpgradeSafe(currentLayout, deployData.layout, deployData.fullOpts);
+      }
+    }
+  }
+}
+
+class ProxyValidator extends Validator {
+  processImpl(deployData: DeployData, proxyOrBeaconAddress: any, opts: Options): Promise<string | undefined> {
+    return processProxyImpl(deployData, proxyOrBeaconAddress, opts);
+  }
+}
+
+class BeaconValidator extends Validator {
+  processImpl(deployData: DeployData, proxyOrBeaconAddress: any, opts: Options): Promise<string | undefined> {
+    return processBeaconImpl(proxyOrBeaconAddress, deployData);
+  }
 }

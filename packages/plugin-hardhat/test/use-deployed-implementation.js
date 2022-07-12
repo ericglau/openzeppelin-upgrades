@@ -54,6 +54,20 @@ test('upgradeProxy - implementation not deployed', async t => {
   t.not(newImplAddress, wrongImplAddress);
 });
 
+test('upgradeBeacon - implementation not deployed', async t => {
+  const { Greeter, GreeterV2 } = t.context;
+
+  const greeterBeacon = await upgrades.deployBeacon(Greeter);
+  const origImplAddress = await upgrades.beacon.getImplementationAddress(greeterBeacon.address);
+
+  await t.throwsAsync(
+    () => upgrades.upgradeBeacon(greeterBeacon, GreeterV2, { useDeployedImplementation: true }),
+    { message: /(The implementation contract was not previously deployed.)/ }
+  );
+  const newImplAddress = await upgrades.beacon.getImplementationAddress(greeterBeacon.address);
+  t.is(newImplAddress, origImplAddress);
+});
+
 test('deployProxy - happy path', async t => {
   const { Greeter } = t.context;
 
@@ -90,6 +104,20 @@ test('upgradeProxy - happy path', async t => {
   await upgrades.upgradeProxy(greeter, GreeterV2, { useDeployedImplementation: true });
 
   const newImplAddress = await upgrades.erc1967.getImplementationAddress(greeter.address);
+  t.not(newImplAddress, origImplAddress);
+  t.is(newImplAddress, deployedImplAddress);
+});
+
+test('upgradeBeacon - happy path', async t => {
+  const { Greeter, GreeterV2 } = t.context;
+
+  const greeterBeacon = await upgrades.deployBeacon(Greeter);
+  const origImplAddress = await upgrades.beacon.getImplementationAddress(greeterBeacon.address);
+
+  const deployedImplAddress = await upgrades.deployImplementation(GreeterV2);
+
+  await upgrades.upgradeBeacon(greeterBeacon, GreeterV2, { useDeployedImplementation: true });
+  const newImplAddress = await upgrades.beacon.getImplementationAddress(greeterBeacon.address);
   t.not(newImplAddress, origImplAddress);
   t.is(newImplAddress, deployedImplAddress);
 });

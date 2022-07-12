@@ -275,6 +275,21 @@ async function proposeUpgrade(
   }>
 ----
 
+[[deploy-proxy-admin]]
+== deployProxyAdmin
+
+Deploys a https://docs.openzeppelin.com/contracts/4.x/api/proxy#ProxyAdmin[proxy admin] contract if one was not already deployed on the current network, or returns the address of the proxy admin if one was already deployed. Note that only one proxy admin is currently supported per network.
+
+* See <<common-options>>.
+
+[source,ts]
+----
+async function deployProxyAdmin(
+  Signer?: ethers.Signer,
+  opts: {} = {},
+): Promise<string>
+----
+
 [[admin-change-proxy-admin]]
 == admin.changeProxyAdmin
 

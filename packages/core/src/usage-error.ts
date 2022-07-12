@@ -60,6 +60,9 @@ export class ValidateUpgradeUnsupportedError extends UpgradesError {
   }
 }
 
+/**
+ * @deprecated No longer used since forceImport() supports importing any contract.
+ */
 export class ForceImportUnsupportedError extends UpgradesError {
   constructor(proxyOrBeaconAddress: string) {
     super(

@@ -32,20 +32,21 @@ test('rename manifest', async t => {
   fs.mkdirSync('.openzeppelin', { recursive: true });
   fs.writeFileSync(`.openzeppelin/unknown-${id}.json`, JSON.stringify(oldManifest, null, 2) + '\n');
 
-  const manifest = new Manifest(id); // limitation with this test case: the file is not renamed because this is not using forNetwork
+  const manifest = new Manifest(id);
 
-  t.is(manifest.file, `.openzeppelin/polygon-mumbai.json`);
-  t.false(fs.existsSync('.openzeppelin/polygon-mumbai.json.lock'));
+  t.is(manifest.file, `.openzeppelin/unknown-${id}.json`);
+  t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
   await manifest.lockedRun(async () => {
-    t.true(fs.existsSync('.openzeppelin/polygon-mumbai.json.lock'));
+    t.true(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
     const data = await manifest.read();
     await manifest.write(data);
   });
 
   t.is(manifest.file, `.openzeppelin/polygon-mumbai.json`);
-  t.false(fs.existsSync('.openzeppelin/polygon-mumbai.json.lock'));
+  t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
+  t.false(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
 });
 
 test('normalize manifest', t => {

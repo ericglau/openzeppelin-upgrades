@@ -117,8 +117,18 @@ export class Manifest {
   }
 
   private async writeFile(content: string): Promise<void> {
-    await this.renameFileIfRequired(this.fallbackFile, this.file);
+    await this.renameFileIfRequired();
     await fs.writeFile(this.file, content);
+  }
+
+  private async renameFileIfRequired() {
+    if (this.file !== this.fallbackFile && existsSync(this.fallbackFile)) {
+      try {
+        await fs.rename(this.fallbackFile, this.file);
+      } catch (e: any) {
+        throw new Error(`Failed to rename network file from ${this.fallbackFile} to ${this.file}: ${e.message}`);
+      }
+    }
   }
 
   async read(): Promise<ManifestData> {
@@ -167,27 +177,6 @@ export class Manifest {
       await release();
       this.locked = false;
     };
-  }
-
-  private async renameFileIfRequired(oldFilePath: string, newFilePath: string) {
-    const areFilePathsDifferent = oldFilePath !== newFilePath;
-    if (areFilePathsDifferent) {
-      let shouldRenameFile = false;
-      try {
-        // Check if old file path exists and can be accessed
-        await fs.access(oldFilePath);
-        shouldRenameFile = true;
-      } catch (error) {
-        // Do nothing if old file path can't be accessed or doesn't exist in which case we don't need to rename
-      }
-      if (shouldRenameFile) {
-        try {
-          await fs.rename(oldFilePath, newFilePath);
-        } catch (error) {
-          throw new Error(`Can't rename ${oldFilePath}: ${error}`);
-        }
-      }
-    }
   }
 }
 

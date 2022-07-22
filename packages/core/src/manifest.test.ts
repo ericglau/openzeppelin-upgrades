@@ -33,8 +33,9 @@ test('rename manifest', async t => {
   fs.writeFileSync(`.openzeppelin/unknown-${id}.json`, JSON.stringify(oldManifest, null, 2) + '\n');
 
   const manifest = new Manifest(id);
-
-  t.is(manifest.file, `.openzeppelin/unknown-${id}.json`);
+  t.is(manifest.file, `.openzeppelin/polygon-mumbai.json`);
+  
+  t.true(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
   t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
   await manifest.lockedRun(async () => {
@@ -43,7 +44,7 @@ test('rename manifest', async t => {
     await manifest.write(data);
   });
 
-  t.is(manifest.file, `.openzeppelin/polygon-mumbai.json`);
+  t.true(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
   t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
   t.false(fs.existsSync(`.openzeppelin/unknown-${id}.json`));

@@ -9,9 +9,9 @@ function writeTestManifest(file: string) {
     impls: {},
     proxies: [
       {
-        "address": "0x123",
-        "txHash": "0x0",
-        "kind": "uups"
+        address: '0x123',
+        txHash: '0x0',
+        kind: 'uups',
       },
     ],
   };
@@ -54,7 +54,9 @@ test.serial('multiple manifests', async t => {
   const manifest = new Manifest(id);
   await manifest.lockedRun(async () => {
     await t.throwsAsync(() => manifest.read(), {
-      message: new RegExp(`Network files with different names .openzeppelin/unknown-${id}.json and .openzeppelin/polygon-mumbai.json were found for the same network.`),
+      message: new RegExp(
+        `Network files with different names .openzeppelin/unknown-${id}.json and .openzeppelin/polygon-mumbai.json were found for the same network.`,
+      ),
     });
   });
 
@@ -69,7 +71,7 @@ test.serial('rename manifest', async t => {
 
   const manifest = new Manifest(id);
   t.is(manifest.file, `.openzeppelin/polygon-mumbai.json`);
-  
+
   t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
   assertOldName(t, id);
@@ -77,9 +79,9 @@ test.serial('rename manifest', async t => {
     t.true(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
     const data = await manifest.read();
     data.proxies.push({
-      "address": "0x456",
-      "txHash": "0x0",
-      "kind": "uups"
+      address: '0x456',
+      txHash: '0x0',
+      kind: 'uups',
     });
 
     assertOldName(t, id);
@@ -87,7 +89,7 @@ test.serial('rename manifest', async t => {
     assertNewName(t, id);
   });
   assertNewName(t, id);
-  
+
   t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
   // check that the contents were persisted
@@ -144,4 +146,3 @@ test('normalize manifest', t => {
     deployTransaction: undefined,
   });
 });
-

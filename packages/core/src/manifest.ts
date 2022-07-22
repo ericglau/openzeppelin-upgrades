@@ -44,7 +44,7 @@ export class Manifest {
   readonly chainId: number;
   readonly file: string;
   private readonly fallbackFile: string;
-  
+
   private locked = false;
 
   static async forNetwork(provider: EthereumProvider): Promise<Manifest> {
@@ -106,8 +106,11 @@ export class Manifest {
       const fileExists = existsSync(this.file);
 
       if (fileExists && fallbackExists) {
-        throw new UpgradesError(`Network files with different names ${this.fallbackFile} and ${this.file} were found for the same network.`,
-        () => `More than one network file was found for chain ID ${this.chainId}. Determine which file is the most up to date version, then take a backup of and delete the other file.`);
+        throw new UpgradesError(
+          `Network files with different names ${this.fallbackFile} and ${this.file} were found for the same network.`,
+          () =>
+            `More than one network file was found for chain ID ${this.chainId}. Determine which file is the most up to date version, then take a backup of and delete the other file.`,
+        );
       } else if (fallbackExists) {
         return await fs.readFile(this.fallbackFile, 'utf8');
       } else {

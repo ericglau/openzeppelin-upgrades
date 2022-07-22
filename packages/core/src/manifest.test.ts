@@ -3,14 +3,20 @@ import { Manifest, ManifestData, normalizeManifestData } from './manifest';
 import fs from 'fs';
 import path from 'path';
 
-function writeDefaultManifest(file: string) {
-  const defaultManifest = {
+function writeTestManifest(file: string) {
+  const testManifest = {
     manifestVersion: '3.2',
     impls: {},
-    proxies: [],
+    proxies: [
+      {
+        "address": "0x123",
+        "txHash": "0x0",
+        "kind": "uups"
+      },
+    ],
   };
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(defaultManifest, null, 2) + '\n');
+  fs.writeFileSync(file, JSON.stringify(testManifest, null, 2) + '\n');
 }
 
 function deleteFile(t: ExecutionContext, file: string) {
@@ -23,13 +29,27 @@ function deleteFile(t: ExecutionContext, file: string) {
   }
 }
 
-test.serial('multiple manifests', async t => {
-  const id = 80001;
+function assertOldName(t: ExecutionContext<unknown>, id: number) {
+  t.true(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
+  t.false(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
+}
+
+function assertNewName(t: ExecutionContext<unknown>, id: number) {
+  t.false(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
+  t.true(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
+}
+
+function deleteManifests(t: ExecutionContext<unknown>, id: number) {
   deleteFile(t, `.openzeppelin/unknown-${id}.json`);
   deleteFile(t, '.openzeppelin/polygon-mumbai.json');
+}
 
-  writeDefaultManifest(`.openzeppelin/unknown-${id}.json`);
-  writeDefaultManifest(`.openzeppelin/polygon-mumbai.json`);
+test.serial('multiple manifests', async t => {
+  const id = 80001;
+  deleteManifests(t, id);
+
+  writeTestManifest(`.openzeppelin/unknown-${id}.json`);
+  writeTestManifest(`.openzeppelin/polygon-mumbai.json`);
 
   const manifest = new Manifest(id);
   await manifest.lockedRun(async () => {
@@ -38,49 +58,47 @@ test.serial('multiple manifests', async t => {
     });
   });
 
-  deleteFile(t, `.openzeppelin/unknown-${id}.json`);
-  deleteFile(t, '.openzeppelin/polygon-mumbai.json');
+  deleteManifests(t, id);
 });
 
 test.serial('rename manifest', async t => {
   const id = 80001;
-  deleteFile(t, `.openzeppelin/unknown-${id}.json`);
-  deleteFile(t, '.openzeppelin/polygon-mumbai.json');
+  deleteManifests(t, id);
 
-  writeDefaultManifest(`.openzeppelin/unknown-${id}.json`);
+  writeTestManifest(`.openzeppelin/unknown-${id}.json`);
 
   const manifest = new Manifest(id);
   t.is(manifest.file, `.openzeppelin/polygon-mumbai.json`);
   
   t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
-  // before rename
-  t.true(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
-  t.false(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
-
+  assertOldName(t, id);
   await manifest.lockedRun(async () => {
     t.true(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
     const data = await manifest.read();
+    data.proxies.push({
+      "address": "0x456",
+      "txHash": "0x0",
+      "kind": "uups"
+    });
 
-    // before rename
-    t.true(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
-    t.false(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
-
+    assertOldName(t, id);
     await manifest.write(data);
-
-    // after rename
-    t.false(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
-    t.true(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
+    assertNewName(t, id);
   });
+  assertNewName(t, id);
+  
+  t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
-  // after rename
-  t.false(fs.existsSync(`.openzeppelin/unknown-${id}.json`));
-  t.true(fs.existsSync(`.openzeppelin/polygon-mumbai.json`));
+  // check that the contents were persisted
+  const data = await new Manifest(id).read();
+  t.true(data.proxies[0].address === '0x123');
+  t.true(data.proxies[1].address === '0x456');
+  assertNewName(t, id);
 
   t.false(fs.existsSync(`.openzeppelin/chain-${id}.lock`));
 
-  deleteFile(t, `.openzeppelin/unknown-${id}.json`);
-  deleteFile(t, '.openzeppelin/polygon-mumbai.json');
+  deleteManifests(t, id);
 });
 
 test('manifest name for a known network', t => {
@@ -126,3 +144,4 @@ test('normalize manifest', t => {
     deployTransaction: undefined,
   });
 });
+

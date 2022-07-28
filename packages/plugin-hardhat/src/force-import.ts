@@ -13,7 +13,6 @@ import {
   ProxyDeployment,
   hasCode,
   NoContractImportError,
-  DeployOpts,
 } from '@openzeppelin/upgrades-core';
 
 import {

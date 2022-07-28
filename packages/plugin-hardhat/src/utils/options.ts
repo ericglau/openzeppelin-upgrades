@@ -1,4 +1,10 @@
-import { DeployOpts, ProxyKindOption, StandaloneValidationOptions, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
+import {
+  DeployOpts,
+  ProxyKindOption,
+  StandaloneValidationOptions,
+  ValidationOptions,
+  withValidationDefaults,
+} from '@openzeppelin/upgrades-core';
 
 export type StandaloneOptions = StandaloneValidationOptions &
   DeployOpts & {
@@ -20,32 +26,22 @@ export function withDefaults(opts: UpgradeOptions = {}): Required<UpgradeOptions
 
 export type GetTxResponse = {
   getTxResponse?: boolean;
-}
+};
 
 type Initializer = {
   initializer?: string | false;
-}
+};
 
-export interface DeployBeaconProxyOptions extends ProxyKindOption, Initializer {}
-
-export interface DeployBeaconOptions extends StandaloneOptions {}
-
-export interface DeployImplementationOptions extends StandaloneOptions, GetTxResponse {}
-
-export interface DeployProxyAdminOptions extends DeployOpts {}
-
-export interface DeployProxyOptions extends StandaloneOptions, Initializer {}
-
-export interface ForceImportOptions extends ProxyKindOption {}
-
-export interface PrepareUpgradeOptions extends UpgradeOptions, GetTxResponse {}
-
-export interface UpgradeBeaconOptions extends UpgradeOptions {}
-
-export interface UpgradeProxyOptions extends UpgradeOptions {
+export type DeployBeaconProxyOptions = ProxyKindOption & Initializer;
+export type DeployBeaconOptions = StandaloneOptions;
+export type DeployImplementationOptions = StandaloneOptions & GetTxResponse;
+export type DeployProxyAdminOptions = DeployOpts;
+export type DeployProxyOptions = StandaloneOptions & Initializer;
+export type ForceImportOptions = ProxyKindOption;
+export type PrepareUpgradeOptions = UpgradeOptions & GetTxResponse;
+export type UpgradeBeaconOptions = UpgradeOptions;
+export type UpgradeProxyOptions = UpgradeOptions & {
   call?: { fn: string; args?: unknown[] } | string;
-}
-
-export interface ValidateImplementationOptions extends StandaloneValidationOptions {}
-
-export interface ValidateUpgradeOptions extends ValidationOptions {}
+};
+export type ValidateImplementationOptions = StandaloneValidationOptions;
+export type ValidateUpgradeOptions = ValidationOptions;

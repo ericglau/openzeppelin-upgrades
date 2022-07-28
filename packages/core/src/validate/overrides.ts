@@ -12,7 +12,7 @@ export interface ProxyKindOption {
   /**
    * Choose between a `'uups'` or `'transparent'` proxy. Defaults to `'transparent'`. `'beacon'` is not applicable except when used with `forceImport()`.
    */
-   kind?: ProxyDeployment['kind'];
+  kind?: ProxyDeployment['kind'];
 }
 
 /**

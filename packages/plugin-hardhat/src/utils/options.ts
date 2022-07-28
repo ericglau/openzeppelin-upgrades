@@ -1,28 +1,51 @@
-import { DeployOpts, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
+import { DeployOpts, ProxyKindOption, StandaloneValidationOptions, ValidationOptions, withValidationDefaults } from '@openzeppelin/upgrades-core';
 
-export type Options = ValidationOptions &
+export type StandaloneOptions = StandaloneValidationOptions &
   DeployOpts & {
     constructorArgs?: unknown[];
+    useDeployedImplementation?: boolean;
   };
 
-export function withDefaults(opts: Options = {}): Required<Options> {
+export type UpgradeOptions = ValidationOptions & StandaloneOptions;
+
+export function withDefaults(opts: UpgradeOptions = {}): Required<UpgradeOptions> {
   return {
     constructorArgs: opts.constructorArgs ?? [],
     timeout: opts.timeout ?? 60e3,
     pollingInterval: opts.pollingInterval ?? 5e3,
+    useDeployedImplementation: opts.useDeployedImplementation ?? true,
     ...withValidationDefaults(opts),
   };
 }
 
-export interface DeployProxyOptions extends Options {
+export type GetTxResponse = {
+  getTxResponse?: boolean;
+}
+
+type Initializer = {
   initializer?: string | false;
 }
 
-export interface UpgradeProxyOptions extends Options {
+export interface DeployBeaconProxyOptions extends ProxyKindOption, Initializer {}
+
+export interface DeployBeaconOptions extends StandaloneOptions {}
+
+export interface DeployImplementationOptions extends StandaloneOptions, GetTxResponse {}
+
+export interface DeployProxyAdminOptions extends DeployOpts {}
+
+export interface DeployProxyOptions extends StandaloneOptions, Initializer {}
+
+export interface ForceImportOptions extends ProxyKindOption {}
+
+export interface PrepareUpgradeOptions extends UpgradeOptions, GetTxResponse {}
+
+export interface UpgradeBeaconOptions extends UpgradeOptions {}
+
+export interface UpgradeProxyOptions extends UpgradeOptions {
   call?: { fn: string; args?: unknown[] } | string;
 }
 
-export interface DeployImplementationOptions extends Options {
-  getTxResponse?: boolean;
-  useDeployedImplementation?: boolean;
-}
+export interface ValidateImplementationOptions extends StandaloneValidationOptions {}
+
+export interface ValidateUpgradeOptions extends ValidationOptions {}

@@ -13,6 +13,7 @@ import {
   ProxyDeployment,
   hasCode,
   NoContractImportError,
+  DeployOpts,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -20,20 +21,20 @@ import {
   ContractAddressOrInstance,
   getContractAddress,
   getUpgradeableBeaconFactory,
-  Options,
+  ForceImportOptions,
 } from './utils';
 import { simulateDeployAdmin } from './utils/simulate-deploy';
 import { getDeployData } from './utils/deploy-impl';
 
 export interface ForceImportFunction {
-  (proxyAddress: string, ImplFactory: ContractFactory, opts?: Options): Promise<Contract>;
+  (proxyAddress: string, ImplFactory: ContractFactory, opts?: ForceImportOptions): Promise<Contract>;
 }
 
 export function makeForceImport(hre: HardhatRuntimeEnvironment): ForceImportFunction {
   return async function forceImport(
     addressOrInstance: ContractAddressOrInstance,
     ImplFactory: ContractFactory,
-    opts: Options = {},
+    opts: ForceImportOptions = {},
   ) {
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);
@@ -67,7 +68,7 @@ async function importProxyToManifest(
   proxyAddress: string,
   implAddress: string,
   ImplFactory: ContractFactory,
-  opts: Options,
+  opts: ForceImportOptions,
   manifest: Manifest,
 ) {
   await addImplToManifest(hre, implAddress, ImplFactory, opts);
@@ -94,7 +95,7 @@ async function addImplToManifest(
   hre: HardhatRuntimeEnvironment,
   implAddress: string,
   ImplFactory: ContractFactory,
-  opts: Options,
+  opts: ForceImportOptions,
 ) {
   await simulateDeployImpl(hre, ImplFactory, opts, implAddress);
 }
@@ -104,7 +105,7 @@ async function addAdminToManifest(
   hre: HardhatRuntimeEnvironment,
   proxyAddress: string,
   ImplFactory: ContractFactory,
-  opts: Options,
+  opts: ForceImportOptions,
 ) {
   const adminAddress = await getAdminAddress(provider, proxyAddress);
   await simulateDeployAdmin(hre, ImplFactory, opts, adminAddress);

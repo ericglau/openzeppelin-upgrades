@@ -60,42 +60,6 @@ export interface LayoutChange {
   bytes?: Record<'from' | 'to', string>;
 }
 
-// StorageItem with slot and offset info. Needed for overlap detection
-type StorageItemFull = StorageItem & { slot: string; offset: number };
-
-function isFullInfo(entry: StorageField): entry is StorageItemFull {
-  return entry.slot != undefined && entry.offset != undefined;
-}
-
-function storageItemBegin(entry: StorageItemFull): number {
-  return Number(entry.slot) * 32 + entry.offset;
-}
-
-function storageItemEnd(entry: StorageItemFull): number {
-  return storageItemBegin(entry) + Number(entry.type.item.numberOfBytes);
-}
-
-/**
- * Aligns to the next storage slot by rounding up to nearest 32 bytes beyond the given number.
- */
-function alignToNextStorageSlot(numBytes: number): number {
-  return Math.ceil(numBytes / 32) * 32;
-}
-
-// Get a subset of `layout` that exactly covers the space from `begin` to `end`
-function subLayout(begin: number, end: number, layout: StorageItemFull[]): StorageItemFull[] | undefined {
-  if (begin === end) {
-    return [];
-  }
-
-  const sublayout = layout.filter(entry => begin <= storageItemBegin(entry) && storageItemEnd(entry) <= end);
-  return sublayout.length > 0 &&
-    begin === storageItemBegin(sublayout[0]) &&
-    (end === alignToNextStorageSlot(storageItemEnd(sublayout[sublayout.length - 1])) || end === Infinity)
-    ? sublayout
-    : undefined;
-}
-
 export class StorageLayoutComparator {
   hasAllowedUncheckedCustomTypes = false;
 
@@ -106,64 +70,7 @@ export class StorageLayoutComparator {
   constructor(readonly unsafeAllowCustomTypes = false, readonly unsafeAllowRenames = false) {}
 
   compareLayouts(original: StorageItem[], updated: StorageItem[]): LayoutCompatibilityReport {
-    if (original.every(isFullInfo) && updated.every(isFullInfo)) {
-      // We are going to cut the layout in sections following the original gaps.
-      let ptr = 0;
-      const sections: { begin: number; end: number }[] = [];
-
-      // For each gap in the original layout, we try to do a cut. If that is possible, we isolate
-      // the section that is before the cut and continue looking for other sections.
-      const gaps = original.filter(entry => entry.label === '__gap' && entry.type.head === 't_array');
-      for (let i = 0; i < gaps.length; ++i) {
-        // Beginning of the gap(s) is the end of the previous section
-        const gapBegin = storageItemBegin(gaps[i]);
-
-        // Merge consecutive gaps
-        for (; i < gaps.length - 1; ++i) {
-          if (storageItemEnd(gaps[i]) !== storageItemBegin(gaps[i + 1])) {
-            break;
-          }
-        }
-
-        // End of the gap(s) is the begining of the next section
-        const gapEnd = storageItemEnd(gaps[i]);
-
-        // if previous section end (aligned to next slot) is not valid cut in the updated layout, don't do the cut
-        if (!updated.some(entry => alignToNextStorageSlot(storageItemEnd(entry)) === gapBegin)) {
-          continue;
-        }
-
-        // if next section start is not a valid cut in the updated layout and there are still items remaining, don't do the cut
-        if (
-          !updated.some(entry => storageItemBegin(entry) === gapEnd) &&
-          gapEnd < storageItemEnd(original[original.length - 1])
-        ) {
-          continue;
-        }
-
-        // If we are here, that means the gap in the original layout is a valid cut in the
-        // Note: 0 length sections are ok.
-        sections.push({ begin: ptr, end: gapBegin });
-        ptr = gapEnd;
-      }
-
-      // If there is more data in the original layout after the last gap, add an additional section.
-      // There might be more data in the updated layout, but that is not an issue (appended data)
-      if (original.length > 0 && ptr < storageItemEnd(original[original.length - 1])) {
-        sections.push({ begin: ptr, end: Infinity });
-      }
-
-      // Now that sections are isolated, we can compare them one by one
-      const ops = sections.flatMap(({ begin, end }) =>
-        this.layoutLevenshtein(subLayout(begin, end, original) || [], subLayout(begin, end, updated) || [], {
-          allowAppend: true, // allow append within sublayouts to use any empty space between a variable and a gap
-        }),
-      );
-
-      return new LayoutCompatibilityReport(ops);
-    } else {
-      return new LayoutCompatibilityReport(this.layoutLevenshtein(original, updated, { allowAppend: true }));
-    }
+    return new LayoutCompatibilityReport(this.layoutLevenshtein(original, updated, { allowAppend: true }));
   }
 
   private layoutLevenshtein<F extends StorageField>(

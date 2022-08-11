@@ -18,6 +18,7 @@ type StorageFieldChange<F extends StorageField> = (
   | { kind: 'replace' | 'rename' }
   | { kind: 'typechange'; change: TypeChange }
   | { kind: 'layoutchange'; change: LayoutChange }
+  | { kind: 'shrinkgap'; change: TypeChange }
 ) & {
   original: F;
   updated: F;
@@ -70,7 +71,10 @@ export class StorageLayoutComparator {
   constructor(readonly unsafeAllowCustomTypes = false, readonly unsafeAllowRenames = false) {}
 
   compareLayouts(original: StorageItem[], updated: StorageItem[]): LayoutCompatibilityReport {
-    return new LayoutCompatibilityReport(this.layoutLevenshtein(original, updated, { allowAppend: true }));
+    const leven = this.layoutLevenshtein(original, updated, { allowAppend: true });
+    console.log(JSON.stringify(leven, null, 2));
+    const report = new LayoutCompatibilityReport(leven);
+    return report;
   }
 
   private layoutLevenshtein<F extends StorageField>(
@@ -114,7 +118,11 @@ export class StorageLayoutComparator {
     } else if (nameChange) {
       return { kind: 'rename', original, updated };
     } else if (typeChange) {
-      return { kind: 'typechange', change: typeChange, original, updated };
+      if (typeChange.kind === 'array shrink' && updated.label === '__gap') {
+        return { kind: 'shrinkgap', change: typeChange, original, updated };
+      } else {
+        return { kind: 'typechange', change: typeChange, original, updated };
+      }
     } else if (layoutChange && !layoutChange.uncertain) {
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.

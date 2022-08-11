@@ -56,6 +56,20 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
           : [];
       return `Upgraded ${label(op.updated)} to an incompatible type\n` + itemize(basic, ...details);
     }
+
+    case 'shrinkgap': {
+      const basic = explainTypeChange(op.change);
+      const details =
+        ctx.kind === 'layout' // explain details for layout only
+          ? new Set(
+              getAllTypeChanges(op.change)
+                .map(explainTypeChangeDetails)
+                .filter((d?: string): d is string => d !== undefined),
+            )
+          : [];
+      return `Shrank gap ${label(op.updated)} by the wrong number of slots\n` + itemize(basic, ...details);
+    }
+
     case 'rename':
       return `Renamed ${label(op.original)} to ${label(op.updated)}`;
 

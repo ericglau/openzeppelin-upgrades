@@ -74,8 +74,11 @@ function buildMatrix<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Matr
     const updated = b[j - 1];
     const predecessor = matrix[i - 1][j - 1];
     const predCost = predecessor.totalCost;
-    const change = getChangeOp(original, updated);
+    const change = getChangeOp(original, updated); // return cost
     if (change !== undefined) {
+      if ((change as any).kind === 'shrinkgap') {
+        return { kind: 'change', totalCost: predCost /* TODO: use var for 0 */, predecessor, change };
+      }
       return { kind: 'change', totalCost: predCost + CHANGE_COST, predecessor, change };
     } else {
       return { kind: 'nop', totalCost: predCost, predecessor };
@@ -98,6 +101,9 @@ function minBy<T>(arr: [T, ...T[]], value: (item: T) => number): T {
   return min;
 }
 
+// where we build array of ops
+// if change, don't take the outer but take the inner 
+// . return cost from getchangeop
 function buildOps<T, C>(matrix: MatrixEntry<T, C>[][], a: T[], b: T[]): Operation<T, C>[] {
   const ops: Operation<T, C>[] = [];
 
@@ -107,7 +113,7 @@ function buildOps<T, C>(matrix: MatrixEntry<T, C>[][], a: T[], b: T[]): Operatio
     if (entry.kind === 'change') {
       ops.unshift(entry.change);
     } else if (entry.kind !== 'nop') {
-      ops.unshift(entry);
+      ops.unshift(entry); //here
     }
     entry = entry.predecessor;
   }

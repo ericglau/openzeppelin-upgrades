@@ -113,6 +113,8 @@ export class StorageLayoutComparator {
         // else:
         return true;
       } else {
+        // TODO if a shrinkgap ends on the same slot as before, return false (allow it), else return true
+
         console.log("ALLOW " + JSON.stringify(o, null, 2));
         return true;
       }

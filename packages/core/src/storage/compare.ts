@@ -82,13 +82,41 @@ export class StorageLayoutComparator {
     updated: F[],
     { allowAppend }: { allowAppend: boolean },
   ): StorageOperation<F>[] {
-    const ops = levenshtein(original, updated, (a, b) => this.getFieldChange(a, b));
+    let ops = levenshtein(original, updated, (a, b) => this.getFieldChange(a, b));
 
+    // const opsFilteredGaps = [];
+    // for (let i = 0; i < ops.length; i++) {
+    //   if (ops[i].kind = 'insert') {
+    //     for (let j = 0; j < ops.length; j++) {
+    //       const compare = ops[j];
+    //       if (j !== i && compare.kind === 'shrinkgap') {
+
+    //         //const TEMP = compare.change.original;
+    //         // TODO check if compare.original overlaps 
+    //       } // TODO or if gap was deleted
+    //       else {
+    //         opsFilteredGaps.push(ops);
+    //       }
+    //     }
+    //   }
+    // }
+  
+    // filter append
     if (allowAppend) {
-      return ops.filter(o => o.kind !== 'append');
-    } else {
-      return ops;
+      ops = ops.filter(o => o.kind !== 'append');
     }
+
+    return ops.filter(o => {
+      if (o.kind === 'insert') {
+        console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
+        // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
+        // else:
+        return true;
+      } else {
+        console.log("ALLOW " + JSON.stringify(o, null, 2));
+        return true;
+      }
+    });
   }
 
   getVisibilityChange(original: ParsedTypeDetailed, updated: ParsedTypeDetailed): TypeChange | undefined {

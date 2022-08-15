@@ -444,7 +444,8 @@ contract StorageUpgrade_Gap_V2_Ok {
     uint256 a;
     uint256 b;
     uint256 c;
-    uint256[47] __gap;
+    uint256 d;
+    uint256[46] __gap;
     uint256 z;
 }
 
@@ -459,6 +460,15 @@ contract StorageUpgrade_Gap_V2_Bad1 {
 contract StorageUpgrade_Gap_V2_Bad2 {
     uint256 a;
     uint256[49] __gap;
+    uint256 z;
+}
+
+// TODO add this to tests
+// shrink gap without adding a variable
+contract StorageUpgrade_Gap_V2_Bad3 {
+    uint256 a;
+    uint256 b;
+    uint256[47] __gap;
     uint256 z;
 }
 

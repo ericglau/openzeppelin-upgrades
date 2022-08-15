@@ -17,6 +17,7 @@ export function levenshtein<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>
   return buildOps(matrix, a, b);
 }
 
+const SHRINKGAP_COST = 0;
 const CHANGE_COST = 3;
 const INSERTION_COST = 2;
 const DELETION_COST = 2;
@@ -77,7 +78,7 @@ function buildMatrix<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Matr
     const change = getChangeOp(original, updated); // return cost
     if (change !== undefined) {
       if ((change as any).kind === 'shrinkgap') {
-        return { kind: 'change', totalCost: predCost /* TODO: use var for 0 */, predecessor, change };
+        return { kind: 'change', totalCost: predCost + SHRINKGAP_COST, predecessor, change };
       }
       return { kind: 'change', totalCost: predCost + CHANGE_COST, predecessor, change };
     } else {
@@ -111,9 +112,9 @@ function buildOps<T, C>(matrix: MatrixEntry<T, C>[][], a: T[], b: T[]): Operatio
 
   while (entry !== undefined) {
     if (entry.kind === 'change') {
-      ops.unshift(entry.change);
+      ops.unshift(entry.change); // here
     } else if (entry.kind !== 'nop') {
-      ops.unshift(entry); //here
+      ops.unshift(entry);
     }
     entry = entry.predecessor;
   }

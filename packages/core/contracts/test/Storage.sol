@@ -444,7 +444,6 @@ contract StorageUpgrade_Gap_V2_Ok {
     uint256 a;
     uint256 b;
     uint256 c;
-    uint256 d;
     uint256[46] __gap;
     uint256 z;
 }

@@ -480,7 +480,7 @@ test('storage upgrade with gap', t => {
   // const v2_Bad1 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad1');
   // const v2_Bad2 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad2');
 
-  t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
+  console.log("----- START ----- \n" + JSON.stringify(getStorageUpgradeErrors(v1, v2_Ok), null, 2) + " \n----- END -----");
   // t.like(getStorageUpgradeErrors(v1, v2_Bad1), {
   //   length: 1,
   //   0: {

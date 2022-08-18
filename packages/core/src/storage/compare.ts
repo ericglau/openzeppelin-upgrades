@@ -111,7 +111,7 @@ export class StorageLayoutComparator {
         console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
         // else:
-        return true;
+        return false;
       } else {
         // TODO if a shrinkgap ends on the same slot as before, return false (allow it), else return true
 

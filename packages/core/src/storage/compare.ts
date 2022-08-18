@@ -151,6 +151,22 @@ export class StorageLayoutComparator {
 
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
 
+      } else if (o.kind === 'replace' && o.original.label === '__gap') {
+        console.log("REPLACE GAP " + JSON.stringify(o, null, 2));
+
+        // if a gap was replaced by something else <ENDS AT THE SAME SPOT AS THE GAP?> (TODO test if the replacement is smaller or larger than the gap), then it is fine
+        const { startPos, endPos } = getStartEndPos(o.original);
+        console.log("gap - startPos " + startPos + " endPos " + endPos);
+
+        const { startPos : updatedStartPos, endPos : updatedEndPos } = getStartEndPos(o.updated);
+        console.log("replacement - updatedStartPos " + updatedStartPos + " updatedEndPos " + updatedEndPos);
+
+        if (endPos === updatedEndPos) {
+          return false;
+        } else {
+          return true;
+        }
+
       } else {
         // TODO if a shrinkgap ends on the same slot as before, return false (allow it), else return true
 
@@ -377,7 +393,7 @@ export class StorageLayoutComparator {
 function getStartEndPos(field: StorageField) {
 
   const startPos = parseInt(field.slot ?? "0") * 32 + (field.offset ?? 0); // TODO handle undefined slot
-  const endPos = startPos + (parseInt(field.type.item.numberOfBytes ?? "0")); // TODO handle undefined numberOfBytes
+  const endPos = startPos + (parseInt(field.type.item.numberOfBytes ?? "0")); // TODO handle undefined numberOfBytes // fun fact numberOfBytes is aligned to the next slot if this is an array, regardless of type
   return { startPos, endPos };
 }
 

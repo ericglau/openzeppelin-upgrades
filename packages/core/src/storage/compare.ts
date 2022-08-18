@@ -5,6 +5,7 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
+import { start } from 'repl';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -108,15 +109,48 @@ export class StorageLayoutComparator {
 
     return ops.filter(o => {
       if (o.kind === 'insert') {
-        //console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
+        console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
         // else:
-        return false;
+
+        const { startPos, endPos } = getStartEndPos(o.updated);
+        console.log("insert - startPos " + startPos + " endPos " + endPos);
+
+
+        for (let i = 0; i < ops.length; i++) {
+          const compare = ops[i];
+          if (compare.kind === 'shrinkgap') {
+            console.log("comparing insert to gap");
+
+            const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(compare.original);
+            console.log("comparing with gap - startPos " + startPos + " endPos " + endPos);
+
+            if (startPos >= gapStartPos && endPos <= gapEndPos /* TODO add condition to allow this to expand past the end of the original storage */) {
+              console.log("insert is within gap, omitting");
+              return false;
+            }
+          }
+        }
+        console.log("insert is NOT within gap, keeping it");
+
+        return true;
       } else if (o.kind === 'shrinkgap') {
-       // console.log("SHRANK GAP " + JSON.stringify(o.updated, null, 2));
+        console.log("SHRANK GAP " + JSON.stringify(o, null, 2));
+
+        const { startPos, endPos } = getStartEndPos(o.original);
+        console.log("gap - startPos " + startPos + " endPos " + endPos);
+
+        const { startPos : updatedStartPos, endPos : updatedEndPos } = getStartEndPos(o.updated);
+        console.log("gap - updatedStartPos " + updatedStartPos + " updatedEndPos " + updatedEndPos);
+
+        if (endPos === updatedEndPos) { // the gap ends match, so they are compatible
+          return false;
+        } else {
+          return true;
+        }
+
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
-        // else:
-        return false;
+
       } else {
         // TODO if a shrinkgap ends on the same slot as before, return false (allow it), else return true
 
@@ -338,6 +372,13 @@ export class StorageLayoutComparator {
         return { kind: 'unknown', original, updated };
     }
   }
+}
+
+function getStartEndPos(field: StorageField) {
+
+  const startPos = parseInt(field.slot ?? "0") * 32 + (field.offset ?? 0); // TODO handle undefined slot
+  const endPos = startPos + (parseInt(field.type.item.numberOfBytes ?? "0")); // TODO handle undefined numberOfBytes
+  return { startPos, endPos };
 }
 
 function enumSize(memberCount: number): number {

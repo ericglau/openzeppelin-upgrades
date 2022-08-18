@@ -76,14 +76,15 @@ function buildMatrix<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Matr
     const predCost = predecessor.totalCost;
     const change = getChangeOp(original, updated); // return cost
     if (change !== undefined) {
-      console.log('CHANGE KIND IS ' + (change as any).kind);
+      //console.log('CHANGE KIND IS ' + (change as any).kind);
       if ((change as any).kind === 'shrinkgap') {
         return { kind: 'change', totalCost: predCost + 0, predecessor, change };
-      } else if ((change as any).kind === 'typechange') {
-        return { kind: 'change', totalCost: predCost + 6, predecessor, change };
-      } else if ((change as any).kind === 'layoutchange') {
-        return { kind: 'change', totalCost: predCost + 0, predecessor, change };
       }
+      // else if ((change as any).kind === 'typechange') {
+      //   return { kind: 'change', totalCost: predCost + 6, predecessor, change };
+      // } else if ((change as any).kind === 'layoutchange') {
+      //   return { kind: 'change', totalCost: predCost + 0, predecessor, change };
+      // }
       return { kind: 'change', totalCost: predCost + CHANGE_COST, predecessor, change };
     } else {
       return { kind: 'nop', totalCost: predCost, predecessor };

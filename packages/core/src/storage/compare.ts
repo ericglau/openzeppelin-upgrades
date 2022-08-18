@@ -72,7 +72,7 @@ export class StorageLayoutComparator {
 
   compareLayouts(original: StorageItem[], updated: StorageItem[]): LayoutCompatibilityReport {
     const leven = this.layoutLevenshtein(original, updated, { allowAppend: true });
-    console.log(JSON.stringify(leven, null, 2));
+    //console.log(JSON.stringify(leven, null, 2));
     const report = new LayoutCompatibilityReport(leven);
     return report;
   }
@@ -108,14 +108,19 @@ export class StorageLayoutComparator {
 
     return ops.filter(o => {
       if (o.kind === 'insert') {
-        console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
+        //console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
+        // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
+        // else:
+        return false;
+      } else if (o.kind === 'shrinkgap') {
+       // console.log("SHRANK GAP " + JSON.stringify(o.updated, null, 2));
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
         // else:
         return false;
       } else {
         // TODO if a shrinkgap ends on the same slot as before, return false (allow it), else return true
 
-        console.log("ALLOW " + JSON.stringify(o, null, 2));
+       // console.log("ALLOW " + JSON.stringify(o, null, 2));
         return true;
       }
     });

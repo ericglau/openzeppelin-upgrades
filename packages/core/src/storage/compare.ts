@@ -122,44 +122,41 @@ export class StorageLayoutComparator {
         // An insertion is allowed if it lies completely within an original gap that was shrunk,
         // or (it does not overlap with a non-gap in the original layout AND the next field in the original and updated layouts retain the same slot)
 
-        for (let i = 0; i < ops.length; i++) {
-          const op = ops[i];
-          if (op.kind === 'shrinkgap' || op.kind === 'gaplayoutchange') {
-            console.log("comparing insert to gap");
+        // for (let i = 0; i < ops.length; i++) {
+        //   const op = ops[i];
+        //   if (op.kind === 'shrinkgap' || op.kind === 'gaplayoutchange') {
+        //     console.log("comparing insert to gap");
 
-            const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(op.original);
-            console.log("comparing with gap - startPos " + startPos + " endPos " + endPos);
+        //     const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(op.original);
+        //     console.log("comparing with gap - startPos " + startPos + " endPos " + endPos);
 
-            if (startPos >= gapStartPos && endPos <= gapEndPos /* TODO add condition to allow this to expand past the end of the original storage */) {
-              console.log("insert is within gap, omitting");
-              return false;
-            }
+        //     if (startPos >= gapStartPos && endPos <= gapEndPos /* TODO add condition to allow this to expand past the end of the original storage */) {
+        //       console.log("insert is within gap, omitting");
+        //       return false;
+        //     }
+        //   }
+        // }
+
+        for (let i = 0; i < original.length; i++) {
+          const compare = original[i];
+          console.log("comparing insert to field " + compare.label);
+
+          const { startPos : compareStart, endPos : compareEnd } = getStartEndPos(compare);
+          console.log("comparing with field's: compareStart " + compareStart + " compareEnd " + compareEnd);
+
+          // for non-gaps, if the insertion overlaps with the original field, this is not allowed (return true) 
+          // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
+          // (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
+          // else it is fine (return false)
+          if (compare.label !== '__gap' && (compareStart <= endPos && startPos <= compareEnd)) { /* TODO add condition to allow this to expand past the end of the original storage */
+            console.log("field " + o.updated.label + " overlaps with " + compare.label);
+            return true;
+          } else {
+            console.log("field " + o.updated.label + " is fine compared to " + compare.label);
+            return false;
           }
         }
 
-        // for (let i = 0; i < original.length; i++) {
-        //   const compare = original[i];
-        //   console.log("comparing insert to field " + compare.label);
-
-        //   const { startPos : compareStart, endPos : compareEnd } = getStartEndPos(compare);
-        //   console.log("comparing with field's: compareStart " + compareStart + " compareEnd " + compareEnd);
-
-        //   // for non-gaps, if the insertion overlaps with the original field, this is not allowed (return true) 
-        //   // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
-        //   // (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
-        //   // else it is fine (return false)
-        //   if (compare.label !== '__gap' && (compareStart <= endPos && startPos <= compareEnd)) { /* TODO add condition to allow this to expand past the end of the original storage */
-        //     console.log("field " + o.updated.label + " overlaps with " + compare.label);
-        //     return true;
-        //   } else {
-        //     // console.log("field " + o.updated.label + " does not overlap. checking next item...");
-        //     // if (i < original.length - 1) {
-        //     //   const next = original[i+1];
-        //     //   if ()
-        //     // }
-        //    return false;
-        //   }
-        // }
         console.log("determined that the insert is unsafe");
         return true;
       } else if (o.kind === 'shrinkgap') {

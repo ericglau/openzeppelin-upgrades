@@ -78,7 +78,7 @@ function buildMatrix<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Matr
     if (change !== undefined) {
       //console.log('CHANGE KIND IS ' + (change as any).kind);
       if ((change as any).kind === 'shrinkgap') {
-        return { kind: 'change', totalCost: predCost + 0, predecessor, change };
+        return { kind: 'change', totalCost: predCost, predecessor, change };
       }
       // else if ((change as any).kind === 'typechange') {
       //   return { kind: 'change', totalCost: predCost + 6, predecessor, change };

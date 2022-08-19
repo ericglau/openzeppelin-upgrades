@@ -161,6 +161,23 @@ export class StorageLayoutComparator {
         const { startPos : updatedStartPos, endPos : updatedEndPos } = getStartEndPos(o.updated);
         console.log("replacement - updatedStartPos " + updatedStartPos + " updatedEndPos " + updatedEndPos);
 
+        // // if the original gap was the last item, allow it (as long as the starting point was the same?)
+        // // 1. find label from original
+        // for (let i = 0; i < original.length; i++) {
+        //   console.log("looping " + i);
+        //   if (original[i].label === o.original.label) {
+        //     console.log("labels match " + original[i].label);
+
+        //     // 2. see if the index is the last one, or if there are consecutive end gaps
+        //     if (i === original.length - 1) {
+        //       console.log("it is the last index " + i);
+        //       return false;
+        //     } else {
+        //       console.log("it is NOT the last index " + i + " out of length " + original.length);
+        //     }
+        //   }
+        // }
+
         if (endPos === updatedEndPos) {
           return false;
         } else {

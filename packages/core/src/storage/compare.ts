@@ -72,7 +72,7 @@ export class StorageLayoutComparator {
 
   compareLayouts(original: StorageItem[], updated: StorageItem[]): LayoutCompatibilityReport {
     const leven = this.layoutLevenshtein(original, updated, { allowAppend: true });
-    //console.log(JSON.stringify(leven, null, 2));
+
     const report = new LayoutCompatibilityReport(leven);
     return report;
   }
@@ -83,6 +83,8 @@ export class StorageLayoutComparator {
     { allowAppend }: { allowAppend: boolean },
   ): StorageOperation<F>[] {
     let ops = levenshtein(original, updated, (a, b) => this.getFieldChange(a, b));
+
+    console.log("Levenshtein ops: " + JSON.stringify(ops, null, 2));
 
     // const opsFilteredGaps = [];
     // for (let i = 0; i < ops.length; i++) {
@@ -116,12 +118,15 @@ export class StorageLayoutComparator {
         console.log("insert - startPos " + startPos + " endPos " + endPos);
 
 
+        // An insertion is allowed if it lies completely within an original gap that was shrunk,
+        // or (it does not overlap with a non-gap in the original layout AND the next field in the original and updated layouts retain the same slot)
+
         for (let i = 0; i < ops.length; i++) {
-          const compare = ops[i];
-          if (compare.kind === 'shrinkgap') {
+          const op = ops[i];
+          if (op.kind === 'shrinkgap') {
             console.log("comparing insert to gap");
 
-            const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(compare.original);
+            const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(op.original);
             console.log("comparing with gap - startPos " + startPos + " endPos " + endPos);
 
             if (startPos >= gapStartPos && endPos <= gapEndPos /* TODO add condition to allow this to expand past the end of the original storage */) {
@@ -130,8 +135,31 @@ export class StorageLayoutComparator {
             }
           }
         }
-        console.log("insert is NOT within gap, keeping it");
 
+        // for (let i = 0; i < original.length; i++) {
+        //   const compare = original[i];
+        //   console.log("comparing insert to field " + compare.label);
+
+        //   const { startPos : compareStart, endPos : compareEnd } = getStartEndPos(compare);
+        //   console.log("comparing with field's: compareStart " + compareStart + " compareEnd " + compareEnd);
+
+        //   // for non-gaps, if the insertion overlaps with the original field, this is not allowed (return true) 
+        //   // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
+        //   // (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
+        //   // else it is fine (return false)
+        //   if (compare.label !== '__gap' && (compareStart <= endPos && startPos <= compareEnd)) { /* TODO add condition to allow this to expand past the end of the original storage */
+        //     console.log("field " + o.updated.label + " overlaps with " + compare.label);
+        //     return true;
+        //   } else {
+        //     // console.log("field " + o.updated.label + " does not overlap. checking next item...");
+        //     // if (i < original.length - 1) {
+        //     //   const next = original[i+1];
+        //     //   if ()
+        //     // }
+        //    return false;
+        //   }
+        // }
+        console.log("determined that the insert is unsafe");
         return true;
       } else if (o.kind === 'shrinkgap') {
         console.log("SHRANK GAP " + JSON.stringify(o, null, 2));
@@ -150,7 +178,7 @@ export class StorageLayoutComparator {
 
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
 
-      } else if (o.kind === 'replace' && o.original.label === '__gap') {
+      } else if (o.kind === 'replacegap') {
         console.log("REPLACE GAP " + JSON.stringify(o, null, 2));
 
         // if a gap was replaced by something else <ENDS AT THE SAME SPOT AS THE GAP?> (TODO test if the replacement is smaller or larger than the gap), then it is fine

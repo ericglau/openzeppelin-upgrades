@@ -434,12 +434,18 @@ contract StorageUpgrade_StructEnum_V2 {
 }
 
 contract StorageUpgrade_Gap_V1 {
-    uint256[2] __gap;
+    uint256 a;
+    uint256 b;
+    uint256[48] __gap;
+    uint256 z;
 }
 
 contract StorageUpgrade_Gap_V2_Ok {
     uint256 a;
     uint256 b;
+    uint256 c;
+    uint256[47] __gap;
+    uint256 z;
 }
 
 contract StorageUpgrade_Gap_V2_Bad1 {
@@ -463,6 +469,15 @@ contract StorageUpgrade_Gap_V2_Bad3 {
     uint256 b;
     uint256[47] __gap;
     uint256 z;
+}
+
+contract StorageUpgrade_MultiConsumeGap_V1 {
+    uint256[2] __gap;
+}
+
+contract StorageUpgrade_MultiConsumeGap_V2_Ok {
+    uint256 a;
+    uint256 b;
 }
 
 contract StorageUpgrade_EndGap_V1a {

@@ -499,14 +499,31 @@ test('storage upgrade with gap', t => {
   const v2_Bad2 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad2');
 
   t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
-  t.deepEqual(getStorageUpgradeErrors(v1, v2_Bad1), []);
-  // {
-  //   length: 1,
-  //   0: {
-  //     kind: 'insert',
-  //     updated: { label: 'c' },
-  //   },
-  // });
+  t.like(getStorageUpgradeErrors(v1, v2_Bad1), {
+    length: 2,
+    0: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '2',
+          to: '3',
+        },
+      },
+      original: { label: '__gap' },
+      updated: { label: '__gap' },
+    },
+    1: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '50',
+          to: '51',
+        },
+      },
+      original: { label: 'z' },
+      updated: { label: 'z' },
+    },
+  });
   t.like(getStorageUpgradeErrors(v1, v2_Bad2), {
     length: 2,
     0: {
@@ -655,11 +672,28 @@ test('storage upgrade with one element gap', t => {
 
   t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
   t.like(getStorageUpgradeErrors(v1, v2_Bad), {
-    length: 1,
+    length: 2,
     0: {
-      kind: 'replace',
-      original: { label: 'z' },
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '2',
+          to: '3',
+        },
+      },
+      original: { label: '__gap' },
       updated: { label: '__gap' },
+    },
+    1: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '3',
+          to: '4',
+        },
+      },
+      original: { label: 'z' },
+      updated: { label: 'z' },
     },
   });
 });

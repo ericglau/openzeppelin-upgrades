@@ -261,9 +261,9 @@ export class StorageLayoutComparator {
         return { kind: 'typechange', change: typeChange, original, updated };
       }
     } else if (layoutChange && !layoutChange.uncertain) {
-      if (original.label === '__gap') {
-        return { kind: 'gaplayoutchange', original, updated, change: layoutChange };
-      }
+      // if (original.label === '__gap') {
+      //   return { kind: 'gaplayoutchange', original, updated, change: layoutChange };
+      // }
 
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.

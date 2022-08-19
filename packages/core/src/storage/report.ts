@@ -79,6 +79,15 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
     case 'replacegap':
       return `Replaced gap ${label(op.original)} with ${label(op.updated)}`; // TODO when this would be displayed to user
 
+
+    case 'gaplayoutchange': { // TODO
+      return (
+        `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +
+        `(${op.original.type.item.label} -> ${op.updated.type.item.label})\n` +
+        describeLayoutTransition(op.change)
+      ).trimEnd();
+    }
+
     case 'layoutchange': {
       return (
         `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +

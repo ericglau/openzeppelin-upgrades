@@ -18,6 +18,7 @@ type StorageFieldChange<F extends StorageField> = (
   | { kind: 'replace' | 'rename' | 'replacegap' }
   | { kind: 'typechange'; change: TypeChange }
   | { kind: 'layoutchange'; change: LayoutChange }
+  | { kind: 'gaplayoutchange'; change: LayoutChange }
   | { kind: 'shrinkgap'; change: TypeChange }
 ) & {
   original: F;
@@ -123,7 +124,7 @@ export class StorageLayoutComparator {
 
         for (let i = 0; i < ops.length; i++) {
           const op = ops[i];
-          if (op.kind === 'shrinkgap') {
+          if (op.kind === 'shrinkgap' || op.kind === 'gaplayoutchange') {
             console.log("comparing insert to gap");
 
             const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(op.original);
@@ -263,6 +264,10 @@ export class StorageLayoutComparator {
         return { kind: 'typechange', change: typeChange, original, updated };
       }
     } else if (layoutChange && !layoutChange.uncertain) {
+      if (original.label === '__gap') {
+        return { kind: 'gaplayoutchange', original, updated, change: layoutChange };
+      }
+
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.
       return { kind: 'layoutchange', original, updated, change: layoutChange };

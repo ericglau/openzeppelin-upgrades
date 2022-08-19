@@ -81,12 +81,12 @@ function buildMatrix<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Matr
         return { kind: 'change', totalCost: predCost, predecessor, change };
       } else if ((change as any).kind === 'replacegap') {
           return { kind: 'change', totalCost: predCost + 1, predecessor, change };
-        }
+      } 
       // else if ((change as any).kind === 'typechange') {
       //   return { kind: 'change', totalCost: predCost + 6, predecessor, change };
-      // } else if ((change as any).kind === 'layoutchange') {
-      //   return { kind: 'change', totalCost: predCost + 0, predecessor, change };
-      // }
+        else if ((change as any).kind === 'gaplayoutchange') {
+        return { kind: 'change', totalCost: predCost + 1, predecessor, change };
+      }
       return { kind: 'change', totalCost: predCost + CHANGE_COST, predecessor, change };
     } else {
       return { kind: 'nop', totalCost: predCost, predecessor };

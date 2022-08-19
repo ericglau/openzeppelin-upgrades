@@ -5,7 +5,6 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
-import { start } from 'repl';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -16,7 +15,7 @@ export type StorageOperation<F extends StorageField> = Operation<F, StorageField
 export type EnumOperation = Operation<string, { kind: 'replace'; original: string; updated: string }>;
 
 type StorageFieldChange<F extends StorageField> = (
-  | { kind: 'replace' | 'rename' }
+  | { kind: 'replace' | 'rename' | 'replacegap' }
   | { kind: 'typechange'; change: TypeChange }
   | { kind: 'layoutchange'; change: LayoutChange }
   | { kind: 'shrinkgap'; change: TypeChange }
@@ -216,6 +215,16 @@ export class StorageLayoutComparator {
     if (updated.retypedFrom && layoutChange) {
       return { kind: 'layoutchange', original, updated, change: layoutChange };
     } else if (typeChange && nameChange) {
+      if (original.label === '__gap') {
+        const {endPos} = getStartEndPos(original);
+        const {endPos : updatedEndPos} = getStartEndPos(updated);
+        if (endPos === updatedEndPos) {
+          console.log("Found replace gap with matching ends");
+          return { kind: 'replacegap', original, updated };
+        } else {
+          console.log("Found replace gap but ends do NOT match");
+        }
+      }
       return { kind: 'replace', original, updated };
     } else if (nameChange) {
       return { kind: 'rename', original, updated };

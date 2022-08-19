@@ -76,6 +76,9 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
     case 'replace':
       return `Replaced ${label(op.original)} with ${label(op.updated)} of incompatible type`;
 
+    case 'replacegap':
+      return `Replaced gap ${label(op.original)} with ${label(op.updated)}`; // TODO when this would be displayed to user
+
     case 'layoutchange': {
       return (
         `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +

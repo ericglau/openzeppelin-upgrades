@@ -668,9 +668,11 @@ test('storage upgrade with different typed gaps', t => {
 test('storage upgrade with one element gap', t => {
   const v1 = t.context.extractStorageLayout('StorageUpgrade_Gap_One_Element_V1');
   const v2_Ok = t.context.extractStorageLayout('StorageUpgrade_Gap_One_Element_V2_Ok');
+  const v2b_Ok = t.context.extractStorageLayout('StorageUpgrade_Gap_One_Element_V2b_Ok');
   const v2_Bad = t.context.extractStorageLayout('StorageUpgrade_Gap_One_Element_V2_Bad');
 
   t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
+  t.deepEqual(getStorageUpgradeErrors(v1, v2b_Ok), []);
   t.like(getStorageUpgradeErrors(v1, v2_Bad), {
     length: 2,
     0: {

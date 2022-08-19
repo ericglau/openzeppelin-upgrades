@@ -70,6 +70,9 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
       return `Shrank gap ${label(op.updated)} by the wrong number of slots\n` + itemize(basic, ...details); // TODO count number of slots
     }
 
+    case 'renamegap':
+      return `Renamed ${label(op.original)} to ${label(op.updated)}`; // TODO when this would be displayed to user
+
     case 'rename':
       return `Renamed ${label(op.original)} to ${label(op.updated)}`;
 

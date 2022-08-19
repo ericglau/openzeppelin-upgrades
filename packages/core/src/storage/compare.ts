@@ -15,7 +15,7 @@ export type StorageOperation<F extends StorageField> = Operation<F, StorageField
 export type EnumOperation = Operation<string, { kind: 'replace'; original: string; updated: string }>;
 
 type StorageFieldChange<F extends StorageField> = (
-  | { kind: 'replace' | 'rename' | 'replacegap' }
+  | { kind: 'replace' | 'rename' | 'replacegap' | 'renamegap' }
   | { kind: 'typechange'; change: TypeChange }
   | { kind: 'layoutchange'; change: LayoutChange }
   | { kind: 'gaplayoutchange'; change: LayoutChange }
@@ -176,7 +176,7 @@ export class StorageLayoutComparator {
 
         // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
 
-      } else if (o.kind === 'replacegap') {
+      } else if (o.kind === 'replacegap' || o.kind === 'renamegap') {
         console.log("REPLACE GAP " + JSON.stringify(o, null, 2));
 
         // if a gap was replaced by something else <ENDS AT THE SAME SPOT AS THE GAP?> (TODO test if the replacement is smaller or larger than the gap), then it is fine
@@ -253,6 +253,16 @@ export class StorageLayoutComparator {
       }
       return { kind: 'replace', original, updated };
     } else if (nameChange) {
+      if (original.label === '__gap') {
+        const {endPos} = getStartEndPos(original);
+        const {endPos : updatedEndPos} = getStartEndPos(updated);
+        if (endPos === updatedEndPos) {
+          console.log("Found rename gap with matching ends");
+          return { kind: 'renamegap', original, updated };
+        } else {
+          console.log("Found rename gap but ends do NOT match");
+        }
+      }
       return { kind: 'rename', original, updated };
     } else if (typeChange) {
       if (typeChange.kind === 'array shrink' && updated.label === '__gap') {

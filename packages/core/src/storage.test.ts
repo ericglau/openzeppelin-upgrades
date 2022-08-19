@@ -65,7 +65,7 @@ test('storage upgrade delete', t => {
   const v2 = t.context.extractStorageLayout('StorageUpgrade_Delete_V2');
   const comparison = getStorageUpgradeErrors(v1, v2);
   t.like(comparison, {
-    length: 1,
+    length: 2,
     0: {
       kind: 'delete',
       original: {
@@ -74,6 +74,23 @@ test('storage upgrade delete', t => {
         type: {
           id: 't_uint256',
         },
+      },
+    },
+    1: {
+      kind: 'layoutchange',
+      original: {
+        label: 'x2',
+        type: {
+          id: 't_address',
+        },
+        slot: '1',
+      },
+      updated: {
+        label: 'x2',
+        type: {
+          id: 't_address',
+        },
+        slot: '0',
       },
     },
   });
@@ -172,6 +189,7 @@ test('storage upgrade with structs', t => {
   t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
 
   const v2_Bad = t.context.extractStorageLayout('StorageUpgrade_Struct_V2_Bad');
+
   t.like(getStorageUpgradeErrors(v1, v2_Bad), {
     length: 6,
     0: {
@@ -179,7 +197,7 @@ test('storage upgrade with structs', t => {
       change: {
         kind: 'struct members',
         ops: {
-          length: 2,
+          length: 3,
           0: { kind: 'delete' },
         },
       },

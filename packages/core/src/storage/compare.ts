@@ -273,7 +273,7 @@ export class StorageLayoutComparator {
     const validPair = ['uint8', 'bool'];
     const knownCompatibleTypes =
       validPair.includes(original.type.item.label) && validPair.includes(updated.type.item.label);
-    if (original.type.item.label == updated.type.item.label || knownCompatibleTypes) {
+    if (knownCompatibleTypes) {
       return undefined;
     } else if (hasLayout(original) && hasLayout(updated)) {
       const change = <T>(from: T, to: T) => (from === to ? undefined : { from, to });

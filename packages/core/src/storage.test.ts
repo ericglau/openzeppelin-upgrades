@@ -537,74 +537,74 @@ test('storage upgrade with gap', t => {
   });
 });
 
-// // test('storage upgrade with multiple items consuming a gap', t => {
-// //   const v1 = t.context.extractStorageLayout('StorageUpgrade_MultiConsumeGap_V1');
-// //   const v2_Ok = t.context.extractStorageLayout('StorageUpgrade_MultiConsumeGap_V2_Ok');
+test('storage upgrade with multiple items consuming a gap', t => {
+  const v1 = t.context.extractStorageLayout('StorageUpgrade_MultiConsumeGap_V1');
+  const v2_Ok = t.context.extractStorageLayout('StorageUpgrade_MultiConsumeGap_V2_Ok');
 
-// //   t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
-// // });
+  t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
+});
 
-// // test('storage upgrade that expand into the gap and past it', t => {
-// //   const v1a = t.context.extractStorageLayout('StorageUpgrade_EndGap_V1a');
-// //   const v1b = t.context.extractStorageLayout('StorageUpgrade_EndGap_V1b');
-// //   const v1c = t.context.extractStorageLayout('StorageUpgrade_EndGap_V1c');
-// //   const v2a = t.context.extractStorageLayout('StorageUpgrade_EndGap_V2a');
-// //   const v2b = t.context.extractStorageLayout('StorageUpgrade_EndGap_V2b');
+// test('storage upgrade that expand into the gap and past it', t => {
+//   const v1a = t.context.extractStorageLayout('StorageUpgrade_EndGap_V1a');
+//   const v1b = t.context.extractStorageLayout('StorageUpgrade_EndGap_V1b');
+//   const v1c = t.context.extractStorageLayout('StorageUpgrade_EndGap_V1c');
+//   const v2a = t.context.extractStorageLayout('StorageUpgrade_EndGap_V2a');
+//   const v2b = t.context.extractStorageLayout('StorageUpgrade_EndGap_V2b');
 
-// //   t.deepEqual(getStorageUpgradeErrors(v1a, v2a), []);
-// //   t.deepEqual(getStorageUpgradeErrors(v1b, v2a), []);
-// //   t.like(getStorageUpgradeErrors(v1c, v2a), {
-// //     length: 3,
-// //     0: {
-// //       kind: 'delete',
-// //       original: { label: '__gap' },
-// //     },
-// //     1: {
-// //       kind: 'delete',
-// //       original: { label: '__gap' },
-// //     },
-// //     2: {
-// //       kind: 'replace',
-// //       original: { label: 'b' },
-// //       updated: { label: 'big' },
-// //     },
-// //   });
+//   t.deepEqual(getStorageUpgradeErrors(v1a, v2a), []);
+//   t.deepEqual(getStorageUpgradeErrors(v1b, v2a), []);
+//   t.like(getStorageUpgradeErrors(v1c, v2a), {
+//     length: 3,
+//     0: {
+//       kind: 'delete',
+//       original: { label: '__gap' },
+//     },
+//     1: {
+//       kind: 'delete',
+//       original: { label: '__gap' },
+//     },
+//     2: {
+//       kind: 'replace',
+//       original: { label: 'b' },
+//       updated: { label: 'big' },
+//     },
+//   });
 
-// //   t.deepEqual(getStorageUpgradeErrors(v1a, v2b), []);
-// //   t.deepEqual(getStorageUpgradeErrors(v1b, v2b), []);
-// //   t.deepEqual(getStorageUpgradeErrors(v1c, v2b), []);
-// // });
+//   t.deepEqual(getStorageUpgradeErrors(v1a, v2b), []);
+//   t.deepEqual(getStorageUpgradeErrors(v1b, v2b), []);
+//   t.deepEqual(getStorageUpgradeErrors(v1c, v2b), []);
+// });
 
-// // test('storage upgrade that expand into the gap and past it with smaller data type', t => {
-// //   const v1a = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V1a');
-// //   const v1b = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V1b');
-// //   const v1c = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V1c');
-// //   const v2a = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V2a');
-// //   const v2b = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V2b');
+// test('storage upgrade that expand into the gap and past it with smaller data type', t => {
+//   const v1a = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V1a');
+//   const v1b = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V1b');
+//   const v1c = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V1c');
+//   const v2a = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V2a');
+//   const v2b = t.context.extractStorageLayout('StorageUpgrade_EndGap_Uint128_V2b');
 
-// //   t.deepEqual(getStorageUpgradeErrors(v1a, v2a), []);
-// //   t.deepEqual(getStorageUpgradeErrors(v1b, v2a), []);
-// //   t.like(getStorageUpgradeErrors(v1c, v2a), {
-// //     length: 3,
-// //     0: {
-// //       kind: 'delete',
-// //       original: { label: '__gap' },
-// //     },
-// //     1: {
-// //       kind: 'delete',
-// //       original: { label: '__gap' },
-// //     },
-// //     2: {
-// //       kind: 'replace',
-// //       original: { label: 'b' },
-// //       updated: { label: 'big' },
-// //     },
-// //   });
+//   t.deepEqual(getStorageUpgradeErrors(v1a, v2a), []);
+//   t.deepEqual(getStorageUpgradeErrors(v1b, v2a), []);
+//   t.like(getStorageUpgradeErrors(v1c, v2a), {
+//     length: 3,
+//     0: {
+//       kind: 'delete',
+//       original: { label: '__gap' },
+//     },
+//     1: {
+//       kind: 'delete',
+//       original: { label: '__gap' },
+//     },
+//     2: {
+//       kind: 'replace',
+//       original: { label: 'b' },
+//       updated: { label: 'big' },
+//     },
+//   });
 
-// //   t.deepEqual(getStorageUpgradeErrors(v1a, v2b), []);
-// //   t.deepEqual(getStorageUpgradeErrors(v1b, v2b), []);
-// //   t.deepEqual(getStorageUpgradeErrors(v1c, v2b), []);
-// // });
+//   t.deepEqual(getStorageUpgradeErrors(v1a, v2b), []);
+//   t.deepEqual(getStorageUpgradeErrors(v1b, v2b), []);
+//   t.deepEqual(getStorageUpgradeErrors(v1c, v2b), []);
+// });
 
 test('storage upgrade with different typed gaps', t => {
   const uint256gap_address_v1 = t.context.extractStorageLayout('StorageUpgrade_Uint256Gap_Address_V1');

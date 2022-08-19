@@ -101,14 +101,18 @@ contract StorageInheritChild is StorageInheritParent1, StorageInheritParent2 {
 }
 
 contract StorageUpgrade_Equal_V1 {
-  uint x1;
-  function foo() external {}
+  uint256 a;
+  uint256 b;
+  uint256[48] __gap;
+  uint256 z;
 }
 
 contract StorageUpgrade_Equal_V2 {
-  uint x1;
-  function foo() external {}
-  function bar() external {}
+  uint256 a;
+  uint256 b;
+  uint256 c;
+  uint256[48] __gap;
+  uint256 z;
 }
 
 contract StorageUpgrade_Append_V1 {

@@ -5,7 +5,7 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
-import { getStartEndPos, isGap } from './gap';
+import { getStartEndPos, isEndAligned, isGap } from './gap';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -187,35 +187,20 @@ export class StorageLayoutComparator {
     if (updated.retypedFrom && layoutChange) {
       return { kind: 'layoutchange', original, updated, change: layoutChange, cost: 1};
     } else if (typeChange && nameChange) {
-      if (isGap(original)) {
-        const {endPos} = getStartEndPos(original);
-        const {endPos : updatedEndPos} = getStartEndPos(updated);
-        if (endPos === updatedEndPos) {
-          console.log("Found replace gap with matching ends");
-          return { kind: 'replacegap', original, updated, cost: 1 };
-        } else {
-          console.log("Found replace gap but ends do NOT match");
-        }
+      if (isGap(original) && isEndAligned(updated, original)) {
+        return { kind: 'replacegap', original, updated, cost: 1 };
       }
       return { kind: 'replace', original, updated };
     } else if (nameChange) {
-      if (isGap(original)) {
-        const {endPos} = getStartEndPos(original);
-        const {endPos : updatedEndPos} = getStartEndPos(updated);
-        if (endPos === updatedEndPos) {
-          console.log("Found rename gap with matching ends");
-          return { kind: 'renamegap', original, updated, cost: 1};
-        } else {
-          console.log("Found rename gap but ends do NOT match");
-        }
+      if (isGap(original) && isEndAligned(updated, original)) {
+        return { kind: 'renamegap', original, updated, cost: 1 };
       }
       return { kind: 'rename', original, updated };
     } else if (typeChange) {
-      if (typeChange.kind === 'array shrink' && isGap(updated)) {
+      if (isGap(updated) && isEndAligned(updated, original) && typeChange.kind === 'array shrink') {
         return { kind: 'shrinkgap', change: typeChange, original, updated, cost: 0 };
-      } else {
-        return { kind: 'typechange', change: typeChange, original, updated };
       }
+      return { kind: 'typechange', change: typeChange, original, updated };
     } else if (layoutChange && !layoutChange.uncertain) {
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.

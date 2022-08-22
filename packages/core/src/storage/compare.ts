@@ -24,6 +24,7 @@ type StorageFieldChange<F extends StorageField> = (
 ) & {
   original: F;
   updated: F;
+  cost?: number;
 };
 
 export type TypeChange = (
@@ -184,14 +185,14 @@ export class StorageLayoutComparator {
     const layoutChange = this.getLayoutChange(original, updated);
 
     if (updated.retypedFrom && layoutChange) {
-      return { kind: 'layoutchange', original, updated, change: layoutChange };
+      return { kind: 'layoutchange', original, updated, change: layoutChange, cost: 1};
     } else if (typeChange && nameChange) {
       if (isGap(original)) {
         const {endPos} = getStartEndPos(original);
         const {endPos : updatedEndPos} = getStartEndPos(updated);
         if (endPos === updatedEndPos) {
           console.log("Found replace gap with matching ends");
-          return { kind: 'replacegap', original, updated };
+          return { kind: 'replacegap', original, updated, cost: 1 };
         } else {
           console.log("Found replace gap but ends do NOT match");
         }
@@ -203,7 +204,7 @@ export class StorageLayoutComparator {
         const {endPos : updatedEndPos} = getStartEndPos(updated);
         if (endPos === updatedEndPos) {
           console.log("Found rename gap with matching ends");
-          return { kind: 'renamegap', original, updated };
+          return { kind: 'renamegap', original, updated, cost: 1};
         } else {
           console.log("Found rename gap but ends do NOT match");
         }
@@ -211,14 +212,14 @@ export class StorageLayoutComparator {
       return { kind: 'rename', original, updated };
     } else if (typeChange) {
       if (typeChange.kind === 'array shrink' && isGap(updated)) {
-        return { kind: 'shrinkgap', change: typeChange, original, updated };
+        return { kind: 'shrinkgap', change: typeChange, original, updated, cost: 0 };
       } else {
         return { kind: 'typechange', change: typeChange, original, updated };
       }
     } else if (layoutChange && !layoutChange.uncertain) {
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.
-      return { kind: 'layoutchange', original, updated, change: layoutChange };
+      return { kind: 'layoutchange', original, updated, change: layoutChange, cost: 1 };
     }
   }
 

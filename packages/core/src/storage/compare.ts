@@ -5,6 +5,7 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
+import { getStartEndPos, isGap } from './gap';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -112,7 +113,7 @@ export class StorageLayoutComparator {
           // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
           // (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
           // else it is fine (return false)
-          if (compare.label !== '__gap' && (compareStart <= endPos && startPos <= compareEnd)) { /* TODO add condition to allow this to expand past the end of the original storage */
+          if (!isGap(compare) && (compareStart <= endPos && startPos <= compareEnd)) { /* TODO add condition to allow this to expand past the end of the original storage */
             console.log("field " + o.updated.label + " overlaps with " + compare.label);
             return true;
           } else {
@@ -185,7 +186,7 @@ export class StorageLayoutComparator {
     if (updated.retypedFrom && layoutChange) {
       return { kind: 'layoutchange', original, updated, change: layoutChange };
     } else if (typeChange && nameChange) {
-      if (original.label === '__gap') {
+      if (isGap(original)) {
         const {endPos} = getStartEndPos(original);
         const {endPos : updatedEndPos} = getStartEndPos(updated);
         if (endPos === updatedEndPos) {
@@ -197,7 +198,7 @@ export class StorageLayoutComparator {
       }
       return { kind: 'replace', original, updated };
     } else if (nameChange) {
-      if (original.label === '__gap') {
+      if (isGap(original)) {
         const {endPos} = getStartEndPos(original);
         const {endPos : updatedEndPos} = getStartEndPos(updated);
         if (endPos === updatedEndPos) {
@@ -209,16 +210,12 @@ export class StorageLayoutComparator {
       }
       return { kind: 'rename', original, updated };
     } else if (typeChange) {
-      if (typeChange.kind === 'array shrink' && updated.label === '__gap') {
+      if (typeChange.kind === 'array shrink' && isGap(updated)) {
         return { kind: 'shrinkgap', change: typeChange, original, updated };
       } else {
         return { kind: 'typechange', change: typeChange, original, updated };
       }
     } else if (layoutChange && !layoutChange.uncertain) {
-      // if (original.label === '__gap') {
-      //   return { kind: 'gaplayoutchange', original, updated, change: layoutChange };
-      // }
-
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.
       return { kind: 'layoutchange', original, updated, change: layoutChange };
@@ -398,13 +395,6 @@ export class StorageLayoutComparator {
         return { kind: 'unknown', original, updated };
     }
   }
-}
-
-function getStartEndPos(field: StorageField) {
-
-  const startPos = parseInt(field.slot ?? "0") * 32 + (field.offset ?? 0); // TODO handle undefined slot
-  const endPos = startPos + (parseInt(field.type.item.numberOfBytes ?? "0")); // TODO handle undefined numberOfBytes // fun fact numberOfBytes is aligned to the next slot if this is an array, regardless of type
-  return { startPos, endPos };
 }
 
 function enumSize(memberCount: number): number {

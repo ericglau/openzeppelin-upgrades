@@ -641,7 +641,7 @@ contract StorageUpgrade_Gap_One_Element_V2_Bad {
 contract StorageUpgrade_Gap_Bool_Not_Array_V1 {
     bool a;
     bool b;
-    bool __gap; // not a gap // but really this is fine...
+    bool __gap; // not a gap
     bool z;
 }
 
@@ -655,7 +655,7 @@ contract StorageUpgrade_Gap_Bool_Not_Array_V2_Bad {
 contract StorageUpgrade_Gap_Uint256_Not_Array_V1 {
     uint256 a;
     uint256 b;
-    uint256 __gap; // not a gap // but really this is fine...
+    uint256 __gap; // not a gap
     uint256 z;
 }
 

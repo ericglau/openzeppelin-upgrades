@@ -10,7 +10,9 @@ export type BasicOperation<T> =
 
 export type Operation<T, C> = C | BasicOperation<T>;
 
-type GetChangeOp<T, C> = (a: T, b: T) => C & { cost?: number } | undefined;
+export type Cost = { cost?: number };
+
+type GetChangeOp<T, C> = (a: T, b: T) => (C & Cost) | undefined;
 
 export function levenshtein<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Operation<T, C>[] {
   const matrix = buildMatrix(a, b, getChangeOp);
@@ -74,18 +76,8 @@ function buildMatrix<T, C>(a: T[], b: T[], getChangeOp: GetChangeOp<T, C>): Matr
     const updated = b[j - 1];
     const predecessor = matrix[i - 1][j - 1];
     const predCost = predecessor.totalCost;
-    const change = getChangeOp(original, updated); // return cost
+    const change = getChangeOp(original, updated);
     if (change !== undefined) {
-      //console.log('CHANGE KIND IS ' + (change as any).kind);
-      // if ((change as any).kind === 'shrinkgap') {
-      //   return { kind: 'change', totalCost: predCost, predecessor, change };
-      // } else if ((change as any).kind === 'replacegap') {
-      //     return { kind: 'change', totalCost: predCost + 1, predecessor, change };
-      // } else if ((change as any).kind === 'renamegap') {
-      //   return { kind: 'change', totalCost: predCost + 1, predecessor, change };
-      // } else if ((change as any).kind === 'layoutchange') {
-      //   return { kind: 'change', totalCost: predCost + 1, predecessor, change };
-      // }
       return { kind: 'change', totalCost: predCost + (change.cost ?? CHANGE_COST), predecessor, change };
     } else {
       return { kind: 'nop', totalCost: predCost, predecessor };
@@ -108,9 +100,6 @@ function minBy<T>(arr: [T, ...T[]], value: (item: T) => number): T {
   return min;
 }
 
-// where we build array of ops
-// if change, don't take the outer but take the inner 
-// . return cost from getchangeop
 function buildOps<T, C>(matrix: MatrixEntry<T, C>[][], a: T[], b: T[]): Operation<T, C>[] {
   const ops: Operation<T, C>[] = [];
 
@@ -118,7 +107,7 @@ function buildOps<T, C>(matrix: MatrixEntry<T, C>[][], a: T[], b: T[]): Operatio
 
   while (entry !== undefined) {
     if (entry.kind === 'change') {
-      ops.unshift(entry.change); // here
+      ops.unshift(entry.change);
     } else if (entry.kind !== 'nop') {
       ops.unshift(entry);
     }

@@ -71,7 +71,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
     }
 
     case 'finishgap':
-      return `Converted remainder of gap ${label(op.original)} to ${label(op.updated)}`; // TODO when this would be displayed to user
+      return `Converted remainder of gap ${label(op.original)} to ${label(op.updated)}`;
 
     case 'rename':
       return `Renamed ${label(op.original)} to ${label(op.updated)}`;

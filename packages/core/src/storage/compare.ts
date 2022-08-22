@@ -1,11 +1,11 @@
-import { levenshtein, Operation } from '../levenshtein';
+import { Cost, levenshtein, Operation } from '../levenshtein';
 import { hasLayout, ParsedTypeDetailed, isEnumMembers, isStructMembers } from './layout';
 import { UpgradesError } from '../error';
 import { StorageItem as _StorageItem, StructMember as _StructMember, StorageField as _StorageField } from './layout';
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
-import { endMatchesGap, getStartEndPos, isEndAligned, isGap } from './gap';
+import { endMatchesGap, getStartEndPos, isGap } from './gap';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -23,8 +23,7 @@ type StorageFieldChange<F extends StorageField> = (
 ) & {
   original: F;
   updated: F;
-  cost?: number;
-};
+} & Cost;
 
 export type TypeChange = (
   | {
@@ -62,6 +61,10 @@ export interface LayoutChange {
   offset?: Record<'from' | 'to', number>;
   bytes?: Record<'from' | 'to', string>;
 }
+
+const LAYOUTCHANGE_COST = 1;
+const FINISHGAP_COST = 1;
+const SHRINKGAP_COST = 0;
 
 export class StorageLayoutComparator {
   hasAllowedUncheckedCustomTypes = false;
@@ -153,28 +156,28 @@ export class StorageLayoutComparator {
     const layoutChange = this.getLayoutChange(original, updated);
 
     if (updated.retypedFrom && layoutChange) {
-      return { kind: 'layoutchange', original, updated, change: layoutChange, cost: 1};
+      return { kind: 'layoutchange', original, updated, change: layoutChange, cost: LAYOUTCHANGE_COST };
     } else if (typeChange && nameChange) {
       if (endMatchesGap(original, updated)) {
-        return { kind: 'finishgap', original, updated, cost: 1 };
+        return { kind: 'finishgap', original, updated, cost: FINISHGAP_COST };
       } else {
         return { kind: 'replace', original, updated };
       }
     } else if (nameChange) {
       if (endMatchesGap(original, updated)) {
-        return { kind: 'finishgap', original, updated, cost: 1 };
+        return { kind: 'finishgap', original, updated, cost: FINISHGAP_COST };
       } else {
         return { kind: 'rename', original, updated };
       }
     } else if (typeChange) {
       if (typeChange.kind === 'array shrink' && endMatchesGap(original, updated)) {
-        return { kind: 'shrinkgap', change: typeChange, original, updated, cost: 0 };
+        return { kind: 'shrinkgap', change: typeChange, original, updated, cost: SHRINKGAP_COST };
       }
       return { kind: 'typechange', change: typeChange, original, updated };
     } else if (layoutChange && !layoutChange.uncertain) {
       // Any layout change should be caught earlier as a type change, but we
       // add this check as a safety fallback.
-      return { kind: 'layoutchange', original, updated, change: layoutChange, cost: 1 };
+      return { kind: 'layoutchange', original, updated, change: layoutChange, cost: LAYOUTCHANGE_COST };
     }
   }
 

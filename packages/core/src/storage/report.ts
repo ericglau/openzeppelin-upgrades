@@ -70,26 +70,14 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
       return `Shrank gap ${label(op.updated)} by the wrong number of slots\n` + itemize(basic, ...details); // TODO count number of slots
     }
 
-    case 'renamegap':
-      return `Renamed ${label(op.original)} to ${label(op.updated)}`; // TODO when this would be displayed to user
+    case 'finishgap':
+      return `Converted remainder of gap ${label(op.original)} to ${label(op.updated)}`; // TODO when this would be displayed to user
 
     case 'rename':
       return `Renamed ${label(op.original)} to ${label(op.updated)}`;
 
     case 'replace':
       return `Replaced ${label(op.original)} with ${label(op.updated)} of incompatible type`;
-
-    case 'replacegap':
-      return `Replaced gap ${label(op.original)} with ${label(op.updated)}`; // TODO when this would be displayed to user
-
-
-    case 'gaplayoutchange': { // TODO
-      return (
-        `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +
-        `(${op.original.type.item.label} -> ${op.updated.type.item.label})\n` +
-        describeLayoutTransition(op.change)
-      ).trimEnd();
-    }
 
     case 'layoutchange': {
       return (

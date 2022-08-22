@@ -15,3 +15,7 @@ export function isEndAligned(updated: StorageField, original: StorageField) {
   const {endPos : updatedEndPos} = getStartEndPos(updated);
   return (endPos === updatedEndPos);
 }
+
+export function endMatchesGap(original: StorageField, updated: StorageField) {
+  return isGap(original) && isEndAligned(updated, original);
+}

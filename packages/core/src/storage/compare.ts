@@ -5,7 +5,7 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
-import { getStartEndPos, isEndAligned, isGap } from './gap';
+import { endMatchesGap, getStartEndPos, isEndAligned, isGap } from './gap';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -16,10 +16,9 @@ export type StorageOperation<F extends StorageField> = Operation<F, StorageField
 export type EnumOperation = Operation<string, { kind: 'replace'; original: string; updated: string }>;
 
 type StorageFieldChange<F extends StorageField> = (
-  | { kind: 'replace' | 'rename' | 'replacegap' | 'renamegap' }
+  | { kind: 'replace' | 'rename' | 'finishgap' }
   | { kind: 'typechange'; change: TypeChange }
   | { kind: 'layoutchange'; change: LayoutChange }
-  | { kind: 'gaplayoutchange'; change: LayoutChange }
   | { kind: 'shrinkgap'; change: TypeChange }
 ) & {
   original: F;
@@ -125,39 +124,8 @@ export class StorageLayoutComparator {
 
         console.log("determined that the insert is unsafe");
         return true;
-      } else if (o.kind === 'shrinkgap') {
-        console.log("SHRANK GAP " + JSON.stringify(o, null, 2));
-
-        const { startPos, endPos } = getStartEndPos(o.original);
-        console.log("gap - startPos " + startPos + " endPos " + endPos);
-
-        const { startPos : updatedStartPos, endPos : updatedEndPos } = getStartEndPos(o.updated);
-        console.log("gap - updatedStartPos " + updatedStartPos + " updatedEndPos " + updatedEndPos);
-
-        if (endPos === updatedEndPos) { // the gap ends match, so they are compatible
-          return false;
-        } else {
-          return true;
-        }
-
-        // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
-
-      } else if (o.kind === 'replacegap' || o.kind === 'renamegap') {
-        console.log("REPLACE GAP " + JSON.stringify(o, null, 2));
-
-        // if a gap was replaced by something else <ENDS AT THE SAME SPOT AS THE GAP?> (TODO test if the replacement is smaller or larger than the gap), then it is fine
-        const { startPos, endPos } = getStartEndPos(o.original);
-        console.log("gap - startPos " + startPos + " endPos " + endPos);
-
-        const { startPos : updatedStartPos, endPos : updatedEndPos } = getStartEndPos(o.updated);
-        console.log("replacement - updatedStartPos " + updatedStartPos + " updatedEndPos " + updatedEndPos);
-
-        if (endPos === updatedEndPos) {
-          return false;
-        } else {
-          return true;
-        }
-
+      } else if (o.kind === 'shrinkgap' || o.kind === 'finishgap') {
+        return false;
       } else {
         return true;
       }
@@ -187,17 +155,19 @@ export class StorageLayoutComparator {
     if (updated.retypedFrom && layoutChange) {
       return { kind: 'layoutchange', original, updated, change: layoutChange, cost: 1};
     } else if (typeChange && nameChange) {
-      if (isGap(original) && isEndAligned(updated, original)) {
-        return { kind: 'replacegap', original, updated, cost: 1 };
+      if (endMatchesGap(original, updated)) {
+        return { kind: 'finishgap', original, updated, cost: 1 };
+      } else {
+        return { kind: 'replace', original, updated };
       }
-      return { kind: 'replace', original, updated };
     } else if (nameChange) {
-      if (isGap(original) && isEndAligned(updated, original)) {
-        return { kind: 'renamegap', original, updated, cost: 1 };
+      if (endMatchesGap(original, updated)) {
+        return { kind: 'finishgap', original, updated, cost: 1 };
+      } else {
+        return { kind: 'rename', original, updated };
       }
-      return { kind: 'rename', original, updated };
     } else if (typeChange) {
-      if (isGap(updated) && isEndAligned(updated, original) && typeChange.kind === 'array shrink') {
+      if (typeChange.kind === 'array shrink' && endMatchesGap(original, updated)) {
         return { kind: 'shrinkgap', change: typeChange, original, updated, cost: 0 };
       }
       return { kind: 'typechange', change: typeChange, original, updated };

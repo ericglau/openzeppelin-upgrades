@@ -86,23 +86,6 @@ export class StorageLayoutComparator {
     let ops = levenshtein(original, updated, (a, b) => this.getFieldChange(a, b));
 
     console.log("Levenshtein ops: " + JSON.stringify(ops, null, 2));
-
-    // const opsFilteredGaps = [];
-    // for (let i = 0; i < ops.length; i++) {
-    //   if (ops[i].kind = 'insert') {
-    //     for (let j = 0; j < ops.length; j++) {
-    //       const compare = ops[j];
-    //       if (j !== i && compare.kind === 'shrinkgap') {
-
-    //         //const TEMP = compare.change.original;
-    //         // TODO check if compare.original overlaps 
-    //       } // TODO or if gap was deleted
-    //       else {
-    //         opsFilteredGaps.push(ops);
-    //       }
-    //     }
-    //   }
-    // }
   
     // filter append
     if (allowAppend) {
@@ -112,30 +95,11 @@ export class StorageLayoutComparator {
     return ops.filter(o => {
       if (o.kind === 'insert') {
         console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
-        // TODO if the inserted item overlaps with a gap or overlaps with nothing, return false;
-        // else:
 
         const { startPos, endPos } = getStartEndPos(o.updated);
         console.log("insert - startPos " + startPos + " endPos " + endPos);
 
-
-        // An insertion is allowed if it lies completely within an original gap that was shrunk,
-        // or (it does not overlap with a non-gap in the original layout AND the next field in the original and updated layouts retain the same slot)
-
-        // for (let i = 0; i < ops.length; i++) {
-        //   const op = ops[i];
-        //   if (op.kind === 'shrinkgap' || op.kind === 'gaplayoutchange') {
-        //     console.log("comparing insert to gap");
-
-        //     const { startPos : gapStartPos, endPos : gapEndPos } = getStartEndPos(op.original);
-        //     console.log("comparing with gap - startPos " + startPos + " endPos " + endPos);
-
-        //     if (startPos >= gapStartPos && endPos <= gapEndPos /* TODO add condition to allow this to expand past the end of the original storage */) {
-        //       console.log("insert is within gap, omitting");
-        //       return false;
-        //     }
-        //   }
-        // }
+        // An insertion is allowed it does not overlap with a non-gap in the original layout
 
         for (let i = 0; i < original.length; i++) {
           const compare = original[i];
@@ -186,23 +150,6 @@ export class StorageLayoutComparator {
         const { startPos : updatedStartPos, endPos : updatedEndPos } = getStartEndPos(o.updated);
         console.log("replacement - updatedStartPos " + updatedStartPos + " updatedEndPos " + updatedEndPos);
 
-        // // if the original gap was the last item, allow it (as long as the starting point was the same?)
-        // // 1. find label from original
-        // for (let i = 0; i < original.length; i++) {
-        //   console.log("looping " + i);
-        //   if (original[i].label === o.original.label) {
-        //     console.log("labels match " + original[i].label);
-
-        //     // 2. see if the index is the last one, or if there are consecutive end gaps
-        //     if (i === original.length - 1) {
-        //       console.log("it is the last index " + i);
-        //       return false;
-        //     } else {
-        //       console.log("it is NOT the last index " + i + " out of length " + original.length);
-        //     }
-        //   }
-        // }
-
         if (endPos === updatedEndPos) {
           return false;
         } else {
@@ -210,9 +157,6 @@ export class StorageLayoutComparator {
         }
 
       } else {
-        // TODO if a shrinkgap ends on the same slot as before, return false (allow it), else return true
-
-       // console.log("ALLOW " + JSON.stringify(o, null, 2));
         return true;
       }
     });

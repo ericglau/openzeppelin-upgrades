@@ -5,7 +5,7 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
-import { endMatchesGap, getStartEndPos, isGap } from './gap';
+import { endMatchesGap, getPositions, isGap } from './gap';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -88,8 +88,6 @@ export class StorageLayoutComparator {
     { allowAppend }: { allowAppend: boolean },
   ): StorageOperation<F>[] {
     let ops = levenshtein(original, updated, (a, b) => this.getFieldChange(a, b));
-
-    console.log("Levenshtein ops: " + JSON.stringify(ops, null, 2));
   
     // filter append
     if (allowAppend) {
@@ -97,39 +95,33 @@ export class StorageLayoutComparator {
     }
 
     return ops.filter(o => {
+      // filter operations that are known to be safe (return false if safe)
+
       if (o.kind === 'insert') {
-        console.log("INSERTED " + JSON.stringify(o.updated, null, 2));
+        const { start, end } = getPositions(o.updated);
 
-        const { startPos, endPos } = getStartEndPos(o.updated);
-        console.log("insert - startPos " + startPos + " endPos " + endPos);
-
-        // An insertion is allowed if it does not overlap with a non-gap in the original layout
-        // Contrapositive: An insertion that overlaps with a non-gap in the original layout is not allowed
         for (let i = 0; i < original.length; i++) {
-          const compare = original[i];
-          console.log("comparing insert to field " + compare.label);
+          const orig = original[i];
+          const { start : origStart, end : origEnd } = getPositions(orig);
 
-          const { startPos : compareStart, endPos : compareEnd } = getStartEndPos(compare);
-          console.log("comparing with field's: compareStart " + compareStart + " compareEnd " + compareEnd);
-
-          // for non-gaps, if the insertion overlaps with the original field, this is not allowed (return true) 
-          // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
-          // (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
-          // else it is fine (return false)
-          if (!isGap(compare) && compareStart < endPos && startPos < compareEnd) { // overlaps with a non-gap
-            console.log("field " + o.updated.label + " overlaps with " + compare.label);
+          // An insertion that overlaps with a non-gap in the original layout is not allowed
+          if (!isGap(orig) && overlaps(origStart, origEnd, start, end)) {
             return true;
           }
         }
-
-        console.log("determined that the insert is fine");
+        // Otherwise the insertion is safe
         return false;
-      } else if (o.kind === 'shrinkgap' || o.kind === 'finishgap') {
+      } else if ((o.kind === 'shrinkgap' || o.kind === 'finishgap') && endMatchesGap(o.original, o.updated)) {
+        // Gap shrink or gap replacement that finishes on the same slot is safe
         return false;
-      } else {
-        return true;
       }
+      return true;
     });
+
+    // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
+    function overlaps(startA: number, endA: number, startB: number, endB: number) {
+      return startA < endB && startB < endA;
+    }
   }
 
   getVisibilityChange(original: ParsedTypeDetailed, updated: ParsedTypeDetailed): TypeChange | undefined {

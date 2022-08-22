@@ -625,34 +625,34 @@ test('storage upgrade with different typed gaps', t => {
   t.deepEqual(getStorageUpgradeErrors(uint256gap_address_v1, uint256gap_address_v2), []);
   t.deepEqual(getStorageUpgradeErrors(address_v1, address_v2), []);
 
-  t.like(getStorageUpgradeErrors(uint128_v1, uint128_v2_ok), {
-    length: 1,
-    0: {
-      kind: 'insert',
-      updated: { label: 'b' }, // this should be allowed since it is inserted before the gap, but is not currently handled
-    },
-  });
-  t.like(getStorageUpgradeErrors(uint128_v1, uint128_v2b_ok), {
-    length: 1,
-    0: {
-      kind: 'insert',
-      updated: { label: 'b' }, // this should be allowed since it is inserted before the gap, but is not currently handled
-    },
-  });
+  t.deepEqual(getStorageUpgradeErrors(uint128_v1, uint128_v2_ok), []);
+  t.deepEqual(getStorageUpgradeErrors(uint128_v1, uint128_v2b_ok), []);
   
-  // TODO this isn't great since it's showing a replace of the gap even though it's the wrong slot
-
-  // t.like(getStorageUpgradeErrors(uint128_v1, uint128_v2_bad), {
-  //   length: 2,
-  //   0: {
-  //     kind: 'insert',
-  //     updated: { label: 'b' },
-  //   },
-  //   1: {
-  //     kind: 'insert',
-  //     updated: { label: 'c' },
-  //   },
-  // });
+  t.like(getStorageUpgradeErrors(uint128_v1, uint128_v2_bad), {
+    length: 2,
+    0: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '1',
+          to: '2',
+        },
+      },
+      original: { label: '__gap' },
+      updated: { label: '__gap' },
+    },
+    1: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '26',
+          to: '27',
+        },
+      },
+      original: { label: 'z' },
+      updated: { label: 'z' },
+    },
+  });
 
   t.deepEqual(getStorageUpgradeErrors(bool_v1, bool_v2_ok), []);
   t.like(getStorageUpgradeErrors(bool_v1, bool_v2_bad), {

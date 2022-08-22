@@ -103,8 +103,8 @@ export class StorageLayoutComparator {
         const { startPos, endPos } = getStartEndPos(o.updated);
         console.log("insert - startPos " + startPos + " endPos " + endPos);
 
-        // An insertion is allowed it does not overlap with a non-gap in the original layout
-
+        // An insertion is allowed if it does not overlap with a non-gap in the original layout
+        // Contrapositive: An insertion that overlaps with a non-gap in the original layout is not allowed
         for (let i = 0; i < original.length; i++) {
           const compare = original[i];
           console.log("comparing insert to field " + compare.label);
@@ -116,17 +116,14 @@ export class StorageLayoutComparator {
           // https://stackoverflow.com/questions/325933/determine-whether-two-date-ranges-overlap
           // (StartDate1 <= EndDate2) and (StartDate2 <= EndDate1)
           // else it is fine (return false)
-          if (!isGap(compare) && (compareStart <= endPos && startPos <= compareEnd)) { /* TODO add condition to allow this to expand past the end of the original storage */
+          if (!isGap(compare) && compareStart < endPos && startPos < compareEnd) { // overlaps with a non-gap
             console.log("field " + o.updated.label + " overlaps with " + compare.label);
             return true;
-          } else {
-            console.log("field " + o.updated.label + " is fine compared to " + compare.label);
-            return false;
           }
         }
 
-        console.log("determined that the insert is unsafe");
-        return true;
+        console.log("determined that the insert is fine");
+        return false;
       } else if (o.kind === 'shrinkgap' || o.kind === 'finishgap') {
         return false;
       } else {

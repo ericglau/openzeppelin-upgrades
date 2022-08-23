@@ -67,7 +67,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
                 .filter((d?: string): d is string => d !== undefined),
             )
           : [];
-      return `Shrank gap ${label(op.updated)} by the wrong number of slots\n` + itemize(basic, ...details); // TODO count number of slots
+      return `Shrank gap ${label(op.updated)} by the wrong number of slots\n` + itemize(basic, ...details);
     }
 
     case 'finishgap':

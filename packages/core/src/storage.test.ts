@@ -495,10 +495,15 @@ test('storage upgrade with embedded enum inside struct type', t => {
 test('storage upgrade with gap', t => {
   const v1 = t.context.extractStorageLayout('StorageUpgrade_Gap_V1');
   const v2_Ok = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Ok');
+
   const v2_Bad1 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad1');
   const v2_Bad2 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad2');
+  const v2_Bad3 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad3');
+  const v2_Bad4 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad4');
+  const v2_Bad5 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad5');
 
   t.deepEqual(getStorageUpgradeErrors(v1, v2_Ok), []);
+
   t.like(getStorageUpgradeErrors(v1, v2_Bad1), {
     length: 2,
     0: {
@@ -524,6 +529,7 @@ test('storage upgrade with gap', t => {
       updated: { label: 'z' },
     },
   });
+
   t.like(getStorageUpgradeErrors(v1, v2_Bad2), {
     length: 2,
     0: {
@@ -535,6 +541,46 @@ test('storage upgrade with gap', t => {
       change: { kind: 'array grow' },
     },
   });
+
+  t.like(getStorageUpgradeErrors(v1, v2_Bad3), {
+    length: 2,
+    0: {
+      kind: 'typechange',
+      change: { kind: 'array shrink' },
+    },
+    1: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '50',
+          to: '49',
+        },
+      },
+      original: { label: 'z' },
+      updated: { label: 'z' },
+    },
+  });
+
+  t.like(getStorageUpgradeErrors(v1, v2_Bad4), {
+    length: 2,
+    0: {
+      kind: 'typechange',
+      change: { kind: 'array shrink' },
+    },
+    1: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '50',
+          to: '49',
+        },
+      },
+      original: { label: 'z' },
+      updated: { label: 'z' },
+    },
+  });
+
+  t.deepEqual(getStorageUpgradeErrors(v1, v2_Bad5), []);
 });
 
 test('storage upgrade with multiple items consuming a gap', t => {

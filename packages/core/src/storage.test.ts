@@ -580,7 +580,25 @@ test('storage upgrade with gap', t => {
     },
   });
 
-  t.deepEqual(getStorageUpgradeErrors(v1, v2_Bad5), []);
+  t.like(getStorageUpgradeErrors(v1, v2_Bad5), {
+    length: 2,
+    0: {
+      kind: 'replace',
+      original: { label: '__gap' },
+      updated: { label: 'd' },
+    },
+    1: {
+      kind: 'layoutchange',
+      change: {
+        slot: {
+          from: '50',
+          to: '51',
+        },
+      },
+      original: { label: 'z' },
+      updated: { label: 'z' },
+    },
+  });
 });
 
 test('storage upgrade with multiple items consuming a gap', t => {

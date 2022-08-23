@@ -515,12 +515,12 @@ contract StorageUpgrade_EndGap_V1c is StorageUpgrade_EndGap_V1b {
 
 contract StorageUpgrade_EndGap_V2a {
     uint256 a;
-    uint256[10] big;
+    uint256[1] small;
 }
 
-contract StorageUpgrade_EndGap_V2b {
-    uint256 a;
-    uint256[3] medium;
+contract StorageUpgrade_EndGap_V2b is StorageUpgrade_EndGap_V2a {
+    uint256 inserted1;
+    uint256 inserted2;
     uint256 b;
 }
 
@@ -539,12 +539,11 @@ contract StorageUpgrade_EndGap_Uint128_V1c is StorageUpgrade_EndGap_Uint128_V1b 
 
 contract StorageUpgrade_EndGap_Uint128_V2a {
     uint128 a;
-    uint128[10] big;
+    uint128[1] small;
 }
 
-contract StorageUpgrade_EndGap_Uint128_V2b {
-    uint128 a;
-    uint128[6] medium;
+contract StorageUpgrade_EndGap_Uint128_V2b is StorageUpgrade_EndGap_Uint128_V2a {
+    uint128[4] medium;
     uint128 b;
 }
 

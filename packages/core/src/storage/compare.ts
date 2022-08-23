@@ -5,7 +5,7 @@ import { StorageItem as _StorageItem, StructMember as _StructMember, StorageFiel
 import { LayoutCompatibilityReport } from './report';
 import { assert } from '../utils/assert';
 import { isValueType } from '../utils/is-value-type';
-import { endMatchesGap, getPositions, isGap } from './gap';
+import { endMatchesGap, isGap, storageFieldBegin, storageFieldEnd } from './gap';
 
 export type StorageItem = _StorageItem<ParsedTypeDetailed>;
 type StructMember = _StructMember<ParsedTypeDetailed>;
@@ -95,17 +95,27 @@ export class StorageLayoutComparator {
     }
 
     return ops.filter(o => {
-      // filter operations that are known to be safe (return false if safe)
+      // return true if operation is unsafe, return false if safe
 
       if (o.kind === 'insert') {
-        const { start, end } = getPositions(o.updated);
+        const updatedStart = storageFieldBegin(o.updated);
+        const updatedEnd = storageFieldEnd(o.updated);
+        if (isNaN(updatedStart) || isNaN(updatedEnd)) {
+          // unable to get storage position, so treat this as unsafe
+          return true;
+        }
 
         for (let i = 0; i < original.length; i++) {
           const orig = original[i];
-          const { start : origStart, end : origEnd } = getPositions(orig);
+          const origStart = storageFieldBegin(orig);
+          const origEnd = storageFieldEnd(orig);
+          if (isNaN(origStart) || isNaN(origEnd)) {
+            // unable to get storage position, so treat this as unsafe
+            return true;
+          } 
 
           // An insertion that overlaps with a non-gap in the original layout is not allowed
-          if (!isGap(orig) && overlaps(origStart, origEnd, start, end)) {
+          if (!isGap(orig) && overlaps(origStart, origEnd, updatedStart, updatedEnd)) {
             return true;
           }
         }

@@ -2,7 +2,7 @@ import _chalk from 'chalk';
 
 import type { BasicOperation } from '../levenshtein';
 import type { ParsedTypeDetailed } from './layout';
-import type { StorageOperation, StorageItem, StorageField, TypeChange, EnumOperation, LayoutChange } from './compare';
+import { StorageOperation, StorageItem, StorageField, TypeChange, EnumOperation, LayoutChange, storageFieldEnd, storageFieldBegin } from './compare';
 import { itemize, itemizeWith } from '../utils/itemize';
 import { indent } from '../utils/indent';
 import { assert } from '../utils/assert';
@@ -47,7 +47,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
   switch (op.kind) {
     case 'shrinkgap':
     case 'typechange': {
-      const basic = explainTypeChange(op.change, op.original);
+      const basic = explainTypeChange(op.change, op.original, op.updated);
       const details =
         ctx.kind === 'layout' // explain details for layout only
           ? new Set(
@@ -69,10 +69,48 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
       return `Replaced ${label(op.original)} with ${label(op.updated)} of incompatible type`;
 
     case 'layoutchange': {
+      let expectedSize;
+      if (isGap(op.original)){
+
+        let log = '';
+
+    
+        // 1. get original field end
+        const origStart = storageFieldBegin(op.original);
+        log += ' origStart=' + origStart;
+        const origEnd = storageFieldEnd(op.original);
+        log += ' origEnd=' + origEnd;
+      
+        const numberOfBytes = op.original.type.item.numberOfBytes;
+        let bytesPerItem;
+        if (numberOfBytes !== undefined && op.original.type.tail) {
+          const originalSize = parseInt(op.original.type.tail, 10);
+          bytesPerItem = parseInt(numberOfBytes) / originalSize;
+          log += ' bytesPerItem=' + bytesPerItem;
+        }
+      
+        // 2. get new field start
+        const updatedStart = storageFieldBegin(op.updated);
+        log += ' updatedStart=' + updatedStart;
+      
+        // 3. calculate expected field size to reach original field end
+        if (origEnd !== undefined && updatedStart !== undefined) {
+          const expectedSizeBytes = origEnd - updatedStart; 
+          log += ' expectedSizeBytes=' + expectedSizeBytes;
+  
+          if (bytesPerItem !== undefined) {
+            expectedSize = expectedSizeBytes / BigInt(bytesPerItem); 
+            log += ' expectedSize=' + expectedSize; 
+          }
+        }
+
+      }
+
+
       return (
         `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +
         `(${op.original.type.item.label} -> ${op.updated.type.item.label})\n` +
-        describeLayoutTransition(op.change)
+        describeLayoutTransition(op.change) + ` expected size: ${expectedSize}`
       ).trimEnd();
     }
 
@@ -105,7 +143,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
   }
 }
 
-function explainTypeChange(ch: TypeChange, original: StorageField): string {
+function explainTypeChange(ch: TypeChange, original: StorageField, updated: StorageField): string {
   switch (ch.kind) {
     case 'visibility change':
       return `Bad upgrade ${describeTransition(ch.original, ch.updated)}\nDifferent visibility`;
@@ -119,11 +157,11 @@ function explainTypeChange(ch: TypeChange, original: StorageField): string {
       return `Bad upgrade ${describeTransition(ch.original, ch.updated)}\nDifferent representation sizes`;
 
     case 'mapping key':
-      return `In key of ${ch.updated.item.label}\n` + itemize(explainTypeChange(ch.inner, original));
+      return `In key of ${ch.updated.item.label}\n` + itemize(explainTypeChange(ch.inner, original, updated));
 
     case 'mapping value':
     case 'array value':
-      return `In ${ch.updated.item.label}\n` + itemize(explainTypeChange(ch.inner, original));
+      return `In ${ch.updated.item.label}\n` + itemize(explainTypeChange(ch.inner, original, updated));
 
     case 'array shrink':
     case 'array grow': {
@@ -131,10 +169,49 @@ function explainTypeChange(ch: TypeChange, original: StorageField): string {
       const originalSize = parseInt(ch.original.tail, 10);
       const updatedSize = parseInt(ch.updated.tail, 10);
 
-      if (original !== undefined && isGap(original)) {
+
+      if (isGap(original)) {
+
+
+        let log = '';
+        let expectedSize;
+    
+        // 1. get original field end
+        const origStart = storageFieldBegin(original);
+        log += ' origStart=' + origStart;
+        const origEnd = storageFieldEnd(original);
+        log += ' origEnd=' + origEnd;
+      
+        const numberOfBytes = original.type.item.numberOfBytes;
+        let bytesPerItem;
+        if (numberOfBytes !== undefined) {
+          bytesPerItem = parseInt(numberOfBytes) / originalSize;
+          log += ' bytesPerItem=' + bytesPerItem;
+        }
+      
+        // 2. get new field start
+        const updatedStart = storageFieldBegin(updated);
+        log += ' updatedStart=' + updatedStart;
+      
+        // 3. calculate expected field size to reach original field end
+        if (origEnd !== undefined && updatedStart !== undefined) {
+          const expectedSizeBytes = origEnd - updatedStart; 
+          log += ' expectedSizeBytes=' + expectedSizeBytes;
+  
+          if (bytesPerItem !== undefined) {
+            expectedSize = expectedSizeBytes / BigInt(bytesPerItem); 
+            log += ' expectedSize=' + expectedSize; 
+          }
+        }
+        
+        //  updated.type.item.
+  
+  
+
+
         const note =
           ch.kind === 'array shrink'
-            ? 'Size decrease must match with corresponding variable inserts'
+            ? `Expected gap resize to ${expectedSize}`
             : 'Size cannot increase here';
         return `Bad storage gap resize from ${originalSize} to ${updatedSize}\n${note}`;
       } else {
@@ -158,6 +235,29 @@ function explainTypeChange(ch: TypeChange, original: StorageField): string {
       return `Unknown type ${ch.updated.item.label}`;
   }
 }
+
+// function getExpectedSize(original: StorageField, updated: StorageField) {
+//   let log = '';
+
+//   // 1. get original field end
+//   const origEnd = storageFieldEnd(original);
+//   log += 'origEnd=' + origEnd;
+
+//   const originalSize = parseInt(ch.original.tail, 10);
+//   const origItemSize = origEnd / 
+
+//   // 2. get new field start
+//   const updatedStart = storageFieldBegin(updated);
+//   log += 'updatedStart=' + updatedStart;
+
+//   // 3. calculate expected field size to reach original field end
+//   if (origEnd !== undefined && updatedStart !== undefined) {
+//     const expectedSize = origEnd - updatedStart; 
+//     log += 'expectedSize=' + expectedSize;
+//   }
+
+// //  updated.type.item.
+// }
 
 function getAllTypeChanges(root: TypeChange): TypeChange[] {
   const list = [root];

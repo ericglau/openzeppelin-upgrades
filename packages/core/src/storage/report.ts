@@ -2,7 +2,16 @@ import _chalk from 'chalk';
 
 import type { BasicOperation } from '../levenshtein';
 import type { ParsedTypeDetailed } from './layout';
-import { StorageOperation, StorageItem, StorageField, TypeChange, EnumOperation, LayoutChange, storageFieldEnd, storageFieldBegin } from './compare';
+import {
+  StorageOperation,
+  StorageItem,
+  StorageField,
+  TypeChange,
+  EnumOperation,
+  LayoutChange,
+  storageFieldEnd,
+  storageFieldBegin,
+} from './compare';
 import { itemize, itemizeWith } from '../utils/itemize';
 import { indent } from '../utils/indent';
 import { assert } from '../utils/assert';
@@ -54,12 +63,18 @@ function getExpectedGapSize(original: StorageField, updated: StorageField) {
   const origNumBytes = original.type.item.numberOfBytes;
   const origArraySize = original.type.tail;
 
-  if (origEnd === undefined || updatedStart === undefined || origNumBytes === undefined || origArraySize === undefined) {
+  if (
+    origEnd === undefined ||
+    updatedStart === undefined ||
+    origNumBytes === undefined ||
+    origArraySize === undefined
+  ) {
     return undefined;
   }
 
-  const bytesPerItem = parseInt(origNumBytes) / parseInt(origArraySize, 10);
-  const expectedSizeBytes = origEnd - updatedStart; 
+  // use the floor since number of bytes may be larger than actual array (for non 32-byte types due to unused space after the array before the next slot)
+  const bytesPerItem = Math.floor(parseInt(origNumBytes) / parseInt(origArraySize, 10));
+  const expectedSizeBytes = origEnd - updatedStart;
 
   return expectedSizeBytes / BigInt(bytesPerItem);
 }
@@ -92,7 +107,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
       }
       return printWithHints({
         title: `Upgraded ${label(op.updated)} to an incompatible type\n` + itemize(basic, ...details),
-        hints
+        hints,
       });
     }
 
@@ -106,8 +121,9 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
       return `Replaced ${label(op.original)} with ${label(op.updated)} of incompatible type`;
 
     case 'layoutchange': {
-      const title = `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +
-        `(${op.original.type.item.label} -> ${op.updated.type.item.label})\n` + 
+      const title =
+        `Layout ${op.change.uncertain ? 'could have changed' : 'changed'} for ${label(op.updated)} ` +
+        `(${op.original.type.item.label} -> ${op.updated.type.item.label})\n` +
         describeLayoutTransition(op.change);
       const hints = [];
 
@@ -115,7 +131,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
         hints.push(suggestGapSize(op.original, op.updated));
       }
 
-      return printWithHints({title, hints});
+      return printWithHints({ title, hints });
     }
 
     default: {
@@ -142,7 +158,7 @@ function explainStorageOperation(op: StorageOperation<StorageField>, ctx: Storag
         }
       }
 
-      return printWithHints({title, hints});
+      return printWithHints({ title, hints });
     }
   }
 }

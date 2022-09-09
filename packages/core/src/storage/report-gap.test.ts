@@ -96,10 +96,16 @@ test('insert var and shrink gap too much', t => {
   t.snapshot(report.explain());
 });
 
-// the message for this scenario is misleading
 test('insert vars and shrink gap not enough', t => {
   const v1 = t.context.extractStorageLayout('StorageUpgrade_Gap_V1');
   const v2 = t.context.extractStorageLayout('StorageUpgrade_Gap_V2_Bad5');
+  const report = getReport(v1, v2);
+  t.snapshot(report.explain());
+});
+
+test('insert vars without shrink gap (uint128)', t => {
+  const v1 = t.context.extractStorageLayout('StorageUpgrade_Uint128Gap_V1');
+  const v2 = t.context.extractStorageLayout('StorageUpgrade_Uint128Gap_V2_Bad');
   const report = getReport(v1, v2);
   t.snapshot(report.explain());
 });

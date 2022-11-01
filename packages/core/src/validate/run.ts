@@ -114,7 +114,7 @@ function skipCheck(error: string, node: Node): boolean {
   return getAllowed(node).includes(error);
 }
 
-function getSourceKey(source: string, contractName: string) {
+function getFullyQualifiedName(source: string, contractName: string) {
   return `${source}:${contractName}`;
 }
 
@@ -132,7 +132,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
       const version = bytecode.object === '' ? undefined : getVersion(bytecode.object);
       const linkReferences = extractLinkReferences(bytecode);
 
-      validation[getSourceKey(source, contractName)] = {
+      validation[getFullyQualifiedName(source, contractName)] = {
         src: contractName,
         version,
         inherit: [],
@@ -149,7 +149,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
     }
 
     for (const contractDef of findAll('ContractDefinition', solcOutput.sources[source].ast)) {
-      const sourceKey = getSourceKey(source, contractDef.name);
+      const sourceKey = getFullyQualifiedName(source, contractDef.name);
 
       fromId[contractDef.id] = sourceKey;
 

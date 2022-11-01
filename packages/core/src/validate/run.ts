@@ -114,6 +114,10 @@ function skipCheck(error: string, node: Node): boolean {
   return getAllowed(node).includes(error);
 }
 
+function getSourceKey(source: string, contractName: string) {
+  return `${source}:${contractName}`;
+}
+
 export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVersion?: string): ValidationRunData {
   const validation: ValidationRunData = {};
   const fromId: Record<number, string> = {};
@@ -128,7 +132,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
       const version = bytecode.object === '' ? undefined : getVersion(bytecode.object);
       const linkReferences = extractLinkReferences(bytecode);
 
-      validation[contractName] = {
+      validation[getSourceKey(source, contractName)] = {
         src: contractName,
         version,
         inherit: [],
@@ -145,17 +149,21 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
     }
 
     for (const contractDef of findAll('ContractDefinition', solcOutput.sources[source].ast)) {
-      fromId[contractDef.id] = contractDef.name;
+      const sourceKey = getSourceKey(source, contractDef.name);
+
+      console.log("THE SOURCE KEY " + sourceKey);
+
+      fromId[contractDef.id] = sourceKey;
 
       // May be undefined in case of duplicate contract names in Truffle
       const bytecode = solcOutput.contracts[source][contractDef.name]?.evm.bytecode;
 
-      if (contractDef.name in validation && bytecode !== undefined) {
-        inheritIds[contractDef.name] = contractDef.linearizedBaseContracts.slice(1);
-        libraryIds[contractDef.name] = getReferencedLibraryIds(contractDef);
+      if (sourceKey in validation && bytecode !== undefined) {
+        inheritIds[sourceKey] = contractDef.linearizedBaseContracts.slice(1);
+        libraryIds[sourceKey] = getReferencedLibraryIds(contractDef);
 
-        validation[contractDef.name].src = decodeSrc(contractDef);
-        validation[contractDef.name].errors = [
+        validation[sourceKey].src = decodeSrc(contractDef);
+        validation[sourceKey].errors = [
           ...getConstructorErrors(contractDef, decodeSrc),
           ...getOpcodeErrors(contractDef, decodeSrc),
           ...getStateVariableErrors(contractDef, decodeSrc),
@@ -164,25 +172,25 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
           ...getLinkingErrors(contractDef, bytecode),
         ];
 
-        validation[contractDef.name].layout = extractStorageLayout(
+        validation[sourceKey].layout = extractStorageLayout(
           contractDef,
           decodeSrc,
           deref,
           solcOutput.contracts[source][contractDef.name].storageLayout,
         );
-        validation[contractDef.name].methods = [...findAll('FunctionDefinition', contractDef)]
+        validation[sourceKey].methods = [...findAll('FunctionDefinition', contractDef)]
           .filter(fnDef => ['external', 'public'].includes(fnDef.visibility))
           .map(fnDef => getFunctionSignature(fnDef, deref));
       }
     }
   }
 
-  for (const contractName in inheritIds) {
-    validation[contractName].inherit = inheritIds[contractName].map(id => fromId[id]);
+  for (const sourceKey in inheritIds) {
+    validation[sourceKey].inherit = inheritIds[sourceKey].map(id => fromId[id]);
   }
 
-  for (const contractName in libraryIds) {
-    validation[contractName].libraries = libraryIds[contractName].map(id => fromId[id]);
+  for (const sourceKey in libraryIds) {
+    validation[sourceKey].libraries = libraryIds[sourceKey].map(id => fromId[id]);
   }
 
   return validation;
@@ -254,13 +262,14 @@ function getReferencedLibraryIds(contractDef: ContractDefinition): number[] {
     .map(usingForDirective => {
       if (usingForDirective.libraryName !== undefined) {
         return usingForDirective.libraryName.referencedDeclaration;
-      } else if (usingForDirective.functionList !== undefined) {
+      } else { // TODO if (usingForDirective.functionList !== undefined) {
         return [];
-      } else {
-        throw new Error(
-          'Broken invariant: either UsingForDirective.libraryName or UsingForDirective.functionList should be defined',
-        );
       }
+      // } else {
+      //   throw new Error(
+      //     'Broken invariant: either UsingForDirective.libraryName or UsingForDirective.functionList should be defined',
+      //   );
+      // }
     })
     .flat();
 

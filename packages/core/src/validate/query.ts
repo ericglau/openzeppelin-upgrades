@@ -21,10 +21,18 @@ export function assertUpgradeSafe(data: ValidationData, version: Version, opts: 
 }
 
 export function getContractVersion(runData: ValidationRunData, contractName: string): Version {
-  const { version } = runData[contractName];
-  if (version === undefined) {
+  const match = Object.keys(runData).find(element => {
+    if (element.endsWith(`:${contractName}`)) {
+      return true;
+    }
+  });
+
+  const { version } = match !== undefined ? runData[match] : { version: undefined };
+
+  if (match === undefined || version === undefined) {
     throw new Error(`Contract ${contractName} is abstract`);
   }
+  
   return version;
 }
 

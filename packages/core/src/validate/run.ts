@@ -151,8 +151,6 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
     for (const contractDef of findAll('ContractDefinition', solcOutput.sources[source].ast)) {
       const sourceKey = getSourceKey(source, contractDef.name);
 
-      console.log("THE SOURCE KEY " + sourceKey);
-
       fromId[contractDef.id] = sourceKey;
 
       // May be undefined in case of duplicate contract names in Truffle

@@ -21,15 +21,23 @@ export function assertUpgradeSafe(data: ValidationData, version: Version, opts: 
 }
 
 export function getContractVersion(runData: ValidationRunData, contractName: string): Version {
-  const match = Object.keys(runData).find(element => {
-    if (element.endsWith(`:${contractName}`)) {
-      return true;
+  let version = undefined;
+  if (contractName.includes(':')) {
+    version = runData[contractName].version;
+  } else {
+    const matches = Object.keys(runData).filter(element => {
+      if (element.endsWith(`:${contractName}`)) {
+        return true;
+      }
+    });
+    if (matches.length > 1) {
+      throw new Error(`Contract ${contractName} is ambiguous. Use one of the following:\n${matches.join('\n')}`);
+    } else if (matches.length === 1) {
+      version = runData[matches[0]].version;
     }
-  });
+  }
 
-  const { version } = match !== undefined ? runData[match] : { version: undefined };
-
-  if (match === undefined || version === undefined) {
+  if (version === undefined) {
     throw new Error(`Contract ${contractName} is abstract`);
   }
   

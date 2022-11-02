@@ -260,14 +260,13 @@ function getReferencedLibraryIds(contractDef: ContractDefinition): number[] {
     .map(usingForDirective => {
       if (usingForDirective.libraryName !== undefined) {
         return usingForDirective.libraryName.referencedDeclaration;
-      } else { // TODO if (usingForDirective.functionList !== undefined) {
+      } else if (usingForDirective.functionList !== undefined) {
         return [];
+      } else {
+        throw new Error(
+          'Broken invariant: either UsingForDirective.libraryName or UsingForDirective.functionList should be defined',
+        );
       }
-      // } else {
-      //   throw new Error(
-      //     'Broken invariant: either UsingForDirective.libraryName or UsingForDirective.functionList should be defined',
-      //   );
-      // }
     })
     .flat();
 

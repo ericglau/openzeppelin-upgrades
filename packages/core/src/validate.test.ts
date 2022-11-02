@@ -140,7 +140,10 @@ testValid('contracts/test/ValidationsSameNameUnsafe.sol:SameName', 'transparent'
 test('ambiguous name', t => {
   const getAmbiguousName = () => getContractVersion(t.context.validation, 'SameName');
   const error = t.throws(getAmbiguousName);
-  t.is(error?.message, 'Contract SameName is ambiguous. Use one of the following:\n' +
-    'contracts/test/ValidationsSameNameSafe.sol:SameName\n' +
-    'contracts/test/ValidationsSameNameUnsafe.sol:SameName');
+  t.is(
+    error?.message,
+    'Contract SameName is ambiguous. Use one of the following:\n' +
+      'contracts/test/ValidationsSameNameSafe.sol:SameName\n' +
+      'contracts/test/ValidationsSameNameUnsafe.sol:SameName',
+  );
 });

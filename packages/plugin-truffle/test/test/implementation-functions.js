@@ -70,9 +70,7 @@ contract('Greeter', function () {
   });
 
   it('deploy implementation - invalid', async function () {
-    await assert.rejects(deployImplementation(Invalid), error =>
-      getUpgradeUnsafeRegex('Invalid').test(error.message),
-    );
+    await assert.rejects(deployImplementation(Invalid), error => getUpgradeUnsafeRegex('Invalid').test(error.message));
   });
 
   it('deploy implementation uups - no upgrade function', async function () {

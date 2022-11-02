@@ -69,8 +69,10 @@ test('getUpdatedLayout - unique layout match', async t => {
 });
 
 test('getUpdatedLayout - multiple unambiguous layout matches', async t => {
-  const { version: version1 } = t.context.validationRun['contracts/test/ManifestMigrate.sol:ManifestMigrateUnambiguous1'];
-  const { version: version2 } = t.context.validationRun['contracts/test/ManifestMigrate.sol:ManifestMigrateUnambiguous2'];
+  const { version: version1 } =
+    t.context.validationRun['contracts/test/ManifestMigrate.sol:ManifestMigrateUnambiguous1'];
+  const { version: version2 } =
+    t.context.validationRun['contracts/test/ManifestMigrate.sol:ManifestMigrateUnambiguous2'];
   assert(version1 !== undefined && version2 !== undefined);
   t.is(version1.withoutMetadata, version2.withoutMetadata, 'version is meant to be ambiguous');
   t.not(version1.withMetadata, version2.withMetadata, 'version with metadata should be different');

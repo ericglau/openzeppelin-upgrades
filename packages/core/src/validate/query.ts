@@ -40,7 +40,7 @@ export function getContractVersion(runData: ValidationRunData, contractName: str
   if (version === undefined) {
     throw new Error(`Contract ${contractName} is abstract`);
   }
-  
+
   return version;
 }
 

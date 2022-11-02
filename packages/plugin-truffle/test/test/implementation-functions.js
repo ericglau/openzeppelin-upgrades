@@ -17,8 +17,8 @@ const Invalid = artifacts.require('Invalid');
 const GreeterStorageConflict = artifacts.require('GreeterStorageConflict');
 const GreeterStorageConflictProxiable = artifacts.require('GreeterStorageConflictProxiable');
 
-function getUpgradeUnsafeMessage(contractName) {
-  return `Contract \`.*:${contractName}\` is not upgrade safe`;
+function getUpgradeUnsafeRegex(contractName) {
+  return new RegExp(`Contract \`.*:${contractName}\` is not upgrade safe`);
 }
 
 contract('Greeter', function () {
@@ -32,13 +32,13 @@ contract('Greeter', function () {
 
   it('validate implementation - invalid', async function () {
     await assert.rejects(validateImplementation(Invalid), error =>
-      error.message.includes(getUpgradeUnsafeMessage('Invalid')),
+      getUpgradeUnsafeRegex('Invalid').test(error.message),
     );
   });
 
   it('validate implementation uups - no upgrade function', async function () {
     await assert.rejects(validateImplementation(Greeter, { kind: 'uups' }), error =>
-      error.message.includes(getUpgradeUnsafeMessage('Greeter')),
+      getUpgradeUnsafeRegex('Greeter').test(error.message),
     );
   });
 
@@ -71,13 +71,13 @@ contract('Greeter', function () {
 
   it('deploy implementation - invalid', async function () {
     await assert.rejects(deployImplementation(Invalid), error =>
-      error.message.includes(getUpgradeUnsafeMessage('Invalid')),
+      getUpgradeUnsafeRegex('Invalid').test(error.message),
     );
   });
 
   it('deploy implementation uups - no upgrade function', async function () {
     await assert.rejects(deployImplementation(Greeter, { kind: 'uups' }), error =>
-      error.message.includes(getUpgradeUnsafeMessage('Greeter')),
+      getUpgradeUnsafeRegex('Greeter').test(error.message),
     );
   });
 
@@ -142,7 +142,7 @@ contract('Greeter', function () {
   it('validate upgrade uups - no upgrade function', async function () {
     const greeter = await deployProxy(GreeterProxiable, ['Hello, Hardhat!']);
     await assert.rejects(validateUpgrade(greeter, GreeterV2, { kind: 'uups' }), error =>
-      error.message.includes(getUpgradeUnsafeMessage('GreeterV2')),
+      getUpgradeUnsafeRegex('GreeterV2').test(error.message),
     );
   });
 
@@ -163,13 +163,13 @@ contract('Greeter', function () {
 
   it('validate upgrade - uups contracts only - uups inferred - no upgrade function', async function () {
     await assert.rejects(validateUpgrade(GreeterProxiable, GreeterV2), error =>
-      error.message.includes(getUpgradeUnsafeMessage('GreeterV2')),
+      getUpgradeUnsafeRegex('GreeterV2').test(error.message),
     );
   });
 
   it('validate upgrade - uups contracts only - uups - no upgrade function', async function () {
     await assert.rejects(validateUpgrade(GreeterProxiable, GreeterV2, { kind: 'uups' }), error =>
-      error.message.includes(getUpgradeUnsafeMessage('GreeterV2')),
+      getUpgradeUnsafeRegex('GreeterV2').test(error.message),
     );
   });
 
@@ -203,7 +203,7 @@ contract('Greeter', function () {
   it('validate upgrade on deployed implementation - kind uups - no upgrade function', async function () {
     const greeter = await deployImplementation(GreeterProxiable);
     await assert.rejects(validateUpgrade(greeter, GreeterV2, { kind: 'uups' }), error =>
-      error.message.includes(getUpgradeUnsafeMessage('GreeterV2')),
+      getUpgradeUnsafeRegex('GreeterV2').test(error.message),
     );
   });
 });

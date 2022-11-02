@@ -6,11 +6,11 @@ type ValidationDataV1 = ValidationRunData;
 
 type ValidationDataV2 = ValidationRunData[];
 
-const currentMajor = '4';
-const currentVersion = '4';
+const currentMajor = '3';
+const currentVersion = '3.4';
 
 interface ValidationDataV3 {
-  version: '4';
+  version: '3' | '3.1' | '3.2' | '3.3' | '3.4';
   log: ValidationRunData[];
 }
 

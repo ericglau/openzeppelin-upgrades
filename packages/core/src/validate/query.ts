@@ -10,10 +10,10 @@ import { ProxyDeployment } from '../manifest';
 const upgradeToSignature = 'upgradeTo(address)';
 
 export function assertUpgradeSafe(data: ValidationData, version: Version, opts: ValidationOptions): void {
-  const normalizedData = normalizeValidationData(data);
-  const [fullContractName] = getContractNameAndRunValidation(normalizedData, version);
+  const dataV3 = normalizeValidationData(data);
+  const [fullContractName] = getContractNameAndRunValidation(dataV3, version);
 
-  const errors = getErrors(normalizedData, version, opts);
+  const errors = getErrors(dataV3, version, opts);
 
   if (errors.length > 0) {
     throw new ValidationErrors(fullContractName, errors);

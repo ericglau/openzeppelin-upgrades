@@ -51,6 +51,7 @@ test('memory 0.8.9', async t => {
 test('string memory - upgrade from 0.5.16 to 0.8.9', async t => {
   const v1 = await t.context.extractStorageLayout('Memory05');
   const v2 = await t.context.extractStorageLayout('Memory08');
+
   const comparison = getStorageUpgradeErrors(v1, v2);
   t.deepEqual(comparison, []);
 });

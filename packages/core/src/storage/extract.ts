@@ -29,7 +29,7 @@ export function extractStorageLayout(
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
   if (storageLayout !== undefined) {
-    layout.types = mapValues(storageLayout.types, m => {
+    const types = mapValues(storageLayout.types, m => {
       return {
         label: m.label,
         members: m.members?.map(m =>
@@ -38,6 +38,7 @@ export function extractStorageLayout(
         numberOfBytes: m.numberOfBytes,
       };
     });
+    layout.types = normalizeTypes(types);
 
     for (const storage of storageLayout.storage) {
       const origin = getOriginContract(contractDef, storage.astId, deref);
@@ -46,7 +47,8 @@ export function extractStorageLayout(
       const { renamedFrom, retypedFrom } = getRetypedRenamed(varDecl);
       // Solc layout doesn't bring members for enums so we get them using the ast method
       loadLayoutType(varDecl, layout, deref);
-      const { label, offset, slot, type } = storage;
+      const { label, offset, slot } = storage;
+      const type = normalizeTypeIdentifier(storage.type);
       const src = decodeSrc(varDecl);
       layout.storage.push({ label, offset, slot, type, contract, src, retypedFrom, renamedFrom });
       layout.flat = true;
@@ -85,6 +87,14 @@ const findTypeNames = findAll([
 interface RequiredTypeDescriptions {
   typeIdentifier: string;
   typeString: string;
+}
+
+function normalizeTypes(types: Record<string, TypeItem>) {
+  const result: Record<string, TypeItem> = {}
+  for (const type of Object.keys(types)) {
+    result[normalizeTypeIdentifier(type)] = types[type];
+  }
+  return result;
 }
 
 function typeDescriptions(x: { typeDescriptions: TypeDescriptions }): RequiredTypeDescriptions {

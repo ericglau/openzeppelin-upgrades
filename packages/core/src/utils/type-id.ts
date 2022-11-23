@@ -27,7 +27,9 @@ export function decodeTypeIdentifier(typeIdentifier: string): string {
 // appears in some places and not others. We remove it to get consistent type
 // ids from the different places in the AST.
 export function normalizeTypeIdentifier(typeIdentifier: string): string {
-  return decodeTypeIdentifier(typeIdentifier).replace(/_storage_ptr\b/g, '_storage');
+  return decodeTypeIdentifier(typeIdentifier)
+    .replace(/_storage_ptr\b/g, '_storage')
+    .replace(/_memory_ptr\b/g, '_memory');
 }
 
 // Type Identifiers contain AST id numbers, which makes them sensitive to

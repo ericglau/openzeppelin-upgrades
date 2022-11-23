@@ -10,7 +10,7 @@ const fixtures = [
   't_mapping(t_uint256,t_uint256)',
   't_mapping(unknown,t_uint256)',
   't_mapping(t_uint256,t_array(t_bool)dyn_storage)',
-  't_mapping(t_uint256,t_mapping(t_string_memory_ptr,t_address))',
+  't_mapping(t_uint256,t_mapping(t_string_memory,t_address))',
   't_function_internal_nonpayable(t_uint256)returns()',
   't_array(t_function_internal_nonpayable(t_uint256)returns(t_address))10_storage',
 ];

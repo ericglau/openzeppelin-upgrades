@@ -90,7 +90,7 @@ interface RequiredTypeDescriptions {
 }
 
 function normalizeTypes(types: Record<string, TypeItem>) {
-  const result: Record<string, TypeItem> = {}
+  const result: Record<string, TypeItem> = {};
   for (const type of Object.keys(types)) {
     result[normalizeTypeIdentifier(type)] = types[type];
   }

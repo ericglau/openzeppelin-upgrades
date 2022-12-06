@@ -1,6 +1,6 @@
 import { Node } from 'solidity-ast/node';
-import { isNodeType, findAll } from 'solidity-ast/utils';
-import type { ContractDefinition } from 'solidity-ast';
+import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
+import type { ContractDefinition, FunctionDefinition } from 'solidity-ast';
 
 import { SolcOutput, SolcBytecode } from '../solc-api';
 import { SrcDecoder } from '../src-decoder';
@@ -148,7 +148,8 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
       };
     }
 
-    for (const contractDef of findAll('ContractDefinition', solcOutput.sources[source].ast)) {
+    const allContractDefs = findAll('ContractDefinition', solcOutput.sources[source].ast);
+    for (const contractDef of allContractDefs) {
       const key = getFullyQualifiedName(source, contractDef.name);
 
       fromId[contractDef.id] = key;
@@ -160,10 +161,12 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
         inheritIds[key] = contractDef.linearizedBaseContracts.slice(1);
         libraryIds[key] = getReferencedLibraryIds(contractDef);
 
+        const opcodeErrors = [...getOpcodeErrors(contractDef, deref, decodeSrc)];
+
         validation[key].src = decodeSrc(contractDef);
         validation[key].errors = [
           ...getConstructorErrors(contractDef, decodeSrc),
-          ...getOpcodeErrors(contractDef, decodeSrc),
+          ...opcodeErrors,
           ...getStateVariableErrors(contractDef, decodeSrc),
           // TODO: add linked libraries support
           // https://github.com/OpenZeppelin/openzeppelin-upgrades/issues/52
@@ -206,8 +209,8 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
   }
 }
 
-function* getOpcodeErrors(contractDef: ContractDefinition, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
-  for (const fnCall of findAll('FunctionCall', contractDef, node => skipCheck('delegatecall', node))) {
+function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => skipCheck('delegatecall', node))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_baredelegatecall_/)) {
       yield {
@@ -216,13 +219,24 @@ function* getOpcodeErrors(contractDef: ContractDefinition, decodeSrc: SrcDecoder
       };
     }
   }
-  for (const fnCall of findAll('FunctionCall', contractDef, node => skipCheck('selfdestruct', node))) {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => skipCheck('selfdestruct', node))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_selfdestruct_/)) {
       yield {
         kind: 'selfdestruct',
         src: decodeSrc(fnCall),
       };
+    }
+  }
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef)) {
+    const fn = fnCall.expression;
+    const fnReference = (fn as any).referencedDeclaration;
+    if (fnReference !== undefined && fnReference > 0) {
+      try {
+        const referencedFn = deref('FunctionDefinition', fnReference);
+        yield * getOpcodeErrors(referencedFn, deref, decodeSrc);
+      } catch (e) {
+      }
     }
   }
 }

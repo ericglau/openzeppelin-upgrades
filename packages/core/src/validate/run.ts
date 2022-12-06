@@ -150,6 +150,16 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
 
     const allContractDefs = findAll('ContractDefinition', solcOutput.sources[source].ast);
     for (const contractDef of allContractDefs) {
+      if(contractDef.name === 'SafeContractWithParentCall') {
+        const a=1;
+      }
+      if(contractDef.name === 'RiskyLibrary') {
+        const a=1;
+      }
+      if(contractDef.name === 'UnsafeContractWithFreeFunctionCall') {
+        const a=1;
+      }
+
       const key = getFullyQualifiedName(source, contractDef.name);
 
       fromId[contractDef.id] = key;
@@ -161,7 +171,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
         inheritIds[key] = contractDef.linearizedBaseContracts.slice(1);
         libraryIds[key] = getReferencedLibraryIds(contractDef);
 
-        const opcodeErrors = [...getOpcodeErrors(contractDef, deref, decodeSrc)];
+        const opcodeErrors = [...getOpcodeErrors(true, contractDef, deref, decodeSrc)];
 
         validation[key].src = decodeSrc(contractDef);
         validation[key].errors = [
@@ -209,8 +219,8 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
   }
 }
 
-function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => skipCheck('delegatecall', node))) {
+function* getOpcodeErrors(isMainContract: boolean, contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('delegatecall', node)))) { // || skipInternalFunctions(isMainContract, node)))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_baredelegatecall_/)) {
       yield {
@@ -219,7 +229,7 @@ function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDe
       };
     }
   }
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => skipCheck('selfdestruct', node))) {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('selfdestruct', node)))) { // || skipInternalFunctions(isMainContract, node)))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_selfdestruct_/)) {
       yield {
@@ -234,12 +244,16 @@ function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDe
     if (fnReference !== undefined && fnReference > 0) {
       try {
         const referencedFn = deref('FunctionDefinition', fnReference);
-        yield * getOpcodeErrors(referencedFn, deref, decodeSrc);
+        yield * getOpcodeErrors(false, referencedFn, deref, decodeSrc);
       } catch (e) {
       }
     }
   }
 }
+
+// function skipInternalFunctions(isMainContract: boolean, node: Node) {
+//   return !isMainContract && node.nodeType === 'FunctionDefinition' && (node.visibility === 'internal' || node.visibility === 'private');
+// }
 
 function* getStateVariableErrors(
   contractDef: ContractDefinition,

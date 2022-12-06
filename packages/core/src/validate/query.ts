@@ -168,6 +168,9 @@ function getUsedContracts(contractName: string, runValidation: ValidationRunData
   const c = runValidation[contractName];
   // Add current contract and all of its parents
   const res = new Set([contractName, ...c.inherit]);
+  // TODO somehow exclude private/internal opcode errors from inherited contract
+  // - note in the error object that the visibility is internal/private
+  // - filter those out from here
   return Array.from(res);
 }
 

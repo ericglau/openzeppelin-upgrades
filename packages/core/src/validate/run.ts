@@ -1,6 +1,6 @@
 import { Node } from 'solidity-ast/node';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
-import type { ContractDefinition, FunctionDefinition } from 'solidity-ast';
+import type { ContractDefinition, FunctionDefinition, InheritanceSpecifier } from 'solidity-ast';
 
 import { SolcOutput, SolcBytecode } from '../solc-api';
 import { SrcDecoder } from '../src-decoder';
@@ -66,6 +66,10 @@ interface ValidationErrorConstructor extends ValidationErrorBase {
 
 interface ValidationErrorOpcode extends ValidationErrorBase {
   kind: 'delegatecall' | 'selfdestruct';
+}
+
+export function isOpcodeError(error: ValidationErrorBase) {
+  return error.kind === 'delegatecall' || error.kind === 'selfdestruct';
 }
 
 interface ValidationErrorUpgradeability extends ValidationErrorBase {
@@ -222,12 +226,12 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
 }
 
 function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
-  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'delegatecall', /^t_function_baredelegatecall_/);
-  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'selfdestruct', /^t_function_selfdestruct_/);
+  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'delegatecall', /^t_function_baredelegatecall_/, false);
+  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'selfdestruct', /^t_function_selfdestruct_/, false);
 }
 
-function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder, kind: 'delegatecall' | 'selfdestruct', opcodePattern: RegExp): Generator<ValidationErrorOpcode> {
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node)))) {
+function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder, kind: 'delegatecall' | 'selfdestruct', opcodePattern: RegExp, skipInternal: boolean): Generator<ValidationErrorOpcode> {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node) || skipInternalFunctions(skipInternal, node)))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(opcodePattern)) {
       yield {
@@ -236,17 +240,36 @@ function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | Functi
       };
     }
   }
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node, true)))) {
+  // recursively call self for function references
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node, true) || skipInternalFunctions(skipInternal, node)))) {
     const fn = fnCall.expression;
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {
       try {
-        const referencedFn = deref('FunctionDefinition', fnReference);
-        yield * getOpcodeKindErrors(referencedFn, deref, decodeSrc, kind, opcodePattern);
+        const referenced = deref('FunctionDefinition', fnReference);
+        yield * getOpcodeKindErrors(referenced, deref, decodeSrc, kind, opcodePattern, false);
       } catch (e) {
       }
     }
   }
+  // recursively call self for parents but ignoring their private and internal functions
+  const baseContracts: InheritanceSpecifier[] | undefined = (contractOrFunctionDef as any).baseContracts;
+  if (baseContracts !== undefined) {
+    for (const base of baseContracts) {
+      const parentReference = base.baseName.referencedDeclaration;
+      if (parentReference > 0) {
+        try {
+          const referenced = deref('ContractDefinition', parentReference);
+          yield * getOpcodeKindErrors(referenced, deref, decodeSrc, kind, opcodePattern, true);
+        } catch (e) {
+        }
+      }
+    }
+  }
+}
+
+function skipInternalFunctions(skipInternal: boolean, node: Node) {
+  return skipInternal && node.nodeType === 'FunctionDefinition' && (node.visibility === 'internal' || node.visibility === 'private');
 }
 
 function* getStateVariableErrors(

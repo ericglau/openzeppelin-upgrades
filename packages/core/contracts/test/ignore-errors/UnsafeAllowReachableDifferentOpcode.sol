@@ -3,9 +3,9 @@ pragma solidity ^0.8.9;
 
 import "./TransitiveRiskyLibrary.sol";
 
-// allow-reachable causes the delegatecall in a transitive function to be ignored
-contract UnsafeAllowReachable {
-    /// @custom:oz-upgrades-unsafe-allow-reachable delegatecall
+// allow-reachable has no effect because the transitive function has a different opcode
+contract UnsafeAllowReachableDifferentOpcode {
+    /// @custom:oz-upgrades-unsafe-allow-reachable selfdestruct
     function unsafe(bytes memory data) public {
         TransitiveRiskyLibrary.internalDegateCall(address(this), data);
     }

@@ -171,7 +171,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
         inheritIds[key] = contractDef.linearizedBaseContracts.slice(1);
         libraryIds[key] = getReferencedLibraryIds(contractDef);
 
-        const opcodeErrors = [...getOpcodeErrors(true, contractDef, deref, decodeSrc)];
+        const opcodeErrors = [...getOpcodeErrors(contractDef, deref, decodeSrc)];
 
         validation[key].src = decodeSrc(contractDef);
         validation[key].errors = [
@@ -219,8 +219,8 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
   }
 }
 
-function* getOpcodeErrors(isMainContract: boolean, contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('delegatecall', node)))) { // || skipInternalFunctions(isMainContract, node)))) {
+function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('delegatecall', node)))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_baredelegatecall_/)) {
       yield {
@@ -229,7 +229,7 @@ function* getOpcodeErrors(isMainContract: boolean, contractOrFunctionDef: Contra
       };
     }
   }
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('selfdestruct', node)))) { // || skipInternalFunctions(isMainContract, node)))) {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('selfdestruct', node)))) {
     const fn = fnCall.expression;
     if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_selfdestruct_/)) {
       yield {
@@ -244,7 +244,7 @@ function* getOpcodeErrors(isMainContract: boolean, contractOrFunctionDef: Contra
     if (fnReference !== undefined && fnReference > 0) {
       try {
         const referencedFn = deref('FunctionDefinition', fnReference);
-        yield * getOpcodeErrors(false, referencedFn, deref, decodeSrc);
+        yield * getOpcodeErrors(referencedFn, deref, decodeSrc);
       } catch (e) {
       }
     }

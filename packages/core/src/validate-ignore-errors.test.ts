@@ -34,6 +34,8 @@ test.before(async t => {
     'contracts/test/ignore-errors/UnsafeContractWithParentCall.sol:UnsafeContractWithParentCall',
     'contracts/test/ignore-errors/UnsafeContractWithInheritedParent.sol:UnsafeContractWithInheritedParent',
     'contracts/test/ignore-errors/UnsafeContractWithInheritedTransitiveParent.sol:UnsafeContractWithInheritedTransitiveParent',
+    'contracts/test/ignore-errors/UnsafeAllowReachable.sol:UnsafeAllowReachable',
+    'contracts/test/ignore-errors/UnsafeAllowUnreachable.sol:UnsafeAllowUnreachable',
   ];
 
   t.context.validation = {} as RunValidation;
@@ -75,6 +77,7 @@ testValid('SafeContractWithLibraryImport', 'transparent', true);
 testValid('SafeContractWithLibraryUsingFor', 'transparent', true);
 testValid('SafeContractWithTransitiveLibraryCall', 'transparent', true);
 testValid('SafeContractWithParentCall', 'transparent', true);
+
 testValid('UnsafeContract', 'transparent', false);
 testValid('UnsafeContractWithFreeFunctionCall', 'transparent', false);
 testValid('UnsafeContractWithLibraryCall', 'transparent', false);
@@ -83,3 +86,7 @@ testValid('UnsafeContractWithTransitiveLibraryCall', 'transparent', false);
 testValid('UnsafeContractWithParentCall', 'transparent', false);
 testValid('UnsafeContractWithInheritedParent', 'transparent', false);
 testValid('UnsafeContractWithInheritedTransitiveParent', 'transparent', false);
+
+testValid('UnsafeAllowReachable', 'transparent', true);
+
+testValid('UnsafeAllowUnreachable', 'transparent', false);

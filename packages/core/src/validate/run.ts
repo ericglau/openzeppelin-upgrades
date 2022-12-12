@@ -84,8 +84,10 @@ function* execall(re: RegExp, text: string) {
   }
 }
 
-function getAllowed(node: Node): string[] {
+function getAllowed(node: Node, reachable?: boolean): string[] {
   if ('documentation' in node) {
+    const tag = `oz-upgrades-unsafe-allow${reachable ? '-reachable' : ''}`
+
     const doc = typeof node.documentation === 'string' ? node.documentation : node.documentation?.text ?? '';
 
     const result: string[] = [];
@@ -93,14 +95,14 @@ function getAllowed(node: Node): string[] {
       /^\s*(?:@(?<title>\w+)(?::(?<tag>[a-z][a-z-]*))? )?(?<args>(?:(?!^\s@\w+)[^])*)/m,
       doc,
     )) {
-      if (groups && groups.title === 'custom' && groups.tag === 'oz-upgrades-unsafe-allow') {
+      if (groups && groups.title === 'custom' && groups.tag === tag) {
         result.push(...groups.args.split(/\s+/));
       }
     }
 
     result.forEach(arg => {
       if (!(errorKinds as readonly string[]).includes(arg)) {
-        throw new Error(`NatSpec: oz-upgrades-unsafe-allow argument not recognized: ${arg}`);
+        throw new Error(`NatSpec: ${tag} argument not recognized: ${arg}`);
       }
     });
 
@@ -110,8 +112,8 @@ function getAllowed(node: Node): string[] {
   }
 }
 
-function skipCheck(error: string, node: Node): boolean {
-  return getAllowed(node).includes(error);
+function skipCheck(error: string, node: Node, reachable?: boolean): boolean {
+  return getAllowed(node, reachable).includes(error);
 }
 
 function getFullyQualifiedName(source: string, contractName: string) {
@@ -234,7 +236,7 @@ function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | Functi
       };
     }
   }
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef)) {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node, true)))) {
     const fn = fnCall.expression;
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {

@@ -220,20 +220,16 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
 }
 
 function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('delegatecall', node)))) {
+  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'delegatecall', /^t_function_baredelegatecall_/);
+  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'selfdestruct', /^t_function_selfdestruct_/);
+}
+
+function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder, kind: 'delegatecall' | 'selfdestruct', opcodePattern: RegExp): Generator<ValidationErrorOpcode> {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node)))) {
     const fn = fnCall.expression;
-    if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_baredelegatecall_/)) {
+    if (fn.typeDescriptions.typeIdentifier?.match(opcodePattern)) {
       yield {
-        kind: 'delegatecall',
-        src: decodeSrc(fnCall),
-      };
-    }
-  }
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck('selfdestruct', node)))) {
-    const fn = fnCall.expression;
-    if (fn.typeDescriptions.typeIdentifier?.match(/^t_function_selfdestruct_/)) {
-      yield {
-        kind: 'selfdestruct',
+        kind,
         src: decodeSrc(fnCall),
       };
     }
@@ -244,16 +240,12 @@ function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDe
     if (fnReference !== undefined && fnReference > 0) {
       try {
         const referencedFn = deref('FunctionDefinition', fnReference);
-        yield * getOpcodeErrors(referencedFn, deref, decodeSrc);
+        yield * getOpcodeKindErrors(referencedFn, deref, decodeSrc, kind, opcodePattern);
       } catch (e) {
       }
     }
   }
 }
-
-// function skipInternalFunctions(isMainContract: boolean, node: Node) {
-//   return !isMainContract && node.nodeType === 'FunctionDefinition' && (node.visibility === 'internal' || node.visibility === 'private');
-// }
 
 function* getStateVariableErrors(
   contractDef: ContractDefinition,

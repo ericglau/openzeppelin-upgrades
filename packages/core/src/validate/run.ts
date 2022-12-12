@@ -116,6 +116,10 @@ function getAllowed(node: Node, reachable?: boolean): string[] {
   }
 }
 
+function skipCheckReachable(error: string, node: Node): boolean {
+  return skipCheck(error, node, true);
+}
+
 function skipCheck(error: string, node: Node, reachable?: boolean): boolean {
   return getAllowed(node, reachable).includes(error);
 }
@@ -156,6 +160,10 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
 
     const allContractDefs = findAll('ContractDefinition', solcOutput.sources[source].ast);
     for (const contractDef of allContractDefs) {
+      if(contractDef.name === 'ChildOfProxiable') {
+        const a=1;
+      }
+
       const key = getFullyQualifiedName(source, contractDef.name);
 
       fromId[contractDef.id] = key;
@@ -231,7 +239,7 @@ function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | Functi
     }
   }
   // recursively call self for function references
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node, true) || skipInternalFunctions(skipInternal, node)))) {
+  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheckReachable(kind, node) || skipInternalFunctions(skipInternal, node)))) {
     const fn = fnCall.expression;
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {
@@ -242,9 +250,9 @@ function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | Functi
       }
     }
   }
-  // recursively call self for parents but ignoring their private and internal functions
+  // recursively call self for parents but ignoring their private and internal functions, and ignoring any unsafe-allow-reachable
   const baseContracts: InheritanceSpecifier[] | undefined = (contractOrFunctionDef as any).baseContracts;
-  if (baseContracts !== undefined) {
+  if (baseContracts !== undefined && !skipCheckReachable(kind, contractOrFunctionDef)) {
     for (const base of baseContracts) {
       const parentReference = base.baseName.referencedDeclaration;
       if (parentReference > 0) {

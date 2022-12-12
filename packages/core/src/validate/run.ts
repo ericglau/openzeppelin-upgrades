@@ -156,16 +156,6 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
 
     const allContractDefs = findAll('ContractDefinition', solcOutput.sources[source].ast);
     for (const contractDef of allContractDefs) {
-      if(contractDef.name === 'SafeContractWithParentCall') {
-        const a=1;
-      }
-      if(contractDef.name === 'RiskyLibrary') {
-        const a=1;
-      }
-      if(contractDef.name === 'UnsafeContractWithFreeFunctionCall') {
-        const a=1;
-      }
-
       const key = getFullyQualifiedName(source, contractDef.name);
 
       fromId[contractDef.id] = key;

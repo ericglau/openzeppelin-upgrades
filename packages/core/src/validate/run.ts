@@ -76,6 +76,8 @@ interface ValidationErrorUpgradeability extends ValidationErrorBase {
   kind: 'missing-public-upgradeto';
 }
 
+const ERROR_NO_NODE_WITH_ID = 'No node with id';
+
 function* execall(re: RegExp, text: string) {
   re = new RegExp(re, re.flags + (re.sticky ? '' : 'y'));
   while (true) {
@@ -253,7 +255,11 @@ function* getOpcodeErrorsWithKind(
   let parentNode;
   try {
     parentNode = deref('ContractDefinition', contractOrFunctionDef.scope);
-  } catch (e) {}
+  } catch (e: any) {
+    if (!e.message.includes(ERROR_NO_NODE_WITH_ID)) {
+      throw e;
+    }
+  }
 
   if (parentNode === undefined || !skipCheck(kind, parentNode)) {
     for (const fnCall of findAll(
@@ -281,9 +287,13 @@ function* getOpcodeErrorsWithKind(
       const fnReference = (fn as any).referencedDeclaration;
       if (fnReference !== undefined && fnReference > 0) {
         try {
-          const referenced = deref('FunctionDefinition', fnReference);
-          yield* getOpcodeErrorsWithKind(referenced, deref, decodeSrc, kind, opcodePattern, false);
-        } catch (e) {}
+          const referencedFunction = deref('FunctionDefinition', fnReference);
+          yield* getOpcodeErrorsWithKind(referencedFunction, deref, decodeSrc, kind, opcodePattern, false);
+        } catch (e: any) {
+          if (!e.message.includes(ERROR_NO_NODE_WITH_ID)) {
+            throw e;
+          }
+        }
       }
     }
   }
@@ -291,13 +301,8 @@ function* getOpcodeErrorsWithKind(
   const baseContracts: InheritanceSpecifier[] | undefined = (contractOrFunctionDef as any).baseContracts;
   if (baseContracts !== undefined && !skipCheckReachable(kind, contractOrFunctionDef)) {
     for (const base of baseContracts) {
-      const parentReference = base.baseName.referencedDeclaration;
-      if (parentReference > 0) {
-        try {
-          const referenced = deref('ContractDefinition', parentReference);
-          yield* getOpcodeErrorsWithKind(referenced, deref, decodeSrc, kind, opcodePattern, true);
-        } catch (e) {}
-      }
+      const referencedContract = deref('ContractDefinition', base.baseName.referencedDeclaration);
+      yield* getOpcodeErrorsWithKind(referencedContract, deref, decodeSrc, kind, opcodePattern, true);
     }
   }
 }

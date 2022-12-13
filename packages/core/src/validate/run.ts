@@ -253,7 +253,7 @@ function* getContractOpcodeErrors(
   skipInternal: boolean,
 ): Generator<ValidationErrorOpcode> {
   yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, kind, opcodePattern, skipInternal);
-  yield* getInheritedOpcodeErrors(contractDef, kind, deref, decodeSrc, opcodePattern);
+  yield* getInheritedContractOpcodeErrors(contractDef, kind, deref, decodeSrc, opcodePattern);
 }
 
 function* getFunctionOpcodeErrors(
@@ -330,7 +330,7 @@ function* getReferencedFunctionOpcodeErrors(
   }
 }
 
-function* getInheritedOpcodeErrors(
+function* getInheritedContractOpcodeErrors(
   contractDef: ContractDefinition,
   kind: 'delegatecall' | 'selfdestruct',
   deref: ASTDereferencer,

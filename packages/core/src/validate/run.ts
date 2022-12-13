@@ -88,7 +88,7 @@ function* execall(re: RegExp, text: string) {
   }
 }
 
-function getAllowed(node: Node, reachable?: boolean): string[] {
+function getAllowed(node: Node, reachable: boolean): string[] {
   if ('documentation' in node) {
     const tag = `oz-upgrades-unsafe-allow${reachable ? '-reachable' : ''}`
 
@@ -117,11 +117,11 @@ function getAllowed(node: Node, reachable?: boolean): string[] {
 }
 
 function skipCheckReachable(error: string, node: Node): boolean {
-  return skipCheck(error, node, true);
+  return getAllowed(node, true).includes(error);
 }
 
-function skipCheck(error: string, node: Node, reachable?: boolean): boolean {
-  return getAllowed(node, reachable).includes(error);
+function skipCheck(error: string, node: Node): boolean {
+  return getAllowed(node, false).includes(error);
 }
 
 function getFullyQualifiedName(source: string, contractName: string) {

@@ -224,33 +224,43 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
 }
 
 function* getOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder): Generator<ValidationErrorOpcode> {
-  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'delegatecall', /^t_function_baredelegatecall_/, false);
-  yield * getOpcodeKindErrors(contractOrFunctionDef, deref, decodeSrc, 'selfdestruct', /^t_function_selfdestruct_/, false);
+  yield * getOpcodeErrorsWithKind(contractOrFunctionDef, deref, decodeSrc, 'delegatecall', /^t_function_baredelegatecall_/, false);
+  yield * getOpcodeErrorsWithKind(contractOrFunctionDef, deref, decodeSrc, 'selfdestruct', /^t_function_selfdestruct_/, false);
 }
 
-function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder, kind: 'delegatecall' | 'selfdestruct', opcodePattern: RegExp, skipInternal: boolean): Generator<ValidationErrorOpcode> {
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node) || skipInternalFunctions(skipInternal, node)))) {
-    const fn = fnCall.expression;
-    if (fn.typeDescriptions.typeIdentifier?.match(opcodePattern)) {
-      yield {
-        kind,
-        src: decodeSrc(fnCall),
-      };
-    }
+function* getOpcodeErrorsWithKind(contractOrFunctionDef: ContractDefinition | FunctionDefinition, deref: ASTDereferencer, decodeSrc: SrcDecoder, kind: 'delegatecall' | 'selfdestruct', opcodePattern: RegExp, skipInternal: boolean): Generator<ValidationErrorOpcode> {
+  let parentNode;
+  try {
+    parentNode = deref('ContractDefinition', contractOrFunctionDef.scope);
+  } catch (e) {
   }
-  // recursively call self for function references
-  for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheckReachable(kind, node) || skipInternalFunctions(skipInternal, node)))) {
-    const fn = fnCall.expression;
-    const fnReference = (fn as any).referencedDeclaration;
-    if (fnReference !== undefined && fnReference > 0) {
-      try {
-        const referenced = deref('FunctionDefinition', fnReference);
-        yield * getOpcodeKindErrors(referenced, deref, decodeSrc, kind, opcodePattern, false);
-      } catch (e) {
+
+  if (parentNode === undefined || !skipCheck(kind, parentNode)) {
+    for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheck(kind, node) || skipInternalFunctions(skipInternal, node)))) {
+      const fn = fnCall.expression;
+      if (fn.typeDescriptions.typeIdentifier?.match(opcodePattern)) {
+        yield {
+          kind,
+          src: decodeSrc(fnCall),
+        };
       }
     }
   }
-  // recursively call self for parents but ignoring their private and internal functions, and ignoring any unsafe-allow-reachable
+  if (parentNode === undefined || !skipCheckReachable(kind, parentNode)) {
+    // recursively call self for function references
+    for (const fnCall of findAll('FunctionCall', contractOrFunctionDef, node => (skipCheckReachable(kind, node) || skipInternalFunctions(skipInternal, node)))) {
+      const fn = fnCall.expression;
+      const fnReference = (fn as any).referencedDeclaration;
+      if (fnReference !== undefined && fnReference > 0) {
+        try {
+          const referenced = deref('FunctionDefinition', fnReference);
+          yield * getOpcodeErrorsWithKind(referenced, deref, decodeSrc, kind, opcodePattern, false);
+        } catch (e) {
+        }
+      }
+    }
+  }
+  // recursively call self for inherited contracts but ignoring their private and internal functions, and ignoring any unsafe-allow-reachable
   const baseContracts: InheritanceSpecifier[] | undefined = (contractOrFunctionDef as any).baseContracts;
   if (baseContracts !== undefined && !skipCheckReachable(kind, contractOrFunctionDef)) {
     for (const base of baseContracts) {
@@ -258,7 +268,7 @@ function* getOpcodeKindErrors(contractOrFunctionDef: ContractDefinition | Functi
       if (parentReference > 0) {
         try {
           const referenced = deref('ContractDefinition', parentReference);
-          yield * getOpcodeKindErrors(referenced, deref, decodeSrc, kind, opcodePattern, true);
+          yield * getOpcodeErrorsWithKind(referenced, deref, decodeSrc, kind, opcodePattern, true);
         } catch (e) {
         }
       }

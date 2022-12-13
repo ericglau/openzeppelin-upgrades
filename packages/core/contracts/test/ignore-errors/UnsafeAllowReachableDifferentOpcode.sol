@@ -7,6 +7,6 @@ import "./TransitiveRiskyLibrary.sol";
 contract UnsafeAllowReachableDifferentOpcode {
     /// @custom:oz-upgrades-unsafe-allow-reachable selfdestruct
     function unsafe(bytes memory data) public {
-        TransitiveRiskyLibrary.internalDegateCall(address(this), data);
+        TransitiveRiskyLibrary.internalDelegateCall(address(this), data);
     }
 }

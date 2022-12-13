@@ -5,6 +5,6 @@ import "./RiskyParentContract.sol";
 
 contract UnsafeContractWithParentCall is RiskyParentContract {
     function unsafe(address target, bytes memory data) public {
-        internalDegateCall(target, data);
+        internalDelegateCall(target, data);
     }
 }

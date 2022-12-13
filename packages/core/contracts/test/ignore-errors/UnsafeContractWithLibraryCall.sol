@@ -5,6 +5,6 @@ import "./RiskyLibrary.sol";
 
 contract UnsafeContractWithLibraryCall {
     function unsafe(address target, bytes memory data) public {
-        RiskyLibrary.internalDegateCall(target, data);
+        RiskyLibrary.internalDelegateCall(target, data);
     }
 }

@@ -5,7 +5,7 @@ function isContract(address account) view returns (bool) {
     return account.code.length > 0;
 }
 
-function freeDegateCall(
+function freeDelegateCall(
     address target,
     bytes memory data
 ) returns (bytes memory) {

@@ -6,7 +6,7 @@ library RiskyLibrary {
         return account.code.length > 0;
     }
 
-    function internalDegateCall(
+    function internalDelegateCall(
         address target,
         bytes memory data
     ) internal returns (bytes memory) {

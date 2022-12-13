@@ -7,6 +7,6 @@ import "./TransitiveRiskyLibrary.sol";
 contract UnsafeAllow {
     /// @custom:oz-upgrades-unsafe-allow delegatecall
     function unsafe(address target, bytes memory data) public {
-        TransitiveRiskyLibrary.internalDegateCall(target, data);
+        TransitiveRiskyLibrary.internalDelegateCall(target, data);
     }
 }

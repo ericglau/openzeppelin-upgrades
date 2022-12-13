@@ -8,10 +8,10 @@ library TransitiveRiskyLibrary {
         return RiskyLibrary.isContract(account);
     }
 
-    function internalDegateCall(
+    function internalDelegateCall(
         address target,
         bytes memory data
     ) internal returns (bytes memory) {
-        return RiskyLibrary.internalDegateCall(target, data);
+        return RiskyLibrary.internalDelegateCall(target, data);
     }
 }

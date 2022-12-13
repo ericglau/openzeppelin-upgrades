@@ -5,6 +5,6 @@ import "./RiskyFreeFunctions.sol" as RiskyFreeFunctions;
 
 contract UnsafeContractWithFreeFunctionCall {
     function unsafe(address target, bytes memory data) public {
-        RiskyFreeFunctions.freeDegateCall(target, data);
+        RiskyFreeFunctions.freeDelegateCall(target, data);
     }
 }

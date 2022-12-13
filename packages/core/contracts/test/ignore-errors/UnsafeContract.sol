@@ -2,7 +2,7 @@
 pragma solidity ^0.8.9;
 
 contract UnsafeContract {
-    function externalDegateCall(
+    function externalDelegateCall(
         address target,
         bytes memory data
     ) external returns (bytes memory) {

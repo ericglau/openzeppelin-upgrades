@@ -7,9 +7,9 @@ import "./RiskyLibrary.sol";
  * @custom:oz-upgrades-unsafe-allow-reachable delegatecall
  */
 contract TransitiveAllowReachable {
-      function internalDegateCall(
+      function internalDelegateCall(
         bytes memory data
     ) external returns (bytes memory) {
-        return RiskyLibrary.internalDegateCall(address(this), data);
+        return RiskyLibrary.internalDelegateCall(address(this), data);
     }
 }

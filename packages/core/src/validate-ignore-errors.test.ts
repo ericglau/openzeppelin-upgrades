@@ -33,8 +33,9 @@ test.before(async t => {
     'contracts/test/ignore-errors/UnsafeAllowParent.sol:UnsafeAllowParent',
     'contracts/test/ignore-errors/AllowReachableParent.sol:AllowReachableParent',
     'contracts/test/ignore-errors/UnsafeAllowReachableParentDifferentOpcode.sol:UnsafeAllowReachableParentDifferentOpcode',
-    'contracts/test/ignore-errors/AllowChildTransitive.sol:AllowChildTransitive',
+    'contracts/test/ignore-errors/AllowChildInheritedTransitive.sol:AllowChildInheritedTransitive',
     'contracts/test/ignore-errors/AllowChild.sol:AllowChild',
+    'contracts/test/ignore-errors/AllowChildCallTransitive.sol:AllowChildCallTransitive',
   ];
 
   t.context.validation = {} as RunValidation;
@@ -94,5 +95,6 @@ testValid('UnsafeAllowParent', 'transparent', false);
 testValid('AllowReachableParent', 'transparent', true);
 testValid('UnsafeAllowReachableParentDifferentOpcode', 'transparent', false);
 
-testValid('AllowChildTransitive', 'transparent', true);
+testValid('AllowChildInheritedTransitive', 'transparent', true);
 testValid('AllowChild', 'transparent', true);
+testValid('AllowChildCallTransitive', 'transparent', true);

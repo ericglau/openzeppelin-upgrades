@@ -3,5 +3,5 @@ pragma solidity ^0.8.9;
 
 import "./TransitiveAllowReachable.sol";
 
-contract AllowChildTransitive is TransitiveAllowReachable {
+contract AllowChildInheritedTransitive is TransitiveAllowReachable {
 }

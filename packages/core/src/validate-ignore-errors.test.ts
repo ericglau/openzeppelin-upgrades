@@ -1,14 +1,7 @@
 import _test, { TestFn } from 'ava';
 import { artifacts } from 'hardhat';
 
-import {
-  validate,
-  getStorageLayout,
-  getContractVersion,
-  assertUpgradeSafe,
-  ValidationOptions,
-  RunValidation,
-} from './validate';
+import { validate, getContractVersion, assertUpgradeSafe, ValidationOptions, RunValidation } from './validate';
 import { solcInputOutputDecoder } from './src-decoder';
 
 interface Context {

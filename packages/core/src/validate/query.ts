@@ -162,9 +162,9 @@ function getAllErrors(runValidation: ValidationRunData, fullContractName: string
   const opcodeErrors = runValidation[fullContractName].errors.filter(error => isOpcodeError(error));
 
   // add other errors from self and inherited contracts
-  const otherErrors = getUsedContracts(fullContractName, runValidation).flatMap(
-    name => runValidation[name].errors
-  ).filter(error => !isOpcodeError(error));
+  const otherErrors = getUsedContracts(fullContractName, runValidation)
+    .flatMap(name => runValidation[name].errors)
+    .filter(error => !isOpcodeError(error));
 
   return [...opcodeErrors, ...otherErrors];
 }

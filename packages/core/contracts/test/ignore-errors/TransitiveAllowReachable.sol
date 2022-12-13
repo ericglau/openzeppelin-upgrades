@@ -4,6 +4,8 @@ pragma solidity ^0.8.9;
 import "./RiskyLibrary.sol";
 
 /**
+ * allow delegatecalls on all of this contract's functions and reachable code
+ *
  * @custom:oz-upgrades-unsafe-allow-reachable delegatecall
  */
 contract TransitiveAllowReachable {

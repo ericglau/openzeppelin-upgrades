@@ -10,5 +10,5 @@ import "./TransitiveUnsafeParent.sol";
  *
  * @custom:oz-upgrades-unsafe-allow-reachable delegatecall
  */
-contract UnsafeAllowReachableParent is TransitiveUnsafeParent {
+contract AllowReachableParent is TransitiveUnsafeParent {
 }

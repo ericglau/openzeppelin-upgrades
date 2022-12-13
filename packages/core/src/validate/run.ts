@@ -252,6 +252,65 @@ function* getOpcodeErrorsWithKind(
   opcodePattern: RegExp,
   skipInternal: boolean,
 ): Generator<ValidationErrorOpcode> {
+  let parentNode = getParentNode(deref, contractOrFunctionDef);
+
+  if (parentNode === undefined || !skipCheck(kind, parentNode)) {
+    yield* getDirectFunctionOpcodeErrors(contractOrFunctionDef, kind, skipInternal, opcodePattern, decodeSrc);
+  }
+  if (parentNode === undefined || !skipCheckReachable(kind, parentNode)) {
+    yield* getReferencedFunctionOpcodeErrors(contractOrFunctionDef, kind, skipInternal, deref, decodeSrc, opcodePattern);
+  }
+  yield* getInheritedOpcodeErrors(contractOrFunctionDef, kind, deref, decodeSrc, opcodePattern);
+}
+
+function* getDirectFunctionOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, kind: 'delegatecall' | 'selfdestruct', skipInternal: boolean, opcodePattern: RegExp, decodeSrc: SrcDecoder) {
+  for (const fnCall of findAll(
+    'FunctionCall',
+    contractOrFunctionDef,
+    node => skipCheck(kind, node) || skipInternalFunctions(skipInternal, node)
+  )) {
+    const fn = fnCall.expression;
+    if (fn.typeDescriptions.typeIdentifier?.match(opcodePattern)) {
+      yield {
+        kind,
+        src: decodeSrc(fnCall),
+      };
+    }
+  }
+}
+
+function* getReferencedFunctionOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, kind: 'delegatecall' | 'selfdestruct', skipInternal: boolean, deref: ASTDereferencer, decodeSrc: SrcDecoder, opcodePattern: RegExp) {
+  for (const fnCall of findAll(
+    'FunctionCall',
+    contractOrFunctionDef,
+    node => skipCheckReachable(kind, node) || skipInternalFunctions(skipInternal, node)
+  )) {
+    const fn = fnCall.expression;
+    const fnReference = (fn as any).referencedDeclaration;
+    if (fnReference !== undefined && fnReference > 0) {
+      try {
+        const referencedFunction = deref('FunctionDefinition', fnReference);
+        yield* getOpcodeErrorsWithKind(referencedFunction, deref, decodeSrc, kind, opcodePattern, false);
+      } catch (e: any) {
+        if (!e.message.includes(ERROR_NO_NODE_WITH_ID)) {
+          throw e;
+        }
+      }
+    }
+  }
+}
+
+function* getInheritedOpcodeErrors(contractOrFunctionDef: ContractDefinition | FunctionDefinition, kind: 'delegatecall' | 'selfdestruct', deref: ASTDereferencer, decodeSrc: SrcDecoder, opcodePattern: RegExp) {
+  const baseContracts: InheritanceSpecifier[] | undefined = (contractOrFunctionDef as any).baseContracts;
+  if (baseContracts !== undefined && !skipCheckReachable(kind, contractOrFunctionDef)) {
+    for (const base of baseContracts) {
+      const referencedContract = deref('ContractDefinition', base.baseName.referencedDeclaration);
+      yield* getOpcodeErrorsWithKind(referencedContract, deref, decodeSrc, kind, opcodePattern, true);
+    }
+  }
+}
+
+function getParentNode(deref: ASTDereferencer, contractOrFunctionDef: ContractDefinition | FunctionDefinition) {
   let parentNode;
   try {
     parentNode = deref('ContractDefinition', contractOrFunctionDef.scope);
@@ -260,51 +319,7 @@ function* getOpcodeErrorsWithKind(
       throw e;
     }
   }
-
-  if (parentNode === undefined || !skipCheck(kind, parentNode)) {
-    for (const fnCall of findAll(
-      'FunctionCall',
-      contractOrFunctionDef,
-      node => skipCheck(kind, node) || skipInternalFunctions(skipInternal, node),
-    )) {
-      const fn = fnCall.expression;
-      if (fn.typeDescriptions.typeIdentifier?.match(opcodePattern)) {
-        yield {
-          kind,
-          src: decodeSrc(fnCall),
-        };
-      }
-    }
-  }
-  if (parentNode === undefined || !skipCheckReachable(kind, parentNode)) {
-    // recursively call self for function references
-    for (const fnCall of findAll(
-      'FunctionCall',
-      contractOrFunctionDef,
-      node => skipCheckReachable(kind, node) || skipInternalFunctions(skipInternal, node),
-    )) {
-      const fn = fnCall.expression;
-      const fnReference = (fn as any).referencedDeclaration;
-      if (fnReference !== undefined && fnReference > 0) {
-        try {
-          const referencedFunction = deref('FunctionDefinition', fnReference);
-          yield* getOpcodeErrorsWithKind(referencedFunction, deref, decodeSrc, kind, opcodePattern, false);
-        } catch (e: any) {
-          if (!e.message.includes(ERROR_NO_NODE_WITH_ID)) {
-            throw e;
-          }
-        }
-      }
-    }
-  }
-  // recursively call self for inherited contracts but ignoring their private and internal functions, and ignoring any unsafe-allow-reachable
-  const baseContracts: InheritanceSpecifier[] | undefined = (contractOrFunctionDef as any).baseContracts;
-  if (baseContracts !== undefined && !skipCheckReachable(kind, contractOrFunctionDef)) {
-    for (const base of baseContracts) {
-      const referencedContract = deref('ContractDefinition', base.baseName.referencedDeclaration);
-      yield* getOpcodeErrorsWithKind(referencedContract, deref, decodeSrc, kind, opcodePattern, true);
-    }
-  }
+  return parentNode;
 }
 
 function skipInternalFunctions(skipInternal: boolean, node: Node) {

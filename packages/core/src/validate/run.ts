@@ -81,8 +81,6 @@ interface ValidationErrorUpgradeability extends ValidationErrorBase {
   kind: 'missing-public-upgradeto';
 }
 
-const ERROR_NO_NODE_WITH_ID = 'No node with id';
-
 function* execall(re: RegExp, text: string) {
   re = new RegExp(re, re.flags + (re.sticky ? '' : 'y'));
   while (true) {
@@ -316,10 +314,13 @@ function* getReferencedFunctionOpcodeErrors(
     const fn = fnCall.expression;
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {
-        const referencedNode = deref(['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'], fnReference);
-        if (referencedNode.nodeType === 'FunctionDefinition') {
-          yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false);
-        } // else ignore the other listed node types
+      const referencedNode = deref(
+        ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'],
+        fnReference,
+      );
+      if (referencedNode.nodeType === 'FunctionDefinition') {
+        yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false);
+      } // else ignore the other listed node types
     }
   }
 }
@@ -339,7 +340,7 @@ function* getInheritedContractOpcodeErrors(
 }
 
 function getParentNode(deref: ASTDereferencer, contractOrFunctionDef: ContractDefinition | FunctionDefinition) {
-  let parentNode = deref(['ContractDefinition', 'SourceUnit'], contractOrFunctionDef.scope);
+  const parentNode = deref(['ContractDefinition', 'SourceUnit'], contractOrFunctionDef.scope);
   if (parentNode.nodeType === 'ContractDefinition') {
     return parentNode;
   } // else ignore the other listed node types

@@ -316,14 +316,10 @@ function* getReferencedFunctionOpcodeErrors(
     const fn = fnCall.expression;
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {
-      try {
-        const referencedFunction = deref('FunctionDefinition', fnReference);
-        yield* getFunctionOpcodeErrors(referencedFunction, deref, decodeSrc, opcode, false);
-      } catch (e: any) {
-        if (!e.message.includes(ERROR_NO_NODE_WITH_ID)) {
-          throw e;
-        }
-      }
+        const referencedNode = deref(['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'], fnReference);
+        if (referencedNode.nodeType === 'FunctionDefinition') {
+          yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false);
+        } // else ignore the other listed node types
     }
   }
 }

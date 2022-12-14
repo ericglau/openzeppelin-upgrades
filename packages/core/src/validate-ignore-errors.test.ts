@@ -36,6 +36,7 @@ test.before(async t => {
     'contracts/test/ignore-errors/AllowChildInheritedTransitive.sol:AllowChildInheritedTransitive',
     'contracts/test/ignore-errors/AllowChild.sol:AllowChild',
     'contracts/test/ignore-errors/AllowChildCallTransitive.sol:AllowChildCallTransitive',
+    'contracts/test/ignore-errors/AllowChildSelfReachable.sol:AllowChildSelfReachable',
   ];
 
   t.context.validation = {} as RunValidation;
@@ -98,3 +99,5 @@ testValid('UnsafeAllowReachableParentDifferentOpcode', 'transparent', false);
 testValid('AllowChildInheritedTransitive', 'transparent', true);
 testValid('AllowChild', 'transparent', true);
 testValid('AllowChildCallTransitive', 'transparent', true);
+
+testValid('AllowChildSelfReachable', 'transparent', true);

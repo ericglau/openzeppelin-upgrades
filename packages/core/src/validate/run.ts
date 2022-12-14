@@ -339,15 +339,10 @@ function* getInheritedContractOpcodeErrors(
 }
 
 function getParentNode(deref: ASTDereferencer, contractOrFunctionDef: ContractDefinition | FunctionDefinition) {
-  let parentNode;
-  try {
-    parentNode = deref('ContractDefinition', contractOrFunctionDef.scope);
-  } catch (e: any) {
-    if (!e.message.includes(ERROR_NO_NODE_WITH_ID)) {
-      throw e;
-    }
-  }
-  return parentNode;
+  let parentNode = deref(['ContractDefinition', 'SourceUnit'], contractOrFunctionDef.scope);
+  if (parentNode.nodeType === 'ContractDefinition') {
+    return parentNode;
+  } // else ignore the other listed node types
 }
 
 function skipInternalFunctions(skipInternal: boolean, node: Node) {

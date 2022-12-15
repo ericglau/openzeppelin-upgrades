@@ -181,7 +181,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
         inheritIds[key] = contractDef.linearizedBaseContracts.slice(1);
         libraryIds[key] = getReferencedLibraryIds(contractDef);
 
-        const opcodeErrors = [...getContractOpcodeErrors(contractDef, deref, decodeSrc, false)];
+        const opcodeErrors = [...getContractOpcodeErrors(contractDef, deref, decodeSrc, false, [])];
 
         validation[key].src = decodeSrc(contractDef);
         validation[key].errors = [
@@ -261,9 +261,15 @@ function* getContractOpcodeErrors(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
   skipInternal: boolean,
+  cache: number[],
 ): Generator<ValidationErrorOpcode> {
-  yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, skipInternal);
-  yield* getInheritedOpcodeErrors(contractDef, deref, decodeSrc);
+  if (cache.includes(contractDef.id)) {
+    return;
+  } else {
+    cache.push(contractDef.id);
+  }
+  yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, skipInternal, cache);
+  yield* getInheritedOpcodeErrors(contractDef, deref, decodeSrc, cache);
 }
 
 function* getFunctionOpcodeErrors(
@@ -271,6 +277,7 @@ function* getFunctionOpcodeErrors(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
   skipInternal: boolean,
+  cache: number[],
 ): Generator<ValidationErrorOpcode> {
   const parentNode = getParentNode(deref, contractOrFunctionDef);
 
@@ -304,11 +311,13 @@ function* getFunctionOpcodeErrors(
     let referencedErrors = [];
     if (fnReference !== undefined && fnReference > 0) {
       const referencedNode = deref(
-        ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'],
+        ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition', 'VariableDeclaration',
+        'ErrorDefinition',],
         fnReference,
       );
-      if (referencedNode.nodeType === 'FunctionDefinition') {
-        referencedErrors.push(...getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, false));
+      if (referencedNode.nodeType === 'FunctionDefinition' && !cache.includes(referencedNode.id)) {
+        cache.push(referencedNode.id);
+        referencedErrors.push(...getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, false, cache));
       } // else ignore the other listed node types
     }
 
@@ -393,12 +402,13 @@ function* getInheritedOpcodeErrors(
   contractDef: ContractDefinition,
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
+  cache: number[],
 ) {
   const errors = [];
   // if (!skipCheckReachable(opcode.kind, contractDef)) {
     for (const base of contractDef.baseContracts) {
       const referencedContract = deref('ContractDefinition', base.baseName.referencedDeclaration);
-      errors.push(...getContractOpcodeErrors(referencedContract, deref, decodeSrc, true));
+      errors.push(...getContractOpcodeErrors(referencedContract, deref, decodeSrc, true, cache));
     }
 
   for (const error of errors) {

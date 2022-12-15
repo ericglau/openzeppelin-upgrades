@@ -239,6 +239,7 @@ function* getOpcodeErrors(
       pattern: /^t_function_baredelegatecall_/,
     },
     false,
+    [],
   );
   yield* getContractOpcodeErrors(
     contractOrFunctionDef,
@@ -249,6 +250,7 @@ function* getOpcodeErrors(
       pattern: /^t_function_selfdestruct_/,
     },
     false,
+    [],
   );
 }
 
@@ -258,9 +260,16 @@ function* getContractOpcodeErrors(
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
   skipInternal: boolean,
+  visitedNodeIds: number[],
 ): Generator<ValidationErrorOpcode> {
-  yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, skipInternal);
-  yield* getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode);
+  if (visitedNodeIds.includes(contractDef.id)) {
+    return;
+  } else {
+    visitedNodeIds.push(contractDef.id);
+  }
+
+  yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, skipInternal, visitedNodeIds);
+  yield* getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, visitedNodeIds);
 }
 
 function* getFunctionOpcodeErrors(
@@ -269,13 +278,21 @@ function* getFunctionOpcodeErrors(
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
   skipInternal: boolean,
+  visitedNodeIds: number[],
 ): Generator<ValidationErrorOpcode> {
   const parentNode = getParentNode(deref, contractOrFunctionDef);
   if (parentNode === undefined || !skipCheck(opcode.kind, parentNode)) {
     yield* getDirectFunctionOpcodeErrors(contractOrFunctionDef, decodeSrc, opcode, skipInternal);
   }
   if (parentNode === undefined || !skipCheckReachable(opcode.kind, parentNode)) {
-    yield* getReferencedFunctionOpcodeErrors(contractOrFunctionDef, deref, decodeSrc, opcode, skipInternal);
+    yield* getReferencedFunctionOpcodeErrors(
+      contractOrFunctionDef,
+      deref,
+      decodeSrc,
+      opcode,
+      skipInternal,
+      visitedNodeIds,
+    );
   }
 }
 
@@ -306,6 +323,7 @@ function* getReferencedFunctionOpcodeErrors(
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
   skipInternal: boolean,
+  visitedNodeIds: number[],
 ) {
   for (const fnCall of findAll(
     'FunctionCall',
@@ -316,12 +334,20 @@ function* getReferencedFunctionOpcodeErrors(
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {
       const referencedNode = deref(
-        ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'],
+        [
+          'FunctionDefinition',
+          'EventDefinition',
+          'ContractDefinition',
+          'StructDefinition',
+          'VariableDeclaration',
+          'ErrorDefinition',
+        ],
         fnReference,
       );
-      if (referencedNode.nodeType === 'FunctionDefinition') {
-        yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false);
-      } // else ignore the other listed node types
+      if (referencedNode.nodeType === 'FunctionDefinition' && !visitedNodeIds.includes(referencedNode.id)) {
+        visitedNodeIds.push(referencedNode.id);
+        yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false, visitedNodeIds);
+      }
     }
   }
 }
@@ -331,11 +357,12 @@ function* getInheritedContractOpcodeErrors(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
+  visitedNodeIds: number[],
 ) {
   if (!skipCheckReachable(opcode.kind, contractDef)) {
     for (const base of contractDef.baseContracts) {
       const referencedContract = deref('ContractDefinition', base.baseName.referencedDeclaration);
-      yield* getContractOpcodeErrors(referencedContract, deref, decodeSrc, opcode, true);
+      yield* getContractOpcodeErrors(referencedContract, deref, decodeSrc, opcode, true, visitedNodeIds);
     }
   }
 }
@@ -344,7 +371,7 @@ function getParentNode(deref: ASTDereferencer, contractOrFunctionDef: ContractDe
   const parentNode = deref(['ContractDefinition', 'SourceUnit'], contractOrFunctionDef.scope);
   if (parentNode.nodeType === 'ContractDefinition') {
     return parentNode;
-  } // else ignore the other listed node types
+  }
 }
 
 function skipInternalFunctions(skipInternal: boolean, node: Node) {

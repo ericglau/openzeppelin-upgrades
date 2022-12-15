@@ -168,6 +168,10 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
     for (const contractDef of allContractDefs) {
       const key = getFullyQualifiedName(source, contractDef.name);
 
+      if (key.includes("AllowReachable")) {
+        const a = 1;
+      }
+
       fromId[contractDef.id] = key;
 
       // May be undefined in case of duplicate contract names in Truffle
@@ -177,7 +181,7 @@ export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVers
         inheritIds[key] = contractDef.linearizedBaseContracts.slice(1);
         libraryIds[key] = getReferencedLibraryIds(contractDef);
 
-        const opcodeErrors = [...getOpcodeErrors(contractDef, deref, decodeSrc)];
+        const opcodeErrors = [...getContractOpcodeErrors(contractDef, deref, decodeSrc, false)];
 
         validation[key].src = decodeSrc(contractDef);
         validation[key].errors = [
@@ -225,61 +229,120 @@ function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDe
   }
 }
 
-function* getOpcodeErrors(
-  contractOrFunctionDef: ContractDefinition,
-  deref: ASTDereferencer,
-  decodeSrc: SrcDecoder,
-): Generator<ValidationErrorOpcode> {
-  yield* getContractOpcodeErrors(
-    contractOrFunctionDef,
-    deref,
-    decodeSrc,
-    {
-      kind: 'delegatecall',
-      pattern: /^t_function_baredelegatecall_/,
-    },
-    false,
-  );
-  yield* getContractOpcodeErrors(
-    contractOrFunctionDef,
-    deref,
-    decodeSrc,
-    {
-      kind: 'selfdestruct',
-      pattern: /^t_function_selfdestruct_/,
-    },
-    false,
-  );
-}
+// function* getOpcodeErrors(
+//   contractOrFunctionDef: ContractDefinition,
+//   deref: ASTDereferencer,
+//   decodeSrc: SrcDecoder,
+// ): Generator<ValidationErrorOpcode> {
+//   yield* getContractOpcodeErrors(
+//     contractOrFunctionDef,
+//     deref,
+//     decodeSrc,
+//     {
+//       kind: 'delegatecall',
+//       pattern: /^t_function_baredelegatecall_/,
+//     },
+//     false,
+//   );
+//   yield* getContractOpcodeErrors(
+//     contractOrFunctionDef,
+//     deref,
+//     decodeSrc,
+//     {
+//       kind: 'selfdestruct',
+//       pattern: /^t_function_selfdestruct_/,
+//     },
+//     false,
+//   );
+// }
 
 function* getContractOpcodeErrors(
   contractDef: ContractDefinition,
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
-  opcode: OpcodePattern,
   skipInternal: boolean,
 ): Generator<ValidationErrorOpcode> {
-  yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, skipInternal);
-  yield* getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode);
+  yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, skipInternal);
+  yield* getInheritedOpcodeErrors(contractDef, deref, decodeSrc);
 }
 
 function* getFunctionOpcodeErrors(
   contractOrFunctionDef: ContractDefinition | FunctionDefinition,
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
-  opcode: OpcodePattern,
   skipInternal: boolean,
 ): Generator<ValidationErrorOpcode> {
   const parentNode = getParentNode(deref, contractOrFunctionDef);
-  if (parentNode === undefined || !skipCheck(opcode.kind, parentNode)) {
-    yield* getDirectFunctionOpcodeErrors(contractOrFunctionDef, decodeSrc, opcode, skipInternal);
+
+  // get all direct errors
+
+  if (parentNode === undefined || !skipCheck('delegatecall', parentNode)) {
+    yield * getDirectOpcodeErrors(contractOrFunctionDef, decodeSrc, {
+      kind: 'delegatecall',
+      pattern: /^t_function_baredelegatecall_/,
+    }, skipInternal);
+  }  
+
+  if (parentNode === undefined || !skipCheck('selfdestruct', parentNode)) {
+    yield * getDirectOpcodeErrors(contractOrFunctionDef, decodeSrc, {
+      kind: 'selfdestruct',
+      pattern: /^t_function_selfdestruct_/,
+    }, skipInternal);
   }
-  if (parentNode === undefined || !skipCheckReachable(opcode.kind, parentNode)) {
-    yield* getReferencedFunctionOpcodeErrors(contractOrFunctionDef, deref, decodeSrc, opcode, skipInternal);
+
+  // get all referenced errors
+
+
+
+  for (const fnCall of findAll(
+    'FunctionCall',
+    contractOrFunctionDef,
+    // node => skipCheckReachable(opcode.kind, node) || skipInternalFunctions(skipInternal, node),
+  )) {
+    const fn = fnCall.expression;
+    const fnReference = (fn as any).referencedDeclaration;
+    let referencedErrors = [];
+    if (fnReference !== undefined && fnReference > 0) {
+      const referencedNode = deref(
+        ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'],
+        fnReference,
+      );
+      if (referencedNode.nodeType === 'FunctionDefinition') {
+        referencedErrors.push(...getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, false));
+      } // else ignore the other listed node types
+    }
+
+    for (const error of referencedErrors) {
+      if (error.kind === 'delegatecall' && !skipCheckReachable('delegatecall', fnCall) && !skipCheckReachable('delegatecall', contractOrFunctionDef) && (parentNode === undefined || !skipCheckReachable('delegatecall', parentNode))) {
+        yield error;
+      }
+      if (error.kind === 'selfdestruct' && !skipCheckReachable('selfdestruct', fnCall) && !skipCheckReachable('selfdestruct', contractOrFunctionDef) && (parentNode === undefined || !skipCheckReachable('selfdestruct', parentNode))) {
+        yield error;
+      }
+    }
   }
+
+  // for (const error of referencedErrors) {
+  //   if (error.kind === 'delegatecall' && !skipCheckReachable('delegatecall', contractOrFunctionDef) && (parentNode === undefined || !skipCheckReachable('delegatecall', parentNode))) {
+  //     yield error;
+  //   }
+  //   if (error.kind === 'selfdestruct' && !skipCheckReachable('selfdestruct', contractOrFunctionDef) && (parentNode === undefined || !skipCheckReachable('selfdestruct', parentNode))) {
+  //     yield error;
+  //   }
+  // }
+
+
+  // remove allowed errors
+
+  // if (parentNode === undefined || !skipCheck(opcode.kind, parentNode)) {
+  //   yield* getDirectFunctionOpcodeErrors(contractOrFunctionDef, decodeSrc, opcode, skipInternal);
+  // }
+  // if (parentNode === undefined || !skipCheckReachable(opcode.kind, parentNode)) {
+  //   yield* getReferencedFunctionOpcodeErrors(contractOrFunctionDef, deref, decodeSrc, opcode, skipInternal);
+  // }
 }
 
-function* getDirectFunctionOpcodeErrors(
+function* getDirectOpcodeErrors(
   contractOrFunctionDef: ContractDefinition | FunctionDefinition,
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
@@ -300,44 +363,53 @@ function* getDirectFunctionOpcodeErrors(
   }
 }
 
-function* getReferencedFunctionOpcodeErrors(
-  contractOrFunctionDef: ContractDefinition | FunctionDefinition,
-  deref: ASTDereferencer,
-  decodeSrc: SrcDecoder,
-  opcode: OpcodePattern,
-  skipInternal: boolean,
-) {
-  for (const fnCall of findAll(
-    'FunctionCall',
-    contractOrFunctionDef,
-    node => skipCheckReachable(opcode.kind, node) || skipInternalFunctions(skipInternal, node),
-  )) {
-    const fn = fnCall.expression;
-    const fnReference = (fn as any).referencedDeclaration;
-    if (fnReference !== undefined && fnReference > 0) {
-      const referencedNode = deref(
-        ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'],
-        fnReference,
-      );
-      if (referencedNode.nodeType === 'FunctionDefinition') {
-        yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false);
-      } // else ignore the other listed node types
-    }
-  }
-}
+// function* getReferencedOpcodeErrors(
+//   contractOrFunctionDef: ContractDefinition | FunctionDefinition,
+//   deref: ASTDereferencer,
+//   decodeSrc: SrcDecoder,
+//   // opcode: OpcodePattern,
+//   // skipInternal: boolean,
+// ) {
+//   for (const fnCall of findAll(
+//     'FunctionCall',
+//     contractOrFunctionDef,
+//     // node => skipCheckReachable(opcode.kind, node) || skipInternalFunctions(skipInternal, node),
+//   )) {
+//     const fn = fnCall.expression;
+//     const fnReference = (fn as any).referencedDeclaration;
+//     if (fnReference !== undefined && fnReference > 0) {
+//       const referencedNode = deref(
+//         ['FunctionDefinition', 'EventDefinition', 'ContractDefinition', 'StructDefinition'],
+//         fnReference,
+//       );
+//       if (referencedNode.nodeType === 'FunctionDefinition') {
+//         yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, false);
+//       } // else ignore the other listed node types
+//     }
+//   }
+// }
 
-function* getInheritedContractOpcodeErrors(
+function* getInheritedOpcodeErrors(
   contractDef: ContractDefinition,
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
-  opcode: OpcodePattern,
 ) {
-  if (!skipCheckReachable(opcode.kind, contractDef)) {
+  const errors = [];
+  // if (!skipCheckReachable(opcode.kind, contractDef)) {
     for (const base of contractDef.baseContracts) {
       const referencedContract = deref('ContractDefinition', base.baseName.referencedDeclaration);
-      yield* getContractOpcodeErrors(referencedContract, deref, decodeSrc, opcode, true);
+      errors.push(...getContractOpcodeErrors(referencedContract, deref, decodeSrc, true));
+    }
+
+  for (const error of errors) {
+    if (error.kind === 'delegatecall' && !skipCheckReachable('delegatecall', contractDef)) {
+      yield error;
+    }
+    if (error.kind === 'selfdestruct' && !skipCheckReachable('selfdestruct', contractDef)) {
+      yield error;
     }
   }
+  // }
 }
 
 function getParentNode(deref: ASTDereferencer, contractOrFunctionDef: ContractDefinition | FunctionDefinition) {

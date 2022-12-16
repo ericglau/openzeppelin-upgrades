@@ -239,7 +239,7 @@ function* getOpcodeErrors(
       pattern: /^t_function_baredelegatecall_/,
     },
     false,
-    [],
+    new Set<number>(),
   );
   yield* getContractOpcodeErrors(
     contractOrFunctionDef,
@@ -250,7 +250,7 @@ function* getOpcodeErrors(
       pattern: /^t_function_selfdestruct_/,
     },
     false,
-    [],
+    new Set<number>(),
   );
 }
 
@@ -260,12 +260,12 @@ function* getContractOpcodeErrors(
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
   skipInternal: boolean,
-  visitedNodeIds: number[],
+  visitedNodeIds: Set<number>,
 ): Generator<ValidationErrorOpcode> {
-  if (visitedNodeIds.includes(contractDef.id)) {
+  if (visitedNodeIds.has(contractDef.id)) {
     return;
   } else {
-    visitedNodeIds.push(contractDef.id);
+    visitedNodeIds.add(contractDef.id);
   }
 
   yield* getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, skipInternal, visitedNodeIds);
@@ -278,7 +278,7 @@ function* getFunctionOpcodeErrors(
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
   skipInternal: boolean,
-  visitedNodeIds: number[],
+  visitedNodeIds: Set<number>,
 ): Generator<ValidationErrorOpcode> {
   const parentNode = getParentNode(deref, contractOrFunctionDef);
   if (parentNode === undefined || !skipCheck(opcode.kind, parentNode)) {
@@ -323,7 +323,7 @@ function* getReferencedFunctionOpcodeErrors(
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
   skipInternal: boolean,
-  visitedNodeIds: number[],
+  visitedNodeIds: Set<number>,
 ) {
   for (const fnCall of findAll(
     'FunctionCall',
@@ -344,8 +344,8 @@ function* getReferencedFunctionOpcodeErrors(
         ],
         fnReference,
       );
-      if (referencedNode.nodeType === 'FunctionDefinition' && !visitedNodeIds.includes(referencedNode.id)) {
-        visitedNodeIds.push(referencedNode.id);
+      if (referencedNode.nodeType === 'FunctionDefinition' && !visitedNodeIds.has(referencedNode.id)) {
+        visitedNodeIds.add(referencedNode.id);
         yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false, visitedNodeIds);
       }
     }
@@ -357,7 +357,7 @@ function* getInheritedContractOpcodeErrors(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
   opcode: OpcodePattern,
-  visitedNodeIds: number[],
+  visitedNodeIds: Set<number>,
 ) {
   if (!skipCheckReachable(opcode.kind, contractDef)) {
     for (const base of contractDef.baseContracts) {

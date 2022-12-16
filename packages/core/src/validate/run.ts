@@ -333,20 +333,16 @@ function* getReferencedFunctionOpcodeErrors(
     const fn = fnCall.expression;
     const fnReference = (fn as any).referencedDeclaration;
     if (fnReference !== undefined && fnReference > 0) {
-      const referencedNode = deref(
-        [
-          'FunctionDefinition',
-          'EventDefinition',
-          'ContractDefinition',
-          'StructDefinition',
-          'VariableDeclaration',
-          'ErrorDefinition',
-        ],
-        fnReference,
-      );
-      if (referencedNode.nodeType === 'FunctionDefinition' && !visitedNodeIds.has(referencedNode.id)) {
-        visitedNodeIds.add(referencedNode.id);
-        yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false, visitedNodeIds);
+      try {
+        const referencedNode = deref(['FunctionDefinition'], fnReference);
+        if (!visitedNodeIds.has(referencedNode.id)) {
+          visitedNodeIds.add(referencedNode.id);
+          yield* getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, false, visitedNodeIds);
+        }
+      } catch (e: any) {
+        if (!e.message.includes('No node with id')) {
+          throw e;
+        }
       }
     }
   }

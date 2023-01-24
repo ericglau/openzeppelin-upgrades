@@ -291,12 +291,12 @@ function* getContractOpcodeErrors(
     yield* getCached(contractDef.id, scope, cache);
   } else {
     cache.visitedNodeIds.set(contractDef.id, scope);
+    const result = [
+      ...getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, scope, cache),
+      ...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache),
+    ];
+    yield* cacheAndYieldResult(contractDef.id, scope, cache, result); 
   }
-  const result = [
-    ...getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, scope, cache),
-    ...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache),
-  ];
-  yield* cacheAndYieldResult(contractDef.id, scope, cache, result);
 }
 
 function* getCached(key: number, scope: string, cache: Cache) {

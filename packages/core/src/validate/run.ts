@@ -288,16 +288,7 @@ function* getContractOpcodeErrors(
   cache: Cache,
 ): Generator<ValidationErrorOpcode> {
   if (wasVisited(contractDef.id, scope, cache.visitedNodeIds)) {
-    const cached = (scope === 'main' ? cache.mainContractErrors.get(contractDef.id) : cache.inheritedContractErrors.get(contractDef.id));
-    if (cached === undefined) {
-      // The node is currently being visited at a shallower level of recursion, so no need to report its errors at this level.
-      return;
-    } else {
-      for (const r of cached) {   
-        yield r;
-      }
-      return;
-    }
+    yield* getCached(contractDef.id, scope, cache);
   } else {
     cache.visitedNodeIds.set(contractDef.id, scope);
   }
@@ -312,6 +303,15 @@ function* getContractOpcodeErrors(
   for (const r of result) {   
     yield r;
   }
+}
+
+function* getCached(key: number, scope: string, cache: Cache) {
+  const cached = scope === 'main' ? cache.mainContractErrors.get(key) : cache.inheritedContractErrors.get(key);
+  if (cached !== undefined) {
+    for (const r of cached) {
+      yield r;
+    }
+  } // else the node is currently being visited at a shallower level of recursion, so no need to report its errors at this level
 }
 
 function wasVisited(key: number, scope: Scope, visitedNodeIds: Map<number, Scope>) {
@@ -375,16 +375,7 @@ function* getReferencedFunctionOpcodeErrors(
       const referencedNode = tryDerefFunction(deref, fn.referencedDeclaration);
       if (referencedNode !== undefined) {
         if (wasVisited(referencedNode.id, scope, cache.visitedNodeIds)) {
-          const cached = (scope === 'main' ? cache.mainContractErrors.get(referencedNode.id) : cache.inheritedContractErrors.get(referencedNode.id));
-          if (cached === undefined) {
-            // The node is currently being visited at a shallower level of recursion, so no need to report its errors at this level.
-            return;
-          } else {
-            for (const r of cached) {   
-              yield r;
-            }
-            return;
-          }
+          yield* getCached(referencedNode.id, scope, cache);
         } else {
           cache.visitedNodeIds.set(referencedNode.id, scope);
           const result = [...getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, scope, cache)];

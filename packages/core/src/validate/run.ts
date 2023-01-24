@@ -294,7 +294,7 @@ function* getContractOpcodeErrors(
   }
   const result = [
     ...getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, scope, cache),
-    ...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache)
+    ...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache),
   ];
   yield* cacheAndYieldResult(contractDef.id, scope, cache, result);
 }

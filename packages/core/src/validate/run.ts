@@ -289,13 +289,14 @@ function* getContractOpcodeErrors(
 ): Generator<ValidationErrorOpcode> {
   if (wasVisited(contractDef.id, scope, cache.visitedNodeIds)) {
     yield* getCached(contractDef.id, scope, cache);
+    return;
   } else {
     cache.visitedNodeIds.set(contractDef.id, scope);
     const result = [
       ...getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, scope, cache),
       ...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache),
     ];
-    yield* cacheAndYieldResult(contractDef.id, scope, cache, result); 
+    yield* cacheAndYieldResult(contractDef.id, scope, cache, result);
   }
 }
 
@@ -370,6 +371,7 @@ function* getReferencedFunctionOpcodeErrors(
       if (referencedNode !== undefined) {
         if (wasVisited(referencedNode.id, scope, cache.visitedNodeIds)) {
           yield* getCached(referencedNode.id, scope, cache);
+          return;
         } else {
           cache.visitedNodeIds.set(referencedNode.id, scope);
           const result = [...getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, scope, cache)];

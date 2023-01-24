@@ -292,17 +292,11 @@ function* getContractOpcodeErrors(
   } else {
     cache.visitedNodeIds.set(contractDef.id, scope);
   }
-
-  let result: ValidationErrorOpcode[] = [...getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, scope, cache)];
-  result = result.concat([...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache)]);
-  if (scope === 'main') {
-    cache.mainContractErrors.set(contractDef.id, result);
-  } else {
-    cache.inheritedContractErrors.set(contractDef.id, result);
-  }
-  for (const r of result) {   
-    yield r;
-  }
+  const result = [
+    ...getFunctionOpcodeErrors(contractDef, deref, decodeSrc, opcode, scope, cache),
+    ...getInheritedContractOpcodeErrors(contractDef, deref, decodeSrc, opcode, cache)
+  ];
+  yield* cacheAndYieldResult(contractDef.id, scope, cache, result);
 }
 
 function* getCached(key: number, scope: string, cache: Cache) {
@@ -379,17 +373,21 @@ function* getReferencedFunctionOpcodeErrors(
         } else {
           cache.visitedNodeIds.set(referencedNode.id, scope);
           const result = [...getFunctionOpcodeErrors(referencedNode, deref, decodeSrc, opcode, scope, cache)];
-          if (scope === 'main') {
-            cache.mainContractErrors.set(referencedNode.id, result);
-          } else {
-            cache.inheritedContractErrors.set(referencedNode.id, result);
-          }
-          for (const r of result) {
-            yield r;
-          }
+          yield* cacheAndYieldResult(referencedNode.id, scope, cache, result);
         }
       }
     }
+  }
+}
+
+function* cacheAndYieldResult(key: number, scope: string, cache: Cache, result: ValidationErrorOpcode[]) {
+  if (scope === 'main') {
+    cache.mainContractErrors.set(key, result);
+  } else {
+    cache.inheritedContractErrors.set(key, result);
+  }
+  for (const r of result) {
+    yield r;
   }
 }
 

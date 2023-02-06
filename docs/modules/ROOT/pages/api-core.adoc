@@ -46,11 +46,11 @@ contract.getErrorReport()
 contract.getStorageUpgradeReport(upgradedContract)
 ```
 
-Compares the storage layout of an upgradeable contract with that of a proposed upgrade. Receives as an argument another instance of `UpgradeableContract`.
+Compares the storage layout of an upgradeable contract with that of a proposed upgrade.
 
 *Parameters:*
 
-* `upgradedContract` - another instance of `UpgradeableContract`.
+* `upgradedContract` - another instance of `UpgradeableContract` representing the proposed upgrade.
 
 **Returns:**
 

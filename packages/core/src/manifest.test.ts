@@ -131,6 +131,7 @@ test.serial('forked chain from known network with fallback name', async t => {
     await manifest.write(data);
     await assertOldName(t, forkedId); // original network file should not be changed
   });
+  t.throwsAsync(fs.access(`.openzeppelin/chain-${forkedId}.lock`));
   t.throwsAsync(fs.access(`${os.tmpdir()}/openzeppelin-upgrades/chain-${devId}-${instanceId}.lock`));
   await fs.access(`${os.tmpdir()}/openzeppelin-upgrades/hardhat-${devId}-${instanceId}.json`);
 
@@ -186,9 +187,9 @@ test.serial('forked chain from known network with actual name', async t => {
 
   // check that the contents were persisted to dev copy of manifest
   const dev = await new Manifest(devId, devInstanceMetadata, os.tmpdir()).read();
-  t.true(dev.proxies.length === 2);
-  t.true(dev.proxies[0].address === '0x123');
-  t.true(dev.proxies[1].address === '0x456');
+  t.is(dev.proxies.length, 2);
+  t.is(dev.proxies[0].address, '0x123');
+  t.is(dev.proxies[1].address, '0x456');
 
   await deleteManifests(t, forkedId);
   await deleteFile(t, `${os.tmpdir()}/openzeppelin-upgrades/hardhat-${devId}-${instanceId}.json`);
@@ -284,9 +285,10 @@ test('manifest name for a known network, development instance', t => {
   const devInstanceMetadata = { networkName: 'hardhat', instanceId: instanceId };
 
   const manifest = new Manifest(chainId, devInstanceMetadata, '/tmp');
-  t.is(manifest.file, `.openzeppelin/mainnet.json`);
-  t.is(manifest.fallbackFile, `.openzeppelin/unknown-1.json`);
-  t.is(manifest.devFile, `/tmp/openzeppelin-upgrades/hardhat-${chainId}-${instanceId}.json`);
+
+  const expectedPath = `/tmp/openzeppelin-upgrades/hardhat-${chainId}-${instanceId}.json`;
+  t.is(manifest.file, expectedPath);
+  t.is(manifest.fallbackFile, expectedPath);
 });
 
 test('manifest name for an unknown network', t => {
@@ -301,9 +303,10 @@ test('manifest name for an unknown network, development instance, non hardhat', 
   const devInstanceMetadata = { networkName: 'dev', instanceId: instanceId };
 
   const manifest = new Manifest(chainId, devInstanceMetadata, '/tmp');
-  t.is(manifest.file, `.openzeppelin/unknown-${chainId}.json`);
-  t.is(manifest.fallbackFile, `.openzeppelin/unknown-${chainId}.json`);
-  t.is(manifest.devFile, `/tmp/openzeppelin-upgrades/dev-${chainId}-${instanceId}.json`);
+
+  const expectedPath = `/tmp/openzeppelin-upgrades/dev-${chainId}-${instanceId}.json`;
+  t.is(manifest.file, expectedPath);
+  t.is(manifest.fallbackFile, expectedPath);
 });
 
 test('manifest dev instance without tmp dir param', t => {

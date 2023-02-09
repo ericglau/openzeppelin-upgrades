@@ -228,8 +228,8 @@ export class Manifest {
       debug("IN READ manifest " +  this.file + " exists ? " + (await this.exists(this.file)));
       if (this.parent !== undefined && !(await this.exists(this.file))) {
         console.log("manifest not found, reading parent " + this.parent);
-        const thing = await this.parent.read();
-        console.log("thing " + JSON.stringify(thing, null, 2));
+        return await this.parent.read();
+        // console.log("thing " + JSON.stringify(thing, null, 2));
       }
       let file = await this.readFile();
       const data = JSON.parse(file) as ManifestData;

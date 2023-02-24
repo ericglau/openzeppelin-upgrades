@@ -1,5 +1,6 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, Contract } from 'ethers';
+import fsExtra from "fs-extra";
 
 import { Manifest, logWarning, ProxyDeployment, BeaconProxyUnsupportedError } from '@openzeppelin/upgrades-core';
 
@@ -33,6 +34,48 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
     const manifest = await Manifest.forNetwork(provider);
 
     const { impl, kind } = await deployProxyImpl(hre, ImplFactory, opts);
+
+
+
+
+    // Start with ContractFactory
+    // 1. Get ContractFactory's bytecode
+    // 2. Look for Artifact file that has ContractFactory's bytecode. Get fully qualified sourceName from artifact
+    // 3. Look for build-info file that has fully qualified sourceName in its solc input
+
+
+    // We get the contract to deploy
+    console.log("factory " + JSON.stringify(ImplFactory, null, 2));
+
+    const bytecode = ImplFactory.bytecode;
+    console.log("bytecode " + bytecode);
+
+    const allArtifacts = await hre.artifacts.getArtifactPaths();
+    let fqcn = undefined;
+    for (const artifactPath of allArtifacts) {
+      const artifact = await fsExtra.readJson(artifactPath);
+
+      if (artifact.bytecode === bytecode) {
+        console.log('FOUND BYTECODE');
+        fqcn = artifact.sourceName + ":" + artifact.contractName;
+        console.log('FQCN ' + fqcn);
+      }
+    }
+
+    if (fqcn !== undefined) {
+      const buildInfo = await hre.artifacts.getBuildInfo(fqcn);
+      if (buildInfo !== undefined) {
+        console.log("solc input " + JSON.stringify(buildInfo.input, null, 2));
+      } else {
+        console.log("buildInfo / solc input undefined");
+      }
+    }
+
+
+
+
+
+
     const contractInterface = ImplFactory.interface;
     const data = getInitializerData(contractInterface, args, opts.initializer);
 

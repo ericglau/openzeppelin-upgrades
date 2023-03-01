@@ -106,7 +106,7 @@ async function deployImpl(
               'The useDeployedImplementation option was set to true but the implementation contract was not previously deployed on this network.',
           );
         } else {
-          return deploy(ImplFactory, ...deployData.fullOpts.constructorArgs);
+          return deploy(hre, ImplFactory, ...deployData.fullOpts.constructorArgs);
         }
       };
       const deployment = Object.assign({ abi }, await attemptDeploy());

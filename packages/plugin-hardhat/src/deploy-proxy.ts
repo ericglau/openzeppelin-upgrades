@@ -45,10 +45,10 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
 
 
     // We get the contract to deploy
-    console.log("factory " + JSON.stringify(ImplFactory, null, 2));
+    // console.log("factory " + JSON.stringify(ImplFactory, null, 2));
 
     const bytecode = ImplFactory.bytecode;
-    console.log("bytecode " + bytecode);
+    // console.log("bytecode " + bytecode);
 
     const allArtifacts = await hre.artifacts.getArtifactPaths();
     let fqcn = undefined;
@@ -56,7 +56,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
       const artifact = await fsExtra.readJson(artifactPath);
 
       if (artifact.bytecode === bytecode) {
-        console.log('FOUND BYTECODE');
+        // console.log('FOUND BYTECODE');
         fqcn = artifact.sourceName + ":" + artifact.contractName;
         console.log('FQCN ' + fqcn);
       }
@@ -65,7 +65,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
     if (fqcn !== undefined) {
       const buildInfo = await hre.artifacts.getBuildInfo(fqcn);
       if (buildInfo !== undefined) {
-        console.log("solc input " + JSON.stringify(buildInfo.input, null, 2));
+        console.log("got solc input ");// + JSON.stringify(buildInfo.input, null, 2));
       } else {
         console.log("buildInfo / solc input undefined");
       }

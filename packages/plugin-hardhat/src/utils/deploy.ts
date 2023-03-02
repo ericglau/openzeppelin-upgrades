@@ -3,7 +3,9 @@ import debug from './debug';
 import type { ethers, ContractFactory } from 'ethers';
 import { getContractAddress } from 'ethers/lib/utils';
 
-import fsExtra from "fs-extra";
+import { promises as fs } from 'fs';
+
+// import fsExtra from "fs-extra";
 import { PlatformClient } from 'platform-deploy-client';
 import { DeploymentResponse } from 'platform-deploy-client/lib/models';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
@@ -57,7 +59,8 @@ export async function deploy(
     let fqcn = undefined;
     let sourceName, contractName;
     for (const artifactPath of allArtifacts) {
-      const artifact = await fsExtra.readJson(artifactPath);
+      // const artifact = await fsExtra.readJson(artifactPath);
+      const artifact = await JSON.parse(await fs.readFile(artifactPath, 'utf8'));
 
       if (artifact.bytecode === bytecode) {
         // console.log('FOUND BYTECODE');

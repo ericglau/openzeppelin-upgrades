@@ -48,9 +48,8 @@ assert(
 );
 
 const buildInfo = readJSON(jsonRelativePath);
-const reducedInfo = { solcLongVersion: buildInfo.solcLongVersion, input: buildInfo.input };
 
-const sources = reducedInfo.input.sources;
+const sources = buildInfo.input.sources;
 
 // Assert that all deployable proxy artifacts exist in ERC1967's build-info file
 assert(hasProperty(sources, '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol'));
@@ -62,4 +61,4 @@ assert(hasProperty(sources, '@openzeppelin/contracts/proxy/transparent/ProxyAdmi
 // Assert that the build-info file does NOT contain test contracts
 assert(!hasPropertyStartsWith(sources, 'contracts/test'));
 
-writeJSON('artifacts/build-info.json', reducedInfo);
+writeJSON('artifacts/build-info.json', buildInfo);

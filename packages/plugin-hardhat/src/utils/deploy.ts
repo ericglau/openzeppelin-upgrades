@@ -10,6 +10,10 @@ import { PlatformClient } from 'platform-deploy-client';
 import { DeploymentResponse } from 'platform-deploy-client/lib/models';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
+
+import artifactsBuildInfo from '@openzeppelin/upgrades-core/artifacts/build-info.json';
+
+
 import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 import ERC1967ProxyDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.dbg.json';
 
@@ -43,6 +47,8 @@ export async function deploy(
 
     // platform API key
     const client = PlatformClient({ apiKey: '', apiSecret: '' });
+
+
 
     // Start with ContractFactory
     // 1. Get ContractFactory's bytecode
@@ -93,6 +99,7 @@ export async function deploy(
 
           // TODO create a map of json to dbg
           
+          buildInfo = artifactsBuildInfo;
           console.log("using buildInfo: " + buildInfo);
 
         }

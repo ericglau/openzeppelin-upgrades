@@ -9,7 +9,8 @@
     "lint": "yarn lint:path .",
     "lint:path": "eslint --ignore-path .gitignore --max-warnings 0",
     "test": "tsc -b && wsrun -ms test",
-    "coverage": "nyc yarn test"
+    "coverage": "nyc yarn test",
+    "clean": "wsrun -ms clean"
   },
   "devDependencies": {
     "@openzeppelin/docs-utils": "^0.1.0",

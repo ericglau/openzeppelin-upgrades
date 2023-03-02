@@ -13,6 +13,10 @@ export async function getStorageLayoutForAddress(
   implAddress: string,
 ): Promise<StorageLayout> {
   const data = await manifest.read();
+
+  console.log('looking for impl address ' + implAddress);
+  console.log('keys ' + Object.keys(data.impls));
+
   const versionWithoutMetadata = Object.keys(data.impls).find(
     v => data.impls[v]?.address === implAddress || data.impls[v]?.allAddresses?.includes(implAddress),
   );

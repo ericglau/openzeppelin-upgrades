@@ -8,9 +8,26 @@ import { PlatformClient } from 'platform-deploy-client';
 import { DeploymentResponse } from 'platform-deploy-client/lib/models';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
+import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
+import ERC1967ProxyDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.dbg.json';
+
+import BeaconProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.json';
+import BeaconProxyDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.dbg.json';
+
+import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json';
+import UpgradeableBeaconDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.dbg.json';
+
+import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
+import TransparentUpgradeableProxyDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.dbg.json';
+
+import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
+import ProxyAdminDBG from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.dbg.json';
+
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
 }
+
+const deployableProxyContracts = [ ERC1967Proxy, BeaconProxy, UpgradeableBeacon, TransparentUpgradeableProxy, ProxyAdmin ];
 
 export async function deploy(
   hre: HardhatRuntimeEnvironment,
@@ -31,10 +48,10 @@ export async function deploy(
     // 3. Look for build-info file that has fully qualified sourceName in its solc input
 
     // We get the contract to deploy
-    console.log("factory " + JSON.stringify(factory, null, 2));
+    // console.log("factory " + JSON.stringify(factory, null, 2));
 
     const bytecode = factory.bytecode;
-    console.log("bytecode " + bytecode);
+    // console.log("bytecode " + bytecode);
 
     const allArtifacts = await hre.artifacts.getArtifactPaths();
     let fqcn = undefined;
@@ -51,7 +68,9 @@ export async function deploy(
       }
     }
 
+
     let buildInfo;
+
     if (fqcn !== undefined) {
       buildInfo = await hre.artifacts.getBuildInfo(fqcn);
       if (buildInfo !== undefined) {
@@ -59,9 +78,29 @@ export async function deploy(
       } else {
         console.log("buildInfo / solc input undefined");
       }
+    } else {
+      // use precompiled proxy contracts
+      for (const artifact of deployableProxyContracts) {
+        if (artifact.bytecode === bytecode) {
+          // console.log('FOUND BYTECODE');
+          sourceName = artifact.sourceName;
+          contractName = artifact.contractName;
+          fqcn = sourceName + ":" + contractName;
+          console.log('FQCN ' + fqcn);
+
+          // TODO create a map of json to dbg
+          
+          console.log("using buildInfo: " + buildInfo);
+
+        }
+      }
     }
 
+
+
     const asArgs = [...args] as (string | number | boolean)[];
+
+    console.log("CONSTRUCTOR ARGS " + asArgs);
 
     console.log("BEFORE PLATFORM DEPLOY");
 
@@ -75,10 +114,13 @@ export async function deploy(
       verifySourceCode: true, // TODO
     });
 
-    console.log(`depl response ${JSON.stringify(deploymentResponse, null, 2)}`);
+    // console.log(`depl response ${JSON.stringify(deploymentResponse, null, 2)}`);
 
     const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
-    console.log(`tx response ${JSON.stringify(txResponse, null, 2)}`);
+    // console.log(`tx response ${JSON.stringify(txResponse, null, 2)}`);
+
+// TODO look into problem: the create2 contract that created the proxy is the owner.
+
 
     // const contractInstance = factory.attach(deploymentResponse.address);
 
@@ -103,8 +145,10 @@ export async function deploy(
   // const txHash = deployTransaction.hash;
   // return { address, txHash, deployTransaction };
 
+  const checksumAddr = hre.ethers.utils.getAddress( deploymentResponse.address );
+  console.log('checksum addr ' + checksumAddr);
   
-  return { address: deploymentResponse.address, txHash: deploymentResponse.txHash, deployTransaction: await hre.ethers.provider.getTransaction(deploymentResponse.txHash) };
+  return { address: checksumAddr, txHash: deploymentResponse.txHash, deployTransaction: txResponse };
 }
 
 // import { promisify } from 'util';

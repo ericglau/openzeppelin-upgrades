@@ -47,7 +47,19 @@ assert(
     readJSON('artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.dbg.json').buildInfo,
 );
 
-const buildInfo = readJSON(jsonRelativePath);
+let buildInfo = readJSON(jsonRelativePath);
+
+// Keep only abi and evm sections of output.contracts
+const contractFiles = buildInfo.output.contracts;
+for (const contractFile in contractFiles){
+  const contractNames = contractFiles[contractFile];
+  for (const contractName in contractNames) {
+    contractNames[contractName] = { abi: contractNames[contractName].abi, evm: contractNames[contractName].evm };
+  }
+}
+
+// Keep only solcLongVersion, input, and output.contracts
+buildInfo = { solcLongVersion: buildInfo.solcLongVersion, input: buildInfo.input, output: { contracts: contractFiles } };
 
 const sources = buildInfo.input.sources;
 

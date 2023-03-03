@@ -13,7 +13,7 @@ import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
-import { GetTxResponse, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
+import { GetTxResponse, Platform, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
 import { validateBeaconImpl, validateProxyImpl, validateImpl } from './validate-impl';
 import { readValidations } from './validations';
 
@@ -89,7 +89,7 @@ async function deployImpl(
   hre: HardhatRuntimeEnvironment,
   deployData: DeployData,
   ImplFactory: ContractFactory,
-  opts: UpgradeOptions & GetTxResponse,
+  opts: UpgradeOptions & GetTxResponse & Platform,
 ): Promise<any> {
   const layout = deployData.layout;
 
@@ -106,7 +106,7 @@ async function deployImpl(
               'The useDeployedImplementation option was set to true but the implementation contract was not previously deployed on this network.',
           );
         } else {
-          return deploy(hre, ImplFactory, ...deployData.fullOpts.constructorArgs);
+          return deploy(opts.platform, hre, ImplFactory, ...deployData.fullOpts.constructorArgs);
         }
       };
       const deployment = Object.assign({ abi }, await attemptDeploy());

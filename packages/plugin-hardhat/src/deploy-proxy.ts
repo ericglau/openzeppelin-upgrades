@@ -57,7 +57,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
 
       case 'uups': {
         const ProxyFactory = await getProxyFactory(hre, ImplFactory.signer);
-        proxyDeployment = Object.assign({ kind }, await deploy(hre, ProxyFactory, impl, data));
+        proxyDeployment = Object.assign({ kind }, await deploy(opts.platform, hre, ProxyFactory, impl, data));
         break;
       }
 
@@ -66,7 +66,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction 
         const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, ImplFactory.signer);
         proxyDeployment = Object.assign(
           { kind },
-          await deploy(hre, TransparentUpgradeableProxyFactory, impl, adminAddress, data),
+          await deploy(opts.platform, hre, TransparentUpgradeableProxyFactory, impl, adminAddress, data),
         );
         break;
       }

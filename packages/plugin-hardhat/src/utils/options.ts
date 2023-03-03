@@ -32,13 +32,17 @@ type Initializer = {
   initializer?: string | false;
 };
 
-export type DeployBeaconProxyOptions = ProxyKindOption & Initializer;
-export type DeployBeaconOptions = StandaloneOptions;
-export type DeployImplementationOptions = StandaloneOptions & GetTxResponse;
-export type DeployProxyAdminOptions = DeployOpts;
-export type DeployProxyOptions = StandaloneOptions & Initializer;
+export type Platform = {
+  platform?: boolean;
+}
+
+export type DeployBeaconProxyOptions = ProxyKindOption & Initializer & Platform;
+export type DeployBeaconOptions = StandaloneOptions & Platform;
+export type DeployImplementationOptions = StandaloneOptions & GetTxResponse & Platform;
+export type DeployProxyAdminOptions = DeployOpts & Platform;
+export type DeployProxyOptions = StandaloneOptions & Initializer & Platform;
 export type ForceImportOptions = ProxyKindOption;
-export type PrepareUpgradeOptions = UpgradeOptions & GetTxResponse;
+export type PrepareUpgradeOptions = UpgradeOptions & GetTxResponse & Platform;
 export type UpgradeBeaconOptions = UpgradeOptions;
 export type UpgradeProxyOptions = UpgradeOptions & {
   call?: { fn: string; args?: unknown[] } | string;

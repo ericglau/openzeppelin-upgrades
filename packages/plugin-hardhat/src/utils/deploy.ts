@@ -35,7 +35,6 @@ export async function deploy(
 
 
 
-
     // platform API key
     const client = PlatformClient({ apiKey: '', apiSecret: '' });
 
@@ -74,7 +73,7 @@ export async function deploy(
     if (fqcn !== undefined) {
       buildInfo = await hre.artifacts.getBuildInfo(fqcn);
       if (buildInfo !== undefined) {
-        console.log("got solc input ");// + JSON.stringify(buildInfo.input, null, 2));
+        console.log("got buildInfo for contract ");// + JSON.stringify(buildInfo.input, null, 2));
       } else {
         console.log("buildInfo / solc input undefined");
       }
@@ -91,7 +90,7 @@ export async function deploy(
           // TODO create a map of json to dbg
           
           buildInfo = artifactsBuildInfo;
-          console.log("using buildInfo: " + buildInfo);
+          console.log("using proxy buildInfo");// + JSON.stringify(buildInfo, null, 2));
 
         }
       }

@@ -3,9 +3,9 @@ import type { ethers, ContractFactory } from 'ethers';
 
 import { promises as fs } from 'fs';
 
-import { PlatformClient } from 'platform-deploy-client';
+import { PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
 
-import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { BuildInfo, HardhatRuntimeEnvironment } from 'hardhat/types';
 
 
 import artifactsBuildInfo from '@openzeppelin/upgrades-core/artifacts/build-info.json';
@@ -42,13 +42,14 @@ export async function platformDeploy(
 
   console.log("constructor args " + JSON.stringify(constructorArgs, null, 2));
   console.log("BEFORE PLATFORM DEPLOY");
-
+  console.log(contractName, sourceName);
+  
   const deploymentResponse = await client.Deployment.deploy({
     contractName: contractName,
     contractPath: sourceName,
     network: 'mumbai', // TODO
     artifactPayload: JSON.stringify(buildInfo),
-    licenseType: 'MIT', // TODO
+    licenseType: getLicense(buildInfo, sourceName, contractName),
     constructorInputs: constructorArgs,
     verifySourceCode: getVerifySourceCodeOption(),
   });
@@ -58,8 +59,24 @@ export async function platformDeploy(
   return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse };
 }
 
+function getLicense(buildInfo: BuildInfo | undefined, sourceName: string, contractName: string): SourceCodeLicense | undefined {
+  if (buildInfo !== undefined) {
+    console.log("looking in buildinfo for license", sourceName, contractName);
+    const content = buildInfo.output.contracts[sourceName][contractName];
+    const metadataString = (content as any).metadata;
+    const metadata = JSON.parse(metadataString);
+    console.log("metadata " + JSON.stringify(metadata.sources, null, 2));
+    const license = metadata.sources[sourceName].license;
+    console.log("found license " + license);
+    return license;
+  }
+  console.log("error getting license");
+  return undefined;
+}
+
 function getVerifySourceCodeOption(): boolean {
   // TODO check passed option or check hardhat config for etherscan api key
+  // TODO use const etherscanApi = await getEtherscanAPIConfig(hre);
   return true;
 }
 

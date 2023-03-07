@@ -1,10 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, Contract } from 'ethers';
-// import fsExtra from "fs-extra";
 
 import { Manifest, logWarning, ProxyDeployment, BeaconProxyUnsupportedError } from '@openzeppelin/upgrades-core';
-
-import { PlatformClient } from 'platform-deploy-client';
 
 import {
   DeployProxyOptions,

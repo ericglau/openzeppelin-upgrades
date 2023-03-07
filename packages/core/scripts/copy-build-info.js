@@ -49,17 +49,25 @@ assert(
 
 let buildInfo = readJSON(jsonRelativePath);
 
-// Keep only abi and evm sections of output.contracts
-const contractFiles = buildInfo.output.contracts;
-for (const contractFile in contractFiles){
-  const contractNames = contractFiles[contractFile];
-  for (const contractName in contractNames) {
-    contractNames[contractName] = { abi: contractNames[contractName].abi, evm: contractNames[contractName].evm };
-  }
-}
+// // Keep only relevant sections of output.contracts
+// const contractFiles = buildInfo.output.contracts;
+// for (const contractFile in contractFiles){
+//   const contractNames = contractFiles[contractFile];
+//   for (const contractName in contractNames) {
+//     contractNames[contractName] = { 
+//       abi: contractNames[contractName].abi,
+//       evm: contractNames[contractName].evm,
+//       metadata: contractNames[contractName].metadata // metadata needed if we want to get the license type
+//     };
+//   }
+// }
 
-// Keep only solcLongVersion, input, and output.contracts
-buildInfo = { solcLongVersion: buildInfo.solcLongVersion, input: buildInfo.input, output: { contracts: contractFiles } };
+// // TODO remove unused sections from input's outputSelection
+
+// // Keep only relevant sections of build info
+// buildInfo = { solcLongVersion: buildInfo.solcLongVersion, input: buildInfo.input, output: { contracts: contractFiles } };
+
+// // TODO see why both license type and entire build info are needed to verify. Does it work if we just remove AST?
 
 const sources = buildInfo.input.sources;
 

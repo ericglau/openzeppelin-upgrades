@@ -13,11 +13,11 @@ import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
-import { DeployNonUpgradeableOptions, GetTxResponse, Platform, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
+import { DeployContractOptions, GetTxResponse, Platform, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
 import { validateBeaconImpl, validateProxyImpl, validateImpl } from './validate-impl';
 import { readValidations } from './validations';
 
-interface DeployedNonUpgradeable {
+interface DeployedContract {
   impl: string;
   txResponse?: ethers.providers.TransactionResponse;
 }
@@ -58,11 +58,11 @@ export async function getDeployData(
   return { provider, validations, unlinkedBytecode, encodedArgs, version, layout, fullOpts };
 }
 
-export async function deployNonUpgradeable(
+export async function deployNonUpgradeableContract(
   hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,
-  opts: DeployNonUpgradeableOptions,
-): Promise<DeployedNonUpgradeable> {
+  opts: DeployContractOptions,
+): Promise<DeployedContract> {
   // TODO fail if the contract looks like an implementation contract
   const deployData = await getDeployData(hre, ImplFactory, opts);
   const deployment = await deploy(opts.platform, hre, ImplFactory, ...deployData.fullOpts.constructorArgs);

@@ -19,7 +19,7 @@ import type { ValidateImplementationFunction } from './validate-implementation';
 import type { ValidateUpgradeFunction } from './validate-upgrade';
 import type { DeployImplementationFunction } from './deploy-implementation';
 import { DeployAdminFunction, makeDeployProxyAdmin } from './deploy-proxy-admin';
-import type { DeployNonUpgradeableFunction } from './deploy-non-upgradeable';
+import type { DeployContractFunction } from './deploy-contract';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -27,7 +27,7 @@ export interface HardhatUpgrades {
   validateImplementation: ValidateImplementationFunction;
   validateUpgrade: ValidateUpgradeFunction;
   deployImplementation: DeployImplementationFunction;
-  deploy: DeployNonUpgradeableFunction;
+  deployContract: DeployContractFunction;
   prepareUpgrade: PrepareUpgradeFunction;
   deployBeacon: DeployBeaconFunction;
   deployBeaconProxy: DeployBeaconProxyFunction;
@@ -101,7 +101,7 @@ extendEnvironment(hre => {
     const { makeValidateImplementation } = require('./validate-implementation');
     const { makeValidateUpgrade } = require('./validate-upgrade');
     const { makeDeployImplementation } = require('./deploy-implementation');
-    const { makeDeployNonUpgradeable } = require('./deploy-non-upgradeable');
+    const { makeDeployContract } = require('./deploy-contract');
     const { makePrepareUpgrade } = require('./prepare-upgrade');
     const { makeDeployBeacon } = require('./deploy-beacon');
     const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
@@ -116,7 +116,7 @@ extendEnvironment(hre => {
       validateImplementation: makeValidateImplementation(hre),
       validateUpgrade: makeValidateUpgrade(hre),
       deployImplementation: makeDeployImplementation(hre),
-      deploy: makeDeployNonUpgradeable(hre),
+      deployContract: makeDeployContract(hre),
       prepareUpgrade: makePrepareUpgrade(hre),
       deployBeacon: makeDeployBeacon(hre),
       deployBeaconProxy: makeDeployBeaconProxy(hre),

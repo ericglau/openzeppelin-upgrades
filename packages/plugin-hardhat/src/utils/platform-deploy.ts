@@ -48,35 +48,28 @@ async function getNetwork(hre: HardhatRuntimeEnvironment) : Promise<Network> {
   return network;
 }
 
-async function validateBlockExplorerApiKey(hre: HardhatRuntimeEnvironment, client: BlockExplorerApiKeyClient) {
-  const keys = await client.list();
-  console.log("KEYS " + JSON.stringify(keys, null, 2));
+async function validateBlockExplorerApiKey(hre: HardhatRuntimeEnvironment, network: Network, client: BlockExplorerApiKeyClient) {
+  const registeredKeys = await client.list();
 
-  const network = await getNetwork(hre);
-
-  if (keys.length > 0 && await hasNetworkKey()) {
-    debug(`Found block explorer API key for network ${network} on Platform.`);
-  } else {
-    debug(`Could not find a block explorer API key for network ${network} on Platform.`);
+  if (registeredKeys.length == 0 || !(await hasNetworkKey())) {
+    const etherscanApiConfig = await getEtherscanAPIConfig(hre); // hardhat-etherscan throws an error here if the network is not configured
+    debug("Found Etherscan API key in Hardhat configuration. Registering as block explorer API key on Platform...");
     try {
-      const etherscanApiConfig = await getEtherscanAPIConfig(hre);
-      debug("Found Etherscan API key in Hardhat configuration. Registering as block explorer API key on Platform.");
-      try {
-        await client.create({
-          key: etherscanApiConfig.key,
-          network: network,
-        });
-        debug("Successfully registered block explorer API key on Platform.");
-      } catch (e: any) {
-        debug(`Could not register block explorer API key on Platform.`, e);
-      }
-    } catch (e: any) {
-      debug(`Could not find Etherscan API key in Hardhat configuration.`, e);
+      await client.create({
+        key: etherscanApiConfig.key,
+        network: network,
+      });
+      debug(`Successfully registered block explorer API key for network ${network} on Platform.`);
+    } catch(e: any) {
+      console.error(`Could not register block explorer API key for network ${network} on Platform.`);
+      throw e;
     }
+  } else {
+    debug(`Found block explorer API key for network ${network} on Platform.`);
   }
 
   async function hasNetworkKey() {
-    for (const key of keys) {
+    for (const key of registeredKeys) {
       if (key.network === network) {
         return true;
       }
@@ -94,10 +87,6 @@ export async function platformDeploy(
 
   const client = getPlatformClient(hre);
 
-  
-  await validateBlockExplorerApiKey(hre, client.BlockExplorerApiKey);
-  throw new Error("AAH");
-
   let { contractName, sourceName, buildInfo } = await getContractInfo(factory, hre);
   
   const constructorArgs = [...args] as (string | number | boolean)[];
@@ -109,20 +98,23 @@ export async function platformDeploy(
   const network = await getNetwork(hre);
   console.log("USING NETWORK NAME " + network);
 
+  if (verifySourceCode) {
+    await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
+  }
 
-  const payload = {
-    contractName: contractName,
-    contractPath: sourceName,
-    network: network,
-    // artifactPayload: JSON.stringify(buildInfo),
-    licenseType: getLicense(buildInfo, sourceName, contractName),
-    constructorInputs: constructorArgs,
-    verifySourceCode: verifySourceCode,
-  };
+  // const payload = {
+  //   contractName: contractName,
+  //   contractPath: sourceName,
+  //   network: network,
+  //   // artifactPayload: JSON.stringify(buildInfo),
+  //   licenseType: getLicense(buildInfo, sourceName, contractName),
+  //   constructorInputs: constructorArgs,
+  //   verifySourceCode: verifySourceCode,
+  // };
 
-  console.log("PAYLOAD " + JSON.stringify(payload, null, 2));
+  // console.log("PAYLOAD " + JSON.stringify(payload, null, 2));
 
-  throw new Error("BREAK");
+  // throw new Error("BREAK");
 
   const deploymentResponse = await client.Deployment.deploy({
     contractName: contractName,
@@ -131,7 +123,7 @@ export async function platformDeploy(
     artifactPayload: JSON.stringify(buildInfo),
     licenseType: getLicense(buildInfo, sourceName, contractName),
     constructorInputs: constructorArgs,
-    verifySourceCode: true, //await getVerifySourceCodeOption(hre),
+    verifySourceCode: verifySourceCode,
   });
 
   const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);

@@ -4,7 +4,7 @@ import type { ContractFactory, Contract } from 'ethers';
 import { Deployment } from '@openzeppelin/upgrades-core';
 
 import { DeployBeaconOptions, deploy, DeployTransaction, getUpgradeableBeaconFactory, deployBeaconImpl } from './utils';
-import { PlatformUnsupportedError } from './utils/platform-deploy';
+import { assertNotPlatform } from './utils/platform-deploy';
 
 export interface DeployBeaconFunction {
   (ImplFactory: ContractFactory, opts?: DeployBeaconOptions): Promise<Contract>;
@@ -12,9 +12,7 @@ export interface DeployBeaconFunction {
 
 export function makeDeployBeacon(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployBeaconFunction {
   return async function deployBeacon(ImplFactory: ContractFactory, opts: DeployBeaconOptions = {}) {
-    if (platformModule || opts.platform) {
-      throw new PlatformUnsupportedError(deployBeacon.name);
-    }
+    assertNotPlatform(platformModule, opts, deployBeacon.name);
 
     const { impl } = await deployBeaconImpl(hre, ImplFactory, opts);
 

@@ -12,6 +12,7 @@ import {
   deployProxyImpl,
   getInitializerData,
 } from './utils';
+import { setPlatformDefaults } from './utils/platform-deploy';
 
 export interface DeployFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployProxyOptions): Promise<Contract>;
@@ -29,9 +30,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, platformModule: 
       args = [];
     }
 
-    if (platformModule && opts.platform === undefined) {
-      opts.platform = true;
-    }
+    setPlatformDefaults(platformModule, opts);
 
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);

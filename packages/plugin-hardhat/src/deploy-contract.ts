@@ -3,6 +3,7 @@ import type { ContractFactory, Contract } from 'ethers';
 
 import { DeployContractOptions } from './utils';
 import { deployNonUpgradeableContract } from './utils/deploy-impl';
+import { setPlatformDefaults } from './utils/platform-deploy';
 
 export interface DeployContractFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployContractOptions): Promise<Contract>;
@@ -20,12 +21,10 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
       args = [];
     }
 
-    if (platformModule && opts.platform === undefined) {
-      opts.platform = true;
-    }
+    setPlatformDefaults(platformModule, opts);
 
     if (opts.platform === undefined || !opts.platform) {
-      throw new Error("The deployContract function can only be used with the platform option set to true.");
+      throw new Error("The deployContract function can only be used with the `platform` module or option.");
     }
     
     if (opts.constructorArgs !== undefined) {

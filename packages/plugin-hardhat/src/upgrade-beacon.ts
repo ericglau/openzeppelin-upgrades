@@ -8,7 +8,7 @@ import {
   deployBeaconImpl,
   UpgradeBeaconOptions,
 } from './utils';
-import { PlatformUnsupportedError } from './utils/platform-deploy';
+import { assertNotPlatform } from './utils/platform-deploy';
 
 export type UpgradeBeaconFunction = (
   beacon: ContractAddressOrInstance,
@@ -18,9 +18,7 @@ export type UpgradeBeaconFunction = (
 
 export function makeUpgradeBeacon(hre: HardhatRuntimeEnvironment, platformModule: boolean): UpgradeBeaconFunction {
   return async function upgradeBeacon(beacon, ImplFactory, opts: UpgradeBeaconOptions = {}) {
-    if (platformModule || opts.platform) {
-      throw new PlatformUnsupportedError(upgradeBeacon.name);
-    }
+    assertNotPlatform(platformModule, opts, upgradeBeacon.name);
     
     const beaconAddress = getContractAddress(beacon);
     const { impl: nextImpl } = await deployBeaconImpl(hre, ImplFactory, opts, beaconAddress);

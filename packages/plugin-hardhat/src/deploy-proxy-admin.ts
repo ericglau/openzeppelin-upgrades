@@ -4,7 +4,7 @@ import { fetchOrDeployAdmin } from '@openzeppelin/upgrades-core';
 
 import { deploy, DeployProxyAdminOptions, getProxyAdminFactory } from './utils';
 import { Signer } from 'ethers';
-import { PlatformUnsupportedError } from './utils/platform-deploy';
+import { assertNotPlatform } from './utils/platform-deploy';
 
 export interface DeployAdminFunction {
   (signer?: Signer, opts?: DeployProxyAdminOptions): Promise<string>;
@@ -12,9 +12,7 @@ export interface DeployAdminFunction {
 
 export function makeDeployProxyAdmin(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployAdminFunction {
   return async function deployProxyAdmin(signer?: Signer, opts: DeployProxyAdminOptions = {}) {
-    if (platformModule || opts.platform) {
-      throw new PlatformUnsupportedError(deployProxyAdmin.name);
-    }
+    assertNotPlatform(platformModule, opts, deployProxyAdmin.name);
 
     const { provider } = hre.network;
 

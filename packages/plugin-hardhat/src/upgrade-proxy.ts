@@ -11,7 +11,7 @@ import {
   getContractAddress,
   ContractAddressOrInstance,
 } from './utils';
-import { PlatformUnsupportedError } from './utils/platform-deploy';
+import { assertNotPlatform } from './utils/platform-deploy';
 
 export type UpgradeFunction = (
   proxy: ContractAddressOrInstance,
@@ -21,9 +21,7 @@ export type UpgradeFunction = (
 
 export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, platformModule: boolean): UpgradeFunction {
   return async function upgradeProxy(proxy, ImplFactory, opts: UpgradeProxyOptions = {}) {
-    if (platformModule || opts.platform) {
-      throw new PlatformUnsupportedError(upgradeProxy.name, "Use the proposeUpgrade function");
-    }
+    assertNotPlatform(platformModule, opts, upgradeProxy.name, "Use the proposeUpgrade function");
 
     const proxyAddress = getContractAddress(proxy);
 

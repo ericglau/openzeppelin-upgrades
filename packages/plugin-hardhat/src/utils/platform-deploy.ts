@@ -19,6 +19,7 @@ import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppel
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 import { getEtherscanAPIConfig } from './etherscan-api';
+import { Platform } from './options';
 
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
@@ -212,11 +213,23 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
   return { contractName, sourceName, buildInfo };
 }
 
-export class PlatformUnsupportedError extends UpgradesError {
+class PlatformUnsupportedError extends UpgradesError {
   constructor(functionName: string, details?: string) {
     super(
       `The function ${functionName} is not supported with \`platform\``,
       () => details ?? `Call the function as upgrades.${functionName}(<your arguments>) without the \`platform\` option.`,
     );
+  }
+}
+
+export function setPlatformDefaults(platformModule: boolean, opts: Platform) {
+  if (platformModule && opts.platform === undefined) {
+    opts.platform = true;
+  }
+}
+
+export function assertNotPlatform(platformModule: boolean, opts: Platform | undefined, unsupportedFunction: string, details?: string) {
+  if (platformModule || opts?.platform) {
+    throw new PlatformUnsupportedError(unsupportedFunction, details);
   }
 }

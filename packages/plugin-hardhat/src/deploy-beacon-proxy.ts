@@ -20,6 +20,7 @@ import {
   getContractAddress,
   getInitializerData,
 } from './utils';
+import { setPlatformDefaults } from './utils/platform-deploy';
 
 export interface DeployBeaconProxyFunction {
   (
@@ -49,9 +50,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment, platformMo
       args = [];
     }
 
-    if (platformModule && opts.platform === undefined) {
-      opts.platform = true;
-    }
+    setPlatformDefaults(platformModule, opts);
 
     const { provider } = hre.network;
     const manifest = await Manifest.forNetwork(provider);

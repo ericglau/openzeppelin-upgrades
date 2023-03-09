@@ -24,18 +24,35 @@ export interface DeployTransaction {
 
 const deployableProxyContracts = [ ERC1967Proxy, BeaconProxy, UpgradeableBeacon, TransparentUpgradeableProxy, ProxyAdmin ];
 
+function getPlatformClient(hre: HardhatRuntimeEnvironment) {
+  const cfg = hre.config.platform;
+  if (!cfg || !cfg.apiKey || !cfg.apiSecret) {
+    const sampleConfig = JSON.stringify({ apiKey: 'YOUR_API_KEY', apiSecret: 'YOUR_API_SECRET' }, null, 2);
+    throw new Error(
+      `Missing Platform API key and secret in hardhat config. Add the following to your hardhat.config.js configuration:\nplatform: ${sampleConfig}\n`,
+    );
+  }
+  return PlatformClient(cfg);
+}
+
+async function getNetwork(hre: HardhatRuntimeEnvironment) : Promise<Network> {
+  const { provider } = hre.network;
+  let chainId = hre.network.config.chainId ?? await getChainId(provider);
+  console.log("GOT CHAIN ID " +  chainId);
+  const network = fromChainId(chainId);
+  if (network === undefined) {
+    throw new Error(`Network ${chainId} is not supported by Platform`);
+  }
+  return network;
+}
+
 export async function platformDeploy(
   hre: HardhatRuntimeEnvironment,
   factory: ContractFactory,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
 
-
-  // TODO get from Hardhat config
-    // platform API key
-    const client = PlatformClient({ apiKey: '', apiSecret: '' });
-
-
+  const client = getPlatformClient(hre);
 
   let { contractName, sourceName, buildInfo } = await getContractInfo(factory, hre);
   
@@ -63,17 +80,7 @@ export async function platformDeploy(
   return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse };
 }
 
-async function getNetwork(hre: HardhatRuntimeEnvironment) : Promise<Network> {
-  const { provider } = hre.network;
-  let chainId = hre.network.config.chainId ?? await getChainId(provider);
-  console.log("GOT CHAIN ID " +  chainId);
-  const network = fromChainId(chainId);
-  if (network === undefined) {
-    throw new UpgradesError(`Could not get network name from chain id ${chainId}.`,
-      () => "Ensure you are using a network that is supported by Platform.");
-  }
-  return network;
-}
+
 
 function getLicense(buildInfo: BuildInfo | undefined, sourceName: string, contractName: string): SourceCodeLicense | undefined {
   if (buildInfo !== undefined) {

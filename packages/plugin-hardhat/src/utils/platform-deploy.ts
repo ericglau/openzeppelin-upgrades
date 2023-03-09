@@ -3,7 +3,7 @@ import type { ethers, ContractFactory } from 'ethers';
 
 import { promises as fs } from 'fs';
 
-import { BlockExplorerApiKeyClient, BlockExplorerApiKeyResponse, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
+import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
 import { Network, fromChainId } from 'platform-deploy-client/node_modules/defender-base-client'; // TODO fix dependencies
 
 import { BuildInfo, HardhatRuntimeEnvironment } from 'hardhat/types';
@@ -41,7 +41,6 @@ function getPlatformClient(hre: HardhatRuntimeEnvironment) {
 async function getNetwork(hre: HardhatRuntimeEnvironment) : Promise<Network> {
   const { provider } = hre.network;
   let chainId = hre.network.config.chainId ?? await getChainId(provider);
-  console.log("GOT CHAIN ID " +  chainId);
   const network = fromChainId(chainId);
   if (network === undefined) {
     throw new Error(`Network ${chainId} is not supported by Platform`);
@@ -87,16 +86,13 @@ export async function platformDeploy(
 ): Promise<Required<Deployment & DeployTransaction>> {
   const client = getPlatformClient(hre);
 
-  let { contractName, sourceName, buildInfo } = await getContractInfo(factory, hre);
+  let { contractPath, contractName, buildInfo } = await getContractInfo(factory, hre);
+  debug(`Contract path ${contractPath}, name ${contractName}`);
   
   const constructorArgs = [...args] as (string | number | boolean)[];
 
-  console.log("constructor args " + JSON.stringify(constructorArgs, null, 2));
-  console.log("BEFORE PLATFORM DEPLOY");
-  console.log(contractName, sourceName);
-
   const network = await getNetwork(hre);
-  console.log("USING NETWORK NAME " + network);
+  debug(`Network ${network}`);
 
   if (verifySourceCode) {
     await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
@@ -104,24 +100,23 @@ export async function platformDeploy(
 
   const payload = {
     contractName: contractName,
-    contractPath: sourceName,
+    contractPath: contractPath,
     network: network,
     // artifactPayload: JSON.stringify(buildInfo),
-    licenseType: getLicense(buildInfo, sourceName, contractName),
+    licenseType: getLicense(buildInfo, contractPath, contractName),
     constructorInputs: constructorArgs,
     verifySourceCode: verifySourceCode,
   };
-
   console.log("PAYLOAD " + JSON.stringify(payload, null, 2));
 
   throw new Error("BREAK");
 
   const deploymentResponse = await client.Deployment.deploy({
     contractName: contractName,
-    contractPath: sourceName,
+    contractPath: contractPath,
     network: network,
     artifactPayload: JSON.stringify(buildInfo),
-    licenseType: getLicense(buildInfo, sourceName, contractName),
+    licenseType: getLicense(buildInfo, contractPath, contractName),
     constructorInputs: constructorArgs,
     verifySourceCode: verifySourceCode,
   });
@@ -169,16 +164,16 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
 
   const allArtifacts = await hre.artifacts.getArtifactPaths();
   let fqcn = undefined;
-  let sourceName, contractName;
+  let contractPath, contractName;
   for (const artifactPath of allArtifacts) {
     // const artifact = await fsExtra.readJson(artifactPath);
     const artifact = await JSON.parse(await fs.readFile(artifactPath, 'utf8'));
 
     if (artifact.bytecode === bytecode) {
       // console.log('FOUND BYTECODE');
-      sourceName = artifact.sourceName;
+      contractPath = artifact.sourceName;
       contractName = artifact.contractName;
-      fqcn = sourceName + ":" + contractName;
+      fqcn = contractPath + ":" + contractName;
       console.log('FQCN ' + fqcn);
     }
   }
@@ -198,9 +193,9 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
     for (const artifact of deployableProxyContracts) {
       if (artifact.bytecode === bytecode) {
         // console.log('FOUND BYTECODE');
-        sourceName = artifact.sourceName;
+        contractPath = artifact.sourceName;
         contractName = artifact.contractName;
-        fqcn = sourceName + ":" + contractName;
+        fqcn = contractPath + ":" + contractName;
         console.log('FQCN ' + fqcn);
 
         // TODO create a map of json to dbg
@@ -210,7 +205,7 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
       }
     }
   }
-  return { contractName, sourceName, buildInfo };
+  return { contractPath, contractName, buildInfo };
 }
 
 class PlatformUnsupportedError extends UpgradesError {

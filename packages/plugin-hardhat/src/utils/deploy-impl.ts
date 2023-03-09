@@ -13,7 +13,7 @@ import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
-import { DeployContractOptions, GetTxResponse, Platform, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
+import { DeployContractOptions, GetTxResponse, PlatformOptions, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
 import { validateBeaconImpl, validateProxyImpl, validateImpl } from './validate-impl';
 import { readValidations } from './validations';
 
@@ -65,7 +65,7 @@ export async function deployNonUpgradeableContract(
 ): Promise<DeployedContract> {
   // TODO fail if the contract looks like an implementation contract
   const deployData = await getDeployData(hre, ImplFactory, opts);
-  const deployment = await deploy(opts.platform, hre, ImplFactory, ...deployData.fullOpts.constructorArgs);
+  const deployment = await deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
   const impl = deployment.address;
   const txResponse = await hre.ethers.provider.getTransaction(deployment.txHash);
   return { impl, txResponse };
@@ -107,7 +107,7 @@ async function deployImpl(
   hre: HardhatRuntimeEnvironment,
   deployData: DeployData,
   ImplFactory: ContractFactory,
-  opts: UpgradeOptions & GetTxResponse & Platform,
+  opts: UpgradeOptions & GetTxResponse & PlatformOptions,
 ): Promise<any> {
   const layout = deployData.layout;
 
@@ -124,7 +124,7 @@ async function deployImpl(
               'The useDeployedImplementation option was set to true but the implementation contract was not previously deployed on this network.',
           );
         } else {
-          return deploy(opts.platform, hre, ImplFactory, ...deployData.fullOpts.constructorArgs);
+          return deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
         }
       };
       const deployment = Object.assign({ abi }, await attemptDeploy());

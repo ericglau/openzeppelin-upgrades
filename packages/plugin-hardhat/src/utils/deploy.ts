@@ -4,19 +4,20 @@ import type { ethers, ContractFactory } from 'ethers';
 import { getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { platformDeploy } from './platform-deploy';
+import { PlatformOptions } from './options';
 
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
 }
 
 export async function deploy(
-  platform: boolean = false,
   hre: HardhatRuntimeEnvironment,
+  opts: PlatformOptions,
   factory: ContractFactory,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
-  if (platform) {
-    return await platformDeploy(hre, factory, ...args);
+  if (opts?.platform) {
+    return await platformDeploy(hre, factory, opts.verifySourceCode, ...args);
   } else {
     console.log("REGULAR DEPLOY");
     return await ethersDeploy(factory, ...args);

@@ -14,6 +14,6 @@ export function makeDeployProxyAdmin(hre: HardhatRuntimeEnvironment): DeployAdmi
     const { provider } = hre.network;
 
     const AdminFactory = await getProxyAdminFactory(hre, signer);
-    return await fetchOrDeployAdmin(provider, () => deploy(opts.platform, hre, AdminFactory), opts);
+    return await fetchOrDeployAdmin(provider, () => deploy(hre, opts, AdminFactory), opts);
   };
 }

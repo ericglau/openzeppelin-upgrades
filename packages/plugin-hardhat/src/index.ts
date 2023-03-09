@@ -5,7 +5,7 @@ import './type-extensions';
 import { subtask, extendEnvironment, extendConfig } from 'hardhat/config';
 import { TASK_COMPILE_SOLIDITY, TASK_COMPILE_SOLIDITY_COMPILE } from 'hardhat/builtin-tasks/task-names';
 import { lazyObject } from 'hardhat/plugins';
-import { HardhatConfig } from 'hardhat/types';
+import { HardhatConfig, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { getImplementationAddressFromBeacon, silenceWarnings, SolcInput } from '@openzeppelin/upgrades-core';
 import type { DeployFunction } from './deploy-proxy';
 import type { PrepareUpgradeFunction } from './prepare-upgrade';
@@ -20,6 +20,7 @@ import type { ValidateUpgradeFunction } from './validate-upgrade';
 import type { DeployImplementationFunction } from './deploy-implementation';
 import { DeployAdminFunction, makeDeployProxyAdmin } from './deploy-proxy-admin';
 import type { DeployContractFunction } from './deploy-contract';
+import { ContractFactory } from 'ethers';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -90,54 +91,11 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
 
 extendEnvironment(hre => {
   hre.upgrades = lazyObject((): HardhatUpgrades => {
-    const {
-      silenceWarnings,
-      getAdminAddress,
-      getImplementationAddress,
-      getBeaconAddress,
-    } = require('@openzeppelin/upgrades-core');
-    const { makeDeployProxy } = require('./deploy-proxy');
-    const { makeUpgradeProxy } = require('./upgrade-proxy');
-    const { makeValidateImplementation } = require('./validate-implementation');
-    const { makeValidateUpgrade } = require('./validate-upgrade');
-    const { makeDeployImplementation } = require('./deploy-implementation');
-    const { makeDeployContract } = require('./deploy-contract');
-    const { makePrepareUpgrade } = require('./prepare-upgrade');
-    const { makeDeployBeacon } = require('./deploy-beacon');
-    const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
-    const { makeUpgradeBeacon } = require('./upgrade-beacon');
-    const { makeForceImport } = require('./force-import');
-    const { makeChangeProxyAdmin, makeTransferProxyAdminOwnership, makeGetInstanceFunction } = require('./admin');
+    return makeFunctions(hre, false);
+  });
 
-    return {
-      silenceWarnings,
-      deployProxy: makeDeployProxy(hre),
-      upgradeProxy: makeUpgradeProxy(hre),
-      validateImplementation: makeValidateImplementation(hre),
-      validateUpgrade: makeValidateUpgrade(hre),
-      deployImplementation: makeDeployImplementation(hre),
-      deployContract: makeDeployContract(hre),
-      prepareUpgrade: makePrepareUpgrade(hre),
-      deployBeacon: makeDeployBeacon(hre),
-      deployBeaconProxy: makeDeployBeaconProxy(hre),
-      upgradeBeacon: makeUpgradeBeacon(hre),
-      deployProxyAdmin: makeDeployProxyAdmin(hre),
-      forceImport: makeForceImport(hre),
-      admin: {
-        getInstance: makeGetInstanceFunction(hre),
-        changeProxyAdmin: makeChangeProxyAdmin(hre),
-        transferProxyAdminOwnership: makeTransferProxyAdminOwnership(hre),
-      },
-      erc1967: {
-        getAdminAddress: proxyAddress => getAdminAddress(hre.network.provider, proxyAddress),
-        getImplementationAddress: proxyAddress => getImplementationAddress(hre.network.provider, proxyAddress),
-        getBeaconAddress: proxyAddress => getBeaconAddress(hre.network.provider, proxyAddress),
-      },
-      beacon: {
-        getImplementationAddress: beaconAddress =>
-          getImplementationAddressFromBeacon(hre.network.provider, beaconAddress),
-      },
-    };
+  hre.platform = lazyObject((): HardhatUpgrades => {
+    return makeFunctions(hre, true);
   });
 });
 
@@ -159,6 +117,53 @@ if (tryRequire('@nomiclabs/hardhat-etherscan')) {
     const { verify } = await import('./verify-proxy');
     return await verify(args, hre, runSuper);
   });
+}
+
+function makeFunctions(hre: HardhatRuntimeEnvironment, platform: boolean) {
+  const {
+    silenceWarnings, getAdminAddress, getImplementationAddress, getBeaconAddress,
+  } = require('@openzeppelin/upgrades-core');
+  const { makeDeployProxy } = require('./deploy-proxy');
+  const { makeUpgradeProxy } = require('./upgrade-proxy');
+  const { makeValidateImplementation } = require('./validate-implementation');
+  const { makeValidateUpgrade } = require('./validate-upgrade');
+  const { makeDeployImplementation } = require('./deploy-implementation');
+  const { makeDeployContract } = require('./deploy-contract');
+  const { makePrepareUpgrade } = require('./prepare-upgrade');
+  const { makeDeployBeacon } = require('./deploy-beacon');
+  const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
+  const { makeUpgradeBeacon } = require('./upgrade-beacon');
+  const { makeForceImport } = require('./force-import');
+  const { makeChangeProxyAdmin, makeTransferProxyAdminOwnership, makeGetInstanceFunction } = require('./admin');
+
+  return {
+    silenceWarnings,
+    deployProxy: makeDeployProxy(hre, platform),
+    upgradeProxy: makeUpgradeProxy(hre),
+    validateImplementation: makeValidateImplementation(hre),
+    validateUpgrade: makeValidateUpgrade(hre),
+    deployImplementation: makeDeployImplementation(hre),
+    deployContract: makeDeployContract(hre),
+    prepareUpgrade: makePrepareUpgrade(hre),
+    deployBeacon: makeDeployBeacon(hre),
+    deployBeaconProxy: makeDeployBeaconProxy(hre),
+    upgradeBeacon: makeUpgradeBeacon(hre),
+    deployProxyAdmin: makeDeployProxyAdmin(hre),
+    forceImport: makeForceImport(hre),
+    admin: {
+      getInstance: makeGetInstanceFunction(hre),
+      changeProxyAdmin: makeChangeProxyAdmin(hre),
+      transferProxyAdminOwnership: makeTransferProxyAdminOwnership(hre),
+    },
+    erc1967: {
+      getAdminAddress: (proxyAddress: string) => getAdminAddress(hre.network.provider, proxyAddress),
+      getImplementationAddress: (proxyAddress: string) => getImplementationAddress(hre.network.provider, proxyAddress),
+      getBeaconAddress: (proxyAddress: string) => getBeaconAddress(hre.network.provider, proxyAddress),
+    },
+    beacon: {
+      getImplementationAddress: (beaconAddress: string) => getImplementationAddressFromBeacon(hre.network.provider, beaconAddress),
+    },
+  };
 }
 
 function tryRequire(id: string) {

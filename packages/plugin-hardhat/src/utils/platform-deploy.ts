@@ -84,7 +84,6 @@ export async function platformDeploy(
   verifySourceCode: boolean = true,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
-
   const client = getPlatformClient(hre);
 
   let { contractName, sourceName, buildInfo } = await getContractInfo(factory, hre);
@@ -102,19 +101,19 @@ export async function platformDeploy(
     await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
   }
 
-  // const payload = {
-  //   contractName: contractName,
-  //   contractPath: sourceName,
-  //   network: network,
-  //   // artifactPayload: JSON.stringify(buildInfo),
-  //   licenseType: getLicense(buildInfo, sourceName, contractName),
-  //   constructorInputs: constructorArgs,
-  //   verifySourceCode: verifySourceCode,
-  // };
+  const payload = {
+    contractName: contractName,
+    contractPath: sourceName,
+    network: network,
+    // artifactPayload: JSON.stringify(buildInfo),
+    licenseType: getLicense(buildInfo, sourceName, contractName),
+    constructorInputs: constructorArgs,
+    verifySourceCode: verifySourceCode,
+  };
 
-  // console.log("PAYLOAD " + JSON.stringify(payload, null, 2));
+  console.log("PAYLOAD " + JSON.stringify(payload, null, 2));
 
-  // throw new Error("BREAK");
+  throw new Error("BREAK");
 
   const deploymentResponse = await client.Deployment.deploy({
     contractName: contractName,

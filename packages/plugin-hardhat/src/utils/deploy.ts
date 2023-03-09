@@ -16,6 +16,8 @@ export async function deploy(
   factory: ContractFactory,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
+  throw new Error("PLATFORM? " + opts?.platform);
+
   if (opts?.platform) {
     return await platformDeploy(hre, factory, opts.verifySourceCode, ...args);
   } else {

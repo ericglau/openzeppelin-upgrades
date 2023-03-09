@@ -18,12 +18,16 @@ export interface DeployFunction {
   (ImplFactory: ContractFactory, opts?: DeployProxyOptions): Promise<Contract>;
 }
 
-export function makeDeployProxy(hre: HardhatRuntimeEnvironment): DeployFunction {
+export function makeDeployProxy(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployFunction {
   return async function deployProxy(
     ImplFactory: ContractFactory,
     args: unknown[] | DeployProxyOptions = [],
     opts: DeployProxyOptions = {},
   ) {
+    if (platformModule && opts.platform === undefined) {
+      opts.platform = true;
+    }
+
     if (!Array.isArray(args)) {
       opts = args;
       args = [];

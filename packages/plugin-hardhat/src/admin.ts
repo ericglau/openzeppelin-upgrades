@@ -3,6 +3,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Manifest, getAdminAddress } from '@openzeppelin/upgrades-core';
 import { Contract } from 'ethers';
 import { getProxyAdminFactory } from './utils';
+import { PlatformUnsupportedError } from './utils/platform-deploy';
 
 const SUCCESS_CHECK = chalk.green('✔') + ' ';
 const FAILURE_CROSS = chalk.red('✘') + ' ';
@@ -11,8 +12,12 @@ export type ChangeAdminFunction = (proxyAddress: string, newAdmin: string) => Pr
 export type TransferProxyAdminOwnershipFunction = (newOwner: string) => Promise<void>;
 export type GetInstanceFunction = () => Promise<Contract>;
 
-export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment): ChangeAdminFunction {
+export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, platformModule: boolean): ChangeAdminFunction {
   return async function changeProxyAdmin(proxyAddress, newAdmin) {
+    if (platformModule) {
+      throw new PlatformUnsupportedError(changeProxyAdmin.name, `Call the function as upgrades.admin.${changeProxyAdmin.name}(<your arguments>)`);
+    }
+    
     const admin = await getManifestAdmin(hre);
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
 
@@ -24,8 +29,12 @@ export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment): ChangeAdmi
   };
 }
 
-export function makeTransferProxyAdminOwnership(hre: HardhatRuntimeEnvironment): TransferProxyAdminOwnershipFunction {
+export function makeTransferProxyAdminOwnership(hre: HardhatRuntimeEnvironment, platformModule: boolean): TransferProxyAdminOwnershipFunction {
   return async function transferProxyAdminOwnership(newOwner) {
+    if (platformModule) {
+      throw new PlatformUnsupportedError(transferProxyAdminOwnership.name, `Call the function as upgrades.admin.${transferProxyAdminOwnership.name}(<your arguments>)`);
+    }
+
     const admin = await getManifestAdmin(hre);
     await admin.transferOwnership(newOwner);
 

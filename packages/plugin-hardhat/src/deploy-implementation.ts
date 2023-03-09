@@ -11,8 +11,12 @@ export type DeployImplementationFunction = (
 
 export type DeployImplementationResponse = string | ethers.providers.TransactionResponse;
 
-export function makeDeployImplementation(hre: HardhatRuntimeEnvironment): DeployImplementationFunction {
+export function makeDeployImplementation(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployImplementationFunction {
   return async function deployImplementation(ImplFactory, opts: DeployImplementationOptions = {}) {
+    if (platformModule && opts.platform === undefined) {
+      opts.platform = true;
+    }
+
     const deployedImpl = await deployStandaloneImpl(hre, ImplFactory, opts);
 
     if (opts.getTxResponse && deployedImpl.txResponse !== undefined) {

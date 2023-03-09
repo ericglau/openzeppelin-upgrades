@@ -215,7 +215,7 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
 export class PlatformUnsupportedError extends UpgradesError {
   constructor(functionName: string, details?: string) {
     super(
-      `The function ${functionName} is not supported with OpenZeppelin Platform`,
+      `The function ${functionName} is not supported with \`platform\``,
       () => details ?? `Call the function as upgrades.${functionName}(<your arguments>) without the \`platform\` option.`,
     );
   }

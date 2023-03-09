@@ -24,13 +24,13 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, platformModule: 
     args: unknown[] | DeployProxyOptions = [],
     opts: DeployProxyOptions = {},
   ) {
-    if (platformModule && opts.platform === undefined) {
-      opts.platform = true;
-    }
-
     if (!Array.isArray(args)) {
       opts = args;
       args = [];
+    }
+
+    if (platformModule && opts.platform === undefined) {
+      opts.platform = true;
     }
 
     const { provider } = hre.network;

@@ -9,15 +9,19 @@ export interface DeployContractFunction {
   (ImplFactory: ContractFactory, opts?: DeployContractOptions): Promise<Contract>;
 }
 
-export function makeDeployContract(hre: HardhatRuntimeEnvironment): DeployContractFunction {
+export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployContractFunction {
   return async function deployContract(
     ImplFactory, 
     args: unknown[] | DeployContractOptions = [],
     opts: DeployContractOptions = {},
-  ) {
+  ) {    
     if (!Array.isArray(args)) {
       opts = args;
       args = [];
+    }
+
+    if (platformModule && opts.platform === undefined) {
+      opts.platform = true;
     }
 
     if (opts.platform === undefined || !opts.platform) {

@@ -22,7 +22,7 @@ export type UpgradeFunction = (
 export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, platformModule: boolean): UpgradeFunction {
   return async function upgradeProxy(proxy, ImplFactory, opts: UpgradeProxyOptions = {}) {
     if (platformModule || opts.platform) {
-      throw new PlatformUnsupportedError(upgradeProxy.name, "Use the proposeUpgrade function instead");
+      throw new PlatformUnsupportedError(upgradeProxy.name, "Use the proposeUpgrade function");
     }
 
     const proxyAddress = getContractAddress(proxy);

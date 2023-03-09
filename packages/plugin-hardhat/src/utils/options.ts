@@ -32,22 +32,25 @@ type Initializer = {
   initializer?: string | false;
 };
 
-export type PlatformOptions = {
+export type Platform = {
   platform?: boolean;
+}
+
+export type PlatformSupportedOptions = Platform & {
   verifySourceCode?: boolean;
 }
 
-export type DeployBeaconProxyOptions = ProxyKindOption & Initializer & PlatformOptions;
-export type DeployBeaconOptions = StandaloneOptions & PlatformOptions;
-export type DeployImplementationOptions = StandaloneOptions & GetTxResponse & PlatformOptions;
-export type DeployContractOptions = StandaloneOptions & GetTxResponse & PlatformOptions;
-export type DeployProxyAdminOptions = DeployOpts & PlatformOptions;
-export type DeployProxyOptions = StandaloneOptions & Initializer & PlatformOptions;
+export type DeployBeaconProxyOptions = ProxyKindOption & Initializer & PlatformSupportedOptions;
+export type DeployBeaconOptions = StandaloneOptions & Platform;
+export type DeployImplementationOptions = StandaloneOptions & GetTxResponse & PlatformSupportedOptions;
+export type DeployContractOptions = StandaloneOptions & GetTxResponse & PlatformSupportedOptions;
+export type DeployProxyAdminOptions = DeployOpts & Platform;
+export type DeployProxyOptions = StandaloneOptions & Initializer & PlatformSupportedOptions;
 export type ForceImportOptions = ProxyKindOption;
-export type PrepareUpgradeOptions = UpgradeOptions & GetTxResponse & PlatformOptions;
-export type UpgradeBeaconOptions = UpgradeOptions;
+export type PrepareUpgradeOptions = UpgradeOptions & GetTxResponse & PlatformSupportedOptions;
+export type UpgradeBeaconOptions = UpgradeOptions & Platform;
 export type UpgradeProxyOptions = UpgradeOptions & {
   call?: { fn: string; args?: unknown[] } | string;
-};
+} & Platform;
 export type ValidateImplementationOptions = StandaloneValidationOptions;
 export type ValidateUpgradeOptions = ValidationOptions;

@@ -139,21 +139,36 @@ function makeFunctions(hre: HardhatRuntimeEnvironment, platform: boolean) {
   return {
     silenceWarnings,
     deployProxy: makeDeployProxy(hre, platform),
-    upgradeProxy: makeUpgradeProxy(hre),
+    upgradeProxy: makeUpgradeProxy(hre, platform), // block
+    // validateImplementation: makeValidateImplementation(hre),
+    // validateUpgrade: makeValidateUpgrade(hre),
+    // deployImplementation: makeDeployImplementation(hre, platform),
+    // deployContract: makeDeployContract(hre, platform),
+    // prepareUpgrade: makePrepareUpgrade(hre, platform),
+    // deployBeacon: makeDeployBeacon(hre, platform), // block
+    // deployBeaconProxy: makeDeployBeaconProxy(hre, platform), // allow?
+    // upgradeBeacon: makeUpgradeBeacon(hre, platform), // block
+    // deployProxyAdmin: makeDeployProxyAdmin(hre, platform), // block
+    // forceImport: makeForceImport(hre),
+    // admin: {
+    //   getInstance: makeGetInstanceFunction(hre),
+    //   changeProxyAdmin: makeChangeProxyAdmin(hre, platform),
+    //   transferProxyAdminOwnership: makeTransferProxyAdminOwnership(hre, platform),
+
     validateImplementation: makeValidateImplementation(hre),
     validateUpgrade: makeValidateUpgrade(hre),
-    deployImplementation: makeDeployImplementation(hre),
-    deployContract: makeDeployContract(hre),
-    prepareUpgrade: makePrepareUpgrade(hre),
-    deployBeacon: makeDeployBeacon(hre),
-    deployBeaconProxy: makeDeployBeaconProxy(hre),
-    upgradeBeacon: makeUpgradeBeacon(hre),
-    deployProxyAdmin: makeDeployProxyAdmin(hre),
+    deployImplementation: makeDeployImplementation(hre, ),
+    deployContract: makeDeployContract(hre, ),
+    prepareUpgrade: makePrepareUpgrade(hre, ),
+    deployBeacon: makeDeployBeacon(hre, ), // block
+    deployBeaconProxy: makeDeployBeaconProxy(hre, ), // allow?
+    upgradeBeacon: makeUpgradeBeacon(hre,), // block
+    deployProxyAdmin: makeDeployProxyAdmin(hre,), // block
     forceImport: makeForceImport(hre),
     admin: {
       getInstance: makeGetInstanceFunction(hre),
-      changeProxyAdmin: makeChangeProxyAdmin(hre),
-      transferProxyAdminOwnership: makeTransferProxyAdminOwnership(hre),
+      changeProxyAdmin: makeChangeProxyAdmin(hre,),
+      transferProxyAdminOwnership: makeTransferProxyAdminOwnership(hre,),
     },
     erc1967: {
       getAdminAddress: (proxyAddress: string) => getAdminAddress(hre.network.provider, proxyAddress),

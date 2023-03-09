@@ -4,7 +4,7 @@ import type { ethers, ContractFactory } from 'ethers';
 import { getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { platformDeploy } from './platform-deploy';
-import { PlatformOptions } from './options';
+import { PlatformSupportedOptions } from './options';
 
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
@@ -12,7 +12,7 @@ export interface DeployTransaction {
 
 export async function deploy(
   hre: HardhatRuntimeEnvironment,
-  opts: PlatformOptions,
+  opts: PlatformSupportedOptions,
   factory: ContractFactory,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {

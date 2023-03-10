@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
 import { Network, fromChainId } from 'platform-deploy-client/node_modules/defender-base-client'; // TODO fix dependencies
 
-import { BuildInfo, HardhatRuntimeEnvironment } from 'hardhat/types';
+import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import debug from './debug';
 
@@ -86,7 +86,7 @@ export async function platformDeploy(
 ): Promise<Required<Deployment & DeployTransaction>> {
   const client = getPlatformClient(hre);
 
-  let { contractPath, contractName, buildInfo } = await getContractInfo(factory, hre);
+  const contractInfo = await getContractInfo(factory, hre);
   
   const constructorArgs = [...args] as (string | number | boolean)[];
 
@@ -97,25 +97,12 @@ export async function platformDeploy(
     await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
   }
 
-  const payload = {
-    contractName: contractName,
-    contractPath: contractPath,
-    network: network,
-    // artifactPayload: JSON.stringify(buildInfo),
-    licenseType: getLicense(buildInfo, contractPath, contractName),
-    constructorInputs: constructorArgs,
-    verifySourceCode: verifySourceCode,
-  };
-  console.log("PAYLOAD " + JSON.stringify(payload, null, 2));
-
-  throw new Error("BREAK");
-
   const deploymentResponse = await client.Deployment.deploy({
-    contractName: contractName,
-    contractPath: contractPath,
+    contractName: contractInfo.contractName,
+    contractPath: contractInfo.contractPath,
     network: network,
-    artifactPayload: JSON.stringify(buildInfo),
-    licenseType: getLicense(buildInfo, contractPath, contractName),
+    artifactPayload: JSON.stringify(contractInfo.buildInfo),
+    licenseType: getLicense(contractInfo),
     constructorInputs: constructorArgs,
     verifySourceCode: verifySourceCode,
   });
@@ -125,24 +112,38 @@ export async function platformDeploy(
   return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse };
 }
 
+interface ContractInfo {
+  contractPath: string;
+  contractName: string;
+  buildInfo: BuildInfo;
+};
 
-
-function getLicense(buildInfo: BuildInfo | undefined, sourceName: string, contractName: string): SourceCodeLicense | undefined {
-  if (buildInfo !== undefined) {
-    console.log("looking in buildinfo for license", sourceName, contractName);
-    const content = buildInfo.output.contracts[sourceName][contractName];
-    const metadataString = (content as any).metadata;
-    const metadata = JSON.parse(metadataString);
-    // console.log("metadata " + JSON.stringify(metadata.sources, null, 2));
-    const license = metadata.sources[sourceName].license;
-    console.log("found license " + license);
-    return license;
-  }
-  console.log("error getting license");
-  return undefined;
+type CompilerOutputWithMetadata = CompilerOutputContract & {
+  metadata?: string;
 }
 
-async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRuntimeEnvironment) {
+function getLicense(contractInfo: ContractInfo): SourceCodeLicense | undefined {
+  const compilerOutput: CompilerOutputWithMetadata = contractInfo.buildInfo.output.contracts[contractInfo.contractPath][contractInfo.contractName];
+
+  const metadataString = compilerOutput.metadata;
+  if (metadataString === undefined) {
+    debug('Metadata not found in compiler output');
+    return undefined;
+  }
+
+  const metadata = JSON.parse(metadataString);
+
+  const license = metadata.sources[contractInfo.contractPath].license;
+  if (license === undefined) {
+    debug('License not found in metadata');
+    return undefined;
+  }
+
+  debug(`Found license from metadata: ${license}`);
+  return license;
+}
+
+async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRuntimeEnvironment): Promise<ContractInfo> {
   // 1. Get ContractFactory's bytecode
   const bytecode = factory.bytecode;
 

@@ -87,7 +87,6 @@ export async function platformDeploy(
   const client = getPlatformClient(hre);
 
   let { contractPath, contractName, buildInfo } = await getContractInfo(factory, hre);
-  debug(`Contract path ${contractPath}, name ${contractName}`);
   
   const constructorArgs = [...args] as (string | number | boolean)[];
 
@@ -143,69 +142,41 @@ function getLicense(buildInfo: BuildInfo | undefined, sourceName: string, contra
   return undefined;
 }
 
-// async function getVerifySourceCodeOption(hre: HardhatRuntimeEnvironment): Promise<boolean> {
-//   try {
-//     await getEtherscanAPIConfig(hre);
-//     debug('Etherscan API keys found. Enabling source code verification.');
-//     return true;
-//   } catch (e) {
-//     debug('Etherscan API keys not found. Disabling source code verification.');
-//     return false;
-//   }
-// }
-
 async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRuntimeEnvironment) {
-  // Start with ContractFactory
   // 1. Get ContractFactory's bytecode
-  // 2. Look for Artifact file that has ContractFactory's bytecode. Get fully qualified sourceName from artifact
-  // 3. Look for build-info file that has fully qualified sourceName in its solc input
-
   const bytecode = factory.bytecode;
 
+  // 2. Look for Hardhat artifact file that has the same bytecode, then get fully qualified contract name.
   const allArtifacts = await hre.artifacts.getArtifactPaths();
-  let fqcn = undefined;
-  let contractPath, contractName;
   for (const artifactPath of allArtifacts) {
-    // const artifact = await fsExtra.readJson(artifactPath);
     const artifact = await JSON.parse(await fs.readFile(artifactPath, 'utf8'));
-
     if (artifact.bytecode === bytecode) {
-      // console.log('FOUND BYTECODE');
-      contractPath = artifact.sourceName;
-      contractName = artifact.contractName;
-      fqcn = contractPath + ":" + contractName;
-      console.log('FQCN ' + fqcn);
-    }
-  }
+      const contractPath = artifact.sourceName;
+      const contractName = artifact.contractName;
+      const fullyQualifiedContract = contractPath + ":" + contractName;
+      debug(`Contract ${fullyQualifiedContract}`);
 
-
-  let buildInfo;
-
-  if (fqcn !== undefined) {
-    buildInfo = await hre.artifacts.getBuildInfo(fqcn);
-    if (buildInfo !== undefined) {
-      console.log("got buildInfo for contract "); // + JSON.stringify(buildInfo.input, null, 2));
-    } else {
-      console.log("buildInfo / solc input undefined");
-    }
-  } else {
-    // use precompiled proxy contracts
-    for (const artifact of deployableProxyContracts) {
-      if (artifact.bytecode === bytecode) {
-        // console.log('FOUND BYTECODE');
-        contractPath = artifact.sourceName;
-        contractName = artifact.contractName;
-        fqcn = contractPath + ":" + contractName;
-        console.log('FQCN ' + fqcn);
-
-        // TODO create a map of json to dbg
-        buildInfo = artifactsBuildInfo;
-        console.log("using proxy buildInfo"); // + JSON.stringify(buildInfo, null, 2));
-
+      // 3. Look for build-info file that has fully qualified contract name in its solc input
+      const buildInfo = await hre.artifacts.getBuildInfo(fullyQualifiedContract);
+      if (buildInfo === undefined) {
+        throw new Error(`Could not get Hardhat compilation artifact for contract ${fullyQualifiedContract}. Run \`npx hardhat compile\``);
       }
+      return { contractPath, contractName, buildInfo };
     }
   }
-  return { contractPath, contractName, buildInfo };
+
+  // Proxy contracts would not be found in the Hardhat compilation artifacts, so get these from the plugin's precompiled artifacts.
+  for (const artifact of deployableProxyContracts) {
+    if (artifact.bytecode === bytecode) {
+      const contractPath = artifact.sourceName;
+      const contractName = artifact.contractName;
+      const buildInfo = artifactsBuildInfo;
+      debug(`Proxy contract ${contractPath}:${contractName}`);
+      return { contractPath, contractName, buildInfo };
+    }
+  }
+  
+  throw new Error("Could not find Hardhat compilation artifact corresponding to the given ethers contract factory"); // TODO figure out user action
 }
 
 class PlatformUnsupportedError extends UpgradesError {

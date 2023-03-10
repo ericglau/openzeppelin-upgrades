@@ -24,11 +24,11 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
     setPlatformDefaults(platformModule, opts);
 
     if (opts.platform === undefined || !opts.platform) {
-      throw new Error("The deployContract function can only be used with the `platform` module or option.");
+      throw new Error(`The ${deployContract.name} function can only be used with the \`platform\` module or option.`);
     }
     
     if (opts.constructorArgs !== undefined) {
-      throw new Error(`The deployContract function does not support the constructorArgs option. Pass in constructor arguments using the format: deployContract(MyContract, [ 'my arg' ]);`);
+      throw new Error(`The ${deployContract.name} function does not support the constructorArgs option. Pass in constructor arguments using the format: deployContract(MyContract, [ 'my arg' ]);`);
     }
     opts.constructorArgs = args;
 

@@ -8,6 +8,7 @@ import {
   ValidationDataCurrent,
   ValidationOptions,
   Version,
+  getContractNameAndRunValidation,
 } from '@openzeppelin/upgrades-core';
 import type { ContractFactory, ethers } from 'ethers';
 import { FormatTypes } from 'ethers/lib/utils';
@@ -63,8 +64,21 @@ export async function deployNonUpgradeableContract(
   ImplFactory: ContractFactory,
   opts: DeployContractOptions,
 ): Promise<DeployedContract> {
-  // TODO fail if the contract looks like an implementation contract
   const deployData = await getDeployData(hre, ImplFactory, opts);
+
+  if (!opts.unsafeAllowDeployContract) {
+    const [fullContractName, runValidation] = getContractNameAndRunValidation(deployData.validations, deployData.version);
+    const c = runValidation[fullContractName];
+    const inherit = c.inherit;
+    if (inherit.includes("@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:Initializable") ||
+      inherit.includes("@openzeppelin/contracts/proxy/utils/Initializable.sol:Initializable") ||
+      inherit.includes("@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable")) {
+        throw new UpgradesError(`The contract ${fullContractName} looks like an upgradeable contract.`, 
+          () => "Upgradable contracts cannot be deployed using the deployContract function. Use deployProxy, deployBeacon, or deployImplementation.\n" + 
+                "If this is not intended to be an upgradeable contract, set the unsafeAllowDeployContract option to true and run the deployContract function again.");
+    }
+  }
+
   const deployment = await deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
   const impl = deployment.address;
   const txResponse = await hre.ethers.provider.getTransaction(deployment.txHash);

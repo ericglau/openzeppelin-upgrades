@@ -43,7 +43,9 @@ export type PlatformSupportedOptions = Platform & {
 export type DeployBeaconProxyOptions = ProxyKindOption & Initializer & PlatformSupportedOptions;
 export type DeployBeaconOptions = StandaloneOptions & Platform;
 export type DeployImplementationOptions = StandaloneOptions & GetTxResponse & PlatformSupportedOptions;
-export type DeployContractOptions = StandaloneOptions & GetTxResponse & PlatformSupportedOptions;
+export type DeployContractOptions = StandaloneOptions & GetTxResponse & PlatformSupportedOptions & {
+  unsafeAllowDeployContract?: boolean;
+};
 export type DeployProxyAdminOptions = DeployOpts & Platform;
 export type DeployProxyOptions = StandaloneOptions & Initializer & PlatformSupportedOptions;
 export type ForceImportOptions = ProxyKindOption;

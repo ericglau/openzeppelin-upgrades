@@ -14,7 +14,7 @@ export type GetInstanceFunction = () => Promise<Contract>;
 
 export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, platformModule: boolean): ChangeAdminFunction {
   return async function changeProxyAdmin(proxyAddress, newAdmin) {
-    assertNotPlatform(platformModule, undefined, changeProxyAdmin.name, `Call the function as upgrades.admin.${changeProxyAdmin.name}(<your arguments>)`);
+    assertNotPlatform(platformModule, undefined, changeProxyAdmin.name, `Call the upgrades.admin.${changeProxyAdmin.name} function`);
     
     const admin = await getManifestAdmin(hre);
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
@@ -29,7 +29,7 @@ export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, platformMod
 
 export function makeTransferProxyAdminOwnership(hre: HardhatRuntimeEnvironment, platformModule: boolean): TransferProxyAdminOwnershipFunction {
   return async function transferProxyAdminOwnership(newOwner) {
-    assertNotPlatform(platformModule, undefined, transferProxyAdminOwnership.name, `Call the function as upgrades.admin.${transferProxyAdminOwnership.name}(<your arguments>)`);
+    assertNotPlatform(platformModule, undefined, transferProxyAdminOwnership.name, `Call the upgrades.admin.${transferProxyAdminOwnership.name} function`);
     
 
     const admin = await getManifestAdmin(hre);

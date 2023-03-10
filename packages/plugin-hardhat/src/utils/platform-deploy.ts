@@ -184,7 +184,7 @@ class PlatformUnsupportedError extends UpgradesError {
   constructor(functionName: string, details?: string) {
     super(
       `The function ${functionName} is not supported with \`platform\``,
-      () => details ?? `Call the function as upgrades.${functionName}(<your arguments>) without the \`platform\` option.`,
+      () => details ?? `Call the upgrades.${functionName} function without the \`platform\` option.`,
     );
   }
 }

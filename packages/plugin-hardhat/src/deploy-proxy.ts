@@ -1,5 +1,6 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ContractFactory, Contract } from 'ethers';
+import assert from 'assert';
 
 import { Manifest, logWarning, ProxyDeployment, BeaconProxyUnsupportedError } from '@openzeppelin/upgrades-core';
 
@@ -12,7 +13,7 @@ import {
   deployProxyImpl,
   getInitializerData,
 } from './utils';
-import { setPlatformDefaults } from './utils/platform-deploy';
+import { setPlatformDefaults, wait } from './utils/platform-deploy';
 
 export interface DeployFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployProxyOptions): Promise<Contract>;
@@ -77,6 +78,13 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, platformModule: 
     const inst = ImplFactory.attach(proxyDeployment.address);
     // @ts-ignore Won't be readonly because inst was created through attach.
     inst.deployTransaction = proxyDeployment.deployTransaction;
+    if (opts.platform && proxyDeployment.deploymentId !== undefined) {
+      inst.deployed = async () => {
+        assert(proxyDeployment.deploymentId !== undefined);
+        await wait(hre, inst.address, proxyDeployment.deploymentId);
+        return inst;
+      };
+    }
     return inst;
   };
 }

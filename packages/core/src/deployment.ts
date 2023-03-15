@@ -137,8 +137,9 @@ export async function waitAndValidateDeployment(
   deployment: Deployment,
   type?: string,
   opts?: DeployOpts,
+  getDeploymentStatus?: (deploymentId: string) => Promise<string>,
 ): Promise<void> {
-  const { txHash, address } = deployment;
+  const { txHash, address, deploymentId } = deployment;
 
   // Poll for 60 seconds with a 5 second poll interval by default.
   const pollTimeout = opts?.timeout ?? 60e3;
@@ -146,7 +147,44 @@ export async function waitAndValidateDeployment(
 
   debug('polling timeout', pollTimeout, 'polling interval', pollInterval);
 
-  if (txHash !== undefined) {
+  let foundCode = false;
+
+  // Note: If only deploymentId exists without getDeploymentStatus, user may be using regular Hardhat so just use txHash 
+  if (deploymentId !== undefined && getDeploymentStatus !== undefined) {
+
+    const startTime = Date.now();
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (await hasCode(provider, address)) {
+        debug('code in target address found', address);
+        foundCode = true;
+        break;
+      }
+
+      debug('verifying deployment id', deploymentId);
+      const status = await getDeploymentStatus(deploymentId);
+      if (status === "completed") {
+        debug('succeeded verifying deployment id mined', deploymentId);
+        break;
+      } else if (status === "failed") {
+        debug('deployment id was reverted', deploymentId);
+        throw new InvalidDeployment(deployment);
+      } else if (status === "submitted") {
+        debug('waiting for deployment id mined', deploymentId);
+        await sleep(pollInterval);
+      } else {
+        throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);
+      }
+      if (pollTimeout != 0) {
+        const elapsedTime = Date.now() - startTime;
+        if (elapsedTime >= pollTimeout) {
+          // A timeout is NOT an InvalidDeployment
+          throw new TransactionMinedTimeout(deployment, type, !!opts);
+        }
+      }
+    }
+  } else if (txHash !== undefined) {
     const startTime = Date.now();
 
     // eslint-disable-next-line no-constant-condition
@@ -173,16 +211,18 @@ export async function waitAndValidateDeployment(
     }
   }
 
-  debug('verifying code in target address', address);
-  const startTime = Date.now();
-  while (!(await hasCode(provider, address))) {
-    const elapsedTime = Date.now() - startTime;
-    if (elapsedTime >= pollTimeout || txHash === undefined) {
-      throw new InvalidDeployment(deployment);
+  if (!foundCode) {
+    debug('verifying code in target address', address);
+    const startTime = Date.now();
+    while (!(await hasCode(provider, address))) {
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime >= pollTimeout || txHash === undefined) {
+        throw new InvalidDeployment(deployment);
+      }
+      await sleep(pollInterval);
     }
-    await sleep(pollInterval);
+    debug('code in target address found', address);
   }
-  debug('code in target address found', address);
 }
 
 export class TransactionMinedTimeout extends UpgradesError {
@@ -190,7 +230,7 @@ export class TransactionMinedTimeout extends UpgradesError {
     super(
       `Timed out waiting for ${type ? type + ' ' : ''}contract deployment to address ${
         deployment.address
-      } with transaction ${deployment.txHash}`,
+      } with ${deployment.deploymentId ? `deployment id ${deployment.deploymentId}` : `transaction ${deployment.txHash}`}`,
       () =>
         'Run the function again to continue waiting for the transaction confirmation.' +
         (configurableTimeout

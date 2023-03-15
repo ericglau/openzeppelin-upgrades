@@ -107,9 +107,19 @@ export async function platformDeploy(
     verifySourceCode: verifySourceCode,
   });
 
+  console.log("DEPLOYMENT RESPONSE " + JSON.stringify(deploymentResponse, null, 2));
+
   const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
   const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address); 
-  return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse, deploymentId: deploymentResponse.transactionId };
+  return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse, deploymentId: deploymentResponse.deploymentId };
+}
+
+export async function getDeploymentStatus(hre: HardhatRuntimeEnvironment, deploymentId: string) {
+  const client = getPlatformClient(hre);
+  const depls = await client.Deployment.list();
+  // console.log("DEPLOYMENTS " + JSON.stringify(depls,null,2));
+
+  return (await client.Deployment.get(deploymentId)).status;
 }
 
 interface ContractInfo {

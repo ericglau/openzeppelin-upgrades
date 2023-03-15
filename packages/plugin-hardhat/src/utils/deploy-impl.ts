@@ -15,6 +15,7 @@ import { FormatTypes } from 'ethers/lib/utils';
 import type { EthereumProvider, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { deploy } from './deploy';
 import { DeployContractOptions, GetTxResponse, PlatformSupportedOptions, StandaloneOptions, UpgradeOptions, withDefaults } from './options';
+import { getDeploymentStatus } from './platform-deploy';
 import { validateBeaconImpl, validateProxyImpl, validateImpl } from './validate-impl';
 import { readValidations } from './validations';
 
@@ -145,6 +146,10 @@ async function deployImpl(
       return { ...deployment, layout };
     },
     opts,
+    undefined,
+    async (deploymentId: string) => {
+      return await getDeploymentStatus(hre, deploymentId);
+    }
   );
 
   let txResponse;

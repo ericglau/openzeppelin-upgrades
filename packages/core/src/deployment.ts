@@ -132,12 +132,17 @@ async function validateStoredDeployment<T extends Deployment>(
   }
 }
 
+export interface DeploymentResponse {
+  status: string;
+  txHash: string;
+}
+
 export async function waitAndValidateDeployment(
   provider: EthereumProvider,
   deployment: Deployment,
   type?: string,
   opts?: DeployOpts,
-  getDeploymentStatus?: (deploymentId: string) => Promise<string>,
+  getDeploymentResponse?: (deploymentId: string) => Promise<DeploymentResponse>,
 ): Promise<void> {
   const { txHash, address, deploymentId } = deployment;
 
@@ -149,8 +154,8 @@ export async function waitAndValidateDeployment(
 
   let foundCode = false;
 
-  // Note: If only deploymentId exists without getDeploymentStatus, user may be using regular Hardhat so just use txHash 
-  if (deploymentId !== undefined && getDeploymentStatus !== undefined) {
+  // Note: If only deploymentId exists without getDeploymentResponse, user may be using regular Hardhat so just use txHash 
+  if (deploymentId !== undefined && getDeploymentResponse !== undefined) {
 
     const startTime = Date.now();
 
@@ -163,15 +168,16 @@ export async function waitAndValidateDeployment(
       }
 
       debug('verifying deployment id', deploymentId);
-      const status = await getDeploymentStatus(deploymentId);
+      const response = await getDeploymentResponse(deploymentId);
+      const status = response.status;
       if (status === "completed") {
-        debug('succeeded verifying deployment id mined', deploymentId);
+        debug('succeeded verifying deployment id completed', deploymentId);
         break;
       } else if (status === "failed") {
-        debug('deployment id was reverted', deploymentId);
-        throw new InvalidDeployment(deployment);
+        debug(`tx hash ${response.txHash} was reverted for deployment id ${deploymentId}`);
+        throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
       } else if (status === "submitted") {
-        debug('waiting for deployment id mined', deploymentId);
+        debug('waiting for deployment id completed', deploymentId);
         await sleep(pollInterval);
       } else {
         throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);

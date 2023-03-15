@@ -1,4 +1,4 @@
-import { Deployment, getChainId, UpgradesError } from '@openzeppelin/upgrades-core';
+import { Deployment, DeploymentResponse, getChainId, hasCode, InvalidDeployment, UpgradesError } from '@openzeppelin/upgrades-core';
 import type { ethers, ContractFactory } from 'ethers';
 
 import { promises as fs } from 'fs';
@@ -20,6 +20,8 @@ import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 import { getEtherscanAPIConfig } from './etherscan-api';
 import { Platform } from './options';
+
+import { promisify } from 'util';
 
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
@@ -114,12 +116,36 @@ export async function platformDeploy(
   return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse, deploymentId: deploymentResponse.deploymentId };
 }
 
-export async function getDeploymentStatus(hre: HardhatRuntimeEnvironment, deploymentId: string) {
+export async function getDeploymentResponse(hre: HardhatRuntimeEnvironment, deploymentId: string): Promise<DeploymentResponse> {
   const client = getPlatformClient(hre);
-  const depls = await client.Deployment.list();
-  // console.log("DEPLOYMENTS " + JSON.stringify(depls,null,2));
+  return await client.Deployment.get(deploymentId);
+}
 
-  return (await client.Deployment.get(deploymentId)).status;
+const sleep = promisify(setTimeout);
+
+export async function wait(hre: HardhatRuntimeEnvironment, address: string, deploymentId: string) {
+  while (true) {
+    if (await hasCode(hre.ethers.provider, address)) {
+      debug('code in target address found', address);
+      break;
+    }
+
+    debug('verifying deployment id', deploymentId);
+    const response = await getDeploymentResponse(hre, deploymentId);
+    const status = response.status;
+    if (status === "completed") {
+      debug('succeeded verifying deployment id mined', deploymentId);
+      break;
+    } else if (status === "failed") {
+      debug('deployment id was reverted', deploymentId);
+      throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
+    } else if (status === "submitted") {
+      debug('waiting for deployment id mined', deploymentId);
+      await sleep(5000); // TODO
+    } else {
+      throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);
+    }
+  }
 }
 
 interface ContractInfo {

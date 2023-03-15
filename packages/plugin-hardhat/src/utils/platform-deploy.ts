@@ -109,7 +109,7 @@ export async function platformDeploy(
 
   const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
   const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address); 
-  return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse };
+  return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse, deploymentId: deploymentResponse.transactionId };
 }
 
 interface ContractInfo {

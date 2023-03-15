@@ -75,7 +75,7 @@ export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment, platformMo
     }
 
     const BeaconProxyFactory = await getBeaconProxyFactory(hre, attachTo.signer);
-    const proxyDeployment: Required<ProxyDeployment & DeployTransaction> = Object.assign(
+    const proxyDeployment: ProxyDeployment & DeployTransaction = Object.assign(
       { kind: opts.kind },
       await deploy(hre, opts, BeaconProxyFactory, beaconAddress, data),
     );

@@ -20,6 +20,7 @@ const sleep = promisify(setTimeout);
 export interface Deployment {
   address: string;
   txHash?: string;
+  deploymentId?: string;
 }
 
 export interface DeployOpts {

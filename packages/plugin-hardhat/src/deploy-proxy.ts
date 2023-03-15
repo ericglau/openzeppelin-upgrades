@@ -49,7 +49,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, platformModule: 
       }
     }
 
-    let proxyDeployment: Required<ProxyDeployment & DeployTransaction>;
+    let proxyDeployment: ProxyDeployment & DeployTransaction;
     switch (kind) {
       case 'beacon': {
         throw new BeaconProxyUnsupportedError();

@@ -81,7 +81,7 @@ export async function deployNonUpgradeableContract(
 
   const deployment = await deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
   const impl = deployment.address;
-  const txResponse = await hre.ethers.provider.getTransaction(deployment.txHash);
+  const txResponse = deployment.txHash !== undefined ? await hre.ethers.provider.getTransaction(deployment.txHash) : undefined;
   return { impl, txResponse };
 }
 

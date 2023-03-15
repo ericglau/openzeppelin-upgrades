@@ -1,13 +1,47 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { ContractFactory, Contract } from 'ethers';
+import type { ContractFactory, Contract, ethers } from 'ethers';
+import assert from 'assert';
 
-import { DeployContractOptions } from './utils';
-import { deployNonUpgradeableContract } from './utils/deploy-impl';
-import { setPlatformDefaults } from './utils/platform-deploy';
+import { deploy, DeployContractOptions } from './utils';
+import { getDeployData } from './utils/deploy-impl';
+import { setPlatformDefaults, wait } from './utils/platform-deploy';
+import { getContractNameAndRunValidation, UpgradesError } from '@openzeppelin/upgrades-core';
 
 export interface DeployContractFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployContractOptions): Promise<Contract>;
   (ImplFactory: ContractFactory, opts?: DeployContractOptions): Promise<Contract>;
+}
+
+interface DeployedContract {
+  impl: string;
+  txResponse?: ethers.providers.TransactionResponse;
+  deploymentId?: string;
+}
+
+export async function deployNonUpgradeableContract(
+  hre: HardhatRuntimeEnvironment,
+  ImplFactory: ContractFactory,
+  opts: DeployContractOptions,
+): Promise<DeployedContract> {
+  const deployData = await getDeployData(hre, ImplFactory, opts);
+
+  if (!opts.unsafeAllowDeployContract) {
+    const [fullContractName, runValidation] = getContractNameAndRunValidation(deployData.validations, deployData.version);
+    const c = runValidation[fullContractName];
+    const inherit = c.inherit;
+    if (inherit.includes("@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:Initializable") ||
+      inherit.includes("@openzeppelin/contracts/proxy/utils/Initializable.sol:Initializable") ||
+      inherit.includes("@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable")) {
+        throw new UpgradesError(`The contract ${fullContractName} looks like an upgradeable contract.`, 
+          () => "Upgradable contracts cannot be deployed using the deployContract function. Use deployProxy, deployBeacon, or deployImplementation.\n" + 
+                "If this is not intended to be an upgradeable contract, set the unsafeAllowDeployContract option to true and run the deployContract function again.");
+    }
+  }
+
+  const deployment = await deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
+  const impl = deployment.address;
+  const txResponse = deployment.txHash !== undefined ? await hre.ethers.provider.getTransaction(deployment.txHash) : undefined;
+  return { impl, txResponse, deploymentId: deployment.deploymentId };
 }
 
 export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployContractFunction {
@@ -34,15 +68,16 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
 
     const deployed = await deployNonUpgradeableContract(hre, ImplFactory, opts);
 
-    // if (opts.getTxResponse && deployed.txResponse !== undefined) {
-    //   return deployed.txResponse;
-    // } else {
-    //   return deployed.impl;
-    // }
-
     const inst = ImplFactory.attach(deployed.impl);
     // @ts-ignore Won't be readonly because inst was created through attach.
     inst.deployTransaction = deployed.txResponse;
+    if (opts.platform && deployed.deploymentId !== undefined) {
+      inst.deployed = async () => {
+        assert(deployed.deploymentId !== undefined);
+        await wait(hre, inst.address, deployed.deploymentId);
+        return inst;
+      };
+    }
     return inst;
 
   };

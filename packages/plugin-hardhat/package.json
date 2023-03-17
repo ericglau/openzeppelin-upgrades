@@ -35,6 +35,7 @@
     "chalk": "^4.1.0",
     "debug": "^4.1.1",
     "platform-deploy-client": "^0.3.2",
+    "defender-admin-client": "^1.39.0",
     "proper-lockfile": "^4.1.1"
   },
   "peerDependencies": {

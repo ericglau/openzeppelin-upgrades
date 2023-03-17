@@ -20,7 +20,14 @@ import type { ValidateUpgradeFunction } from './validate-upgrade';
 import type { DeployImplementationFunction } from './deploy-implementation';
 import { DeployAdminFunction, makeDeployProxyAdmin } from './deploy-proxy-admin';
 import type { DeployContractFunction } from './deploy-contract';
-import { ContractFactory } from 'ethers';
+import type { ProposeUpgradeFunction } from './platform-propose-upgrade';
+import type {
+  // GetBytecodeDigestFunction,
+  // GetVerifyDeployArtifactFunction,
+  // GetVerifyDeployBuildInfoFunction,
+  VerifyDeployFunction,
+  VerifyDeployWithUploadedArtifactFunction,
+} from './platform-verify-deployment';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -49,6 +56,9 @@ export interface HardhatUpgrades {
   beacon: {
     getImplementationAddress: (beaconAddress: string) => Promise<string>;
   };
+  proposeUpgrade: ProposeUpgradeFunction;
+  verifyDeployment: VerifyDeployFunction;
+  verifyDeploymentWithUploadedArtifact: VerifyDeployWithUploadedArtifactFunction;
 }
 
 interface RunCompilerArgs {
@@ -135,6 +145,14 @@ function makeFunctions(hre: HardhatRuntimeEnvironment, platform: boolean) {
   const { makeUpgradeBeacon } = require('./upgrade-beacon');
   const { makeForceImport } = require('./force-import');
   const { makeChangeProxyAdmin, makeTransferProxyAdminOwnership, makeGetInstanceFunction } = require('./admin');
+  const { makeProposeUpgrade } = require('./platform-propose-upgrade');
+  const {
+    makeVerifyDeploy,
+    makeVerifyDeployWithUploadedArtifact,
+    makeGetVerifyDeployBuildInfo, // TODO
+    makeGetVerifyDeployArtifact, // TODO
+    makeGetBytecodeDigest, // TODO
+  } = require('./platform-verify-deployment');
 
   return {
     silenceWarnings,
@@ -163,6 +181,9 @@ function makeFunctions(hre: HardhatRuntimeEnvironment, platform: boolean) {
     beacon: {
       getImplementationAddress: (beaconAddress: string) => getImplementationAddressFromBeacon(hre.network.provider, beaconAddress),
     },
+    proposeUpgrade: makeProposeUpgrade(hre, platform),
+    verifyDeployment: makeVerifyDeploy(hre, platform),
+    verifyDeploymentWithUploadedArtifact: makeVerifyDeployWithUploadedArtifact(hre, platform),
   };
 }
 

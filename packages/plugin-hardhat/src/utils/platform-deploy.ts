@@ -4,7 +4,7 @@ import type { ethers, ContractFactory } from 'ethers';
 import { promises as fs } from 'fs';
 
 import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
-import { Network, fromChainId } from 'platform-deploy-client/node_modules/defender-base-client'; // TODO fix dependencies
+import { Network } from 'defender-base-client'; // TODO fix dependencies
 
 import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
 
@@ -22,6 +22,7 @@ import { getEtherscanAPIConfig } from './etherscan-api';
 import { Platform } from './options';
 
 import { promisify } from 'util';
+import { getNetwork, getPlatformApiKey } from './platform-utils';
 
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
@@ -29,25 +30,10 @@ export interface DeployTransaction {
 
 const deployableProxyContracts = [ ERC1967Proxy, BeaconProxy, UpgradeableBeacon, TransparentUpgradeableProxy, ProxyAdmin ];
 
-function getPlatformClient(hre: HardhatRuntimeEnvironment) {
-  const cfg = hre.config.platform;
-  if (!cfg || !cfg.apiKey || !cfg.apiSecret) {
-    const sampleConfig = JSON.stringify({ apiKey: 'YOUR_API_KEY', apiSecret: 'YOUR_API_SECRET' }, null, 2);
-    throw new Error(
-      `Missing Platform API key and secret in hardhat config. Add the following to your hardhat.config.js configuration:\nplatform: ${sampleConfig}\n`,
-    );
-  }
-  return PlatformClient(cfg);
-}
 
-async function getNetwork(hre: HardhatRuntimeEnvironment) : Promise<Network> {
-  const { provider } = hre.network;
-  let chainId = hre.network.config.chainId ?? await getChainId(provider);
-  const network = fromChainId(chainId);
-  if (network === undefined) {
-    throw new Error(`Network ${chainId} is not supported by Platform`);
-  }
-  return network;
+
+function getPlatformClient(hre: HardhatRuntimeEnvironment) {
+  return PlatformClient(getPlatformApiKey(hre));
 }
 
 async function validateBlockExplorerApiKey(hre: HardhatRuntimeEnvironment, network: Network, client: BlockExplorerApiKeyClient) {

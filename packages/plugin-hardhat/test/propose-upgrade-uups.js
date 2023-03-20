@@ -14,7 +14,7 @@ test.beforeEach(async t => {
   t.context.fakeClient = sinon.createStubInstance(AdminClient);
   t.context.fakeDefender = { verifyDeployment: sinon.stub() };
   t.context.fakeChainId = 'goerli';
-  t.context.proposeUpgrade = proxyquire('../dist/propose-upgrade', {
+  t.context.proposeUpgrade = proxyquire('../dist/platform/propose-upgrade', {
     './utils': {
       getNetwork: () => t.context.fakeChainId,
       getAdminClient: () => t.context.fakeClient,

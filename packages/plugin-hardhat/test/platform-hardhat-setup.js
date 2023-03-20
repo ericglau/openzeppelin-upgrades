@@ -1,11 +1,11 @@
 const test = require('ava');
 
-const { defender, config } = require('hardhat');
+const { platform, config } = require('hardhat');
 
-test('creates defender object in hardhat runtime', async t => {
-  t.is(typeof defender.proposeUpgrade, 'function');
+test('creates platform object in hardhat runtime', async t => {
+  t.is(typeof platform.proposeUpgrade, 'function');
 });
 
-test('extends hardhat config with defender settings', async t => {
-  t.deepEqual(config.defender, { apiKey: 'KEY', apiSecret: 'SECRET' });
+test('extends hardhat config with platform settings', async t => {
+  t.deepEqual(config.platform, { apiKey: 'KEY', apiSecret: 'SECRET' });
 });

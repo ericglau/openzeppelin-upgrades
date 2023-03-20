@@ -1,12 +1,15 @@
 const test = require('ava');
 const sinon = require('sinon');
-const { getNetwork, getAdminClient } = require(' ../../../dist/utils');
+const { getNetwork, getAdminClient } = require(' ../../../dist/platform/utils');
 
 test.beforeEach(async t => {
   t.context.fakeChainId = '0x05';
   t.context.fakeHre = {
-    config: { defender: { apiKey: 'API_KEY', apiSecret: 'API_SECRET' } },
-    network: { provider: { send: async () => t.context.fakeChainId } },
+    config: { platform: { apiKey: 'API_KEY', apiSecret: 'API_SECRET' } },
+    network: { 
+      provider: { send: async () => t.context.fakeChainId },
+      config: {}
+    },
   };
 });
 
@@ -14,7 +17,7 @@ test.afterEach.always(() => {
   sinon.restore();
 });
 
-test('returns defender network definition', async t => {
+test('returns platform network definition', async t => {
   const network = await getNetwork(t.context.fakeHre);
   t.is(network, 'goerli');
 });
@@ -29,16 +32,16 @@ test('returns admin client', async t => {
   t.is(typeof client.createProposal, 'function');
 });
 
-test('fails if defender config is missing', async t => {
-  delete t.context.fakeHre.config.defender;
+test('fails if platform config is missing', async t => {
+  delete t.context.fakeHre.config.platform;
   t.throws(() => getAdminClient(t.context.fakeHre), {
-    message: /Missing Defender API key and secret in hardhat config/,
+    message: /Missing Platform API key and secret in hardhat config/,
   });
 });
 
-test('fails if defender api key is missing in config', async t => {
-  delete t.context.fakeHre.config.defender.apiKey;
+test('fails if platform api key is missing in config', async t => {
+  delete t.context.fakeHre.config.platform.apiKey;
   t.throws(() => getAdminClient(t.context.fakeHre), {
-    message: /Missing Defender API key and secret in hardhat config/,
+    message: /Missing Platform API key and secret in hardhat config/,
   });
 });

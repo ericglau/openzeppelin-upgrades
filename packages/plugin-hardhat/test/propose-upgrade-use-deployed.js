@@ -13,7 +13,7 @@ const multisig = '0xc0889725c22e2e36c524F41AECfddF5650432464';
 test.beforeEach(async t => {
   t.context.fakeClient = sinon.createStubInstance(AdminClient);
   t.context.fakeChainId = 'goerli';
-  t.context.proposeUpgrade = proxyquire('../dist/propose-upgrade', {
+  t.context.proposeUpgrade = proxyquire('../dist/platform/propose-upgrade', {
     './utils': {
       getNetwork: () => t.context.fakeChainId,
       getAdminClient: () => t.context.fakeClient,

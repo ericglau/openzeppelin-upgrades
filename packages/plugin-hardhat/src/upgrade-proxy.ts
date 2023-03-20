@@ -11,7 +11,7 @@ import {
   getContractAddress,
   ContractAddressOrInstance,
 } from './utils';
-import { assertNotPlatform } from './utils/platform-deploy';
+import { assertNotPlatform } from './platform/utils/deploy';
 
 export type UpgradeFunction = (
   proxy: ContractAddressOrInstance,

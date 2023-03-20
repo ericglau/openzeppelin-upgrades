@@ -6,14 +6,15 @@ import {
   isTransparentOrUUPSProxy,
   isTransparentProxy,
 } from '@openzeppelin/upgrades-core';
-import { AdminClient, ProposalResponse } from 'defender-admin-client';
+import { ProposalResponse } from 'defender-admin-client';
 import { ContractFactory, ethers } from 'ethers';
 import { FormatTypes, getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { PlatformSupportedOptions, UpgradeOptions } from './utils';
-import { setPlatformDefaults } from './utils/platform-deploy';
-import { getAdminClient, getNetwork } from './utils/platform-utils';
-import type { VerificationResponse } from './platform-verify-deployment';
+import { PlatformSupportedOptions, UpgradeOptions } from '../utils';
+import { setPlatformDefaults } from './utils/deploy';
+import { getNetwork } from './utils/network';
+import { getAdminClient } from './utils/config';
+import type { VerificationResponse } from './verify-deployment';
 
 export interface ExtendedProposalResponse extends ProposalResponse {
   txResponse?: ethers.providers.TransactionResponse;

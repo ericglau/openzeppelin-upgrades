@@ -4,7 +4,7 @@ import assert from 'assert';
 
 import { deploy, DeployContractOptions } from './utils';
 import { getDeployData } from './utils/deploy-impl';
-import { setPlatformDefaults, wait } from './utils/platform-deploy';
+import { setPlatformDefaults, wait } from './platform/utils/deploy';
 import { getContractNameAndRunValidation, UpgradesError } from '@openzeppelin/upgrades-core';
 
 export interface DeployContractFunction {

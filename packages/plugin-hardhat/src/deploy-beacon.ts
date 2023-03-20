@@ -4,7 +4,7 @@ import type { ContractFactory, Contract } from 'ethers';
 import { Deployment } from '@openzeppelin/upgrades-core';
 
 import { DeployBeaconOptions, deploy, DeployTransaction, getUpgradeableBeaconFactory, deployBeaconImpl } from './utils';
-import { assertNotPlatform } from './utils/platform-deploy';
+import { assertNotPlatform } from './platform/utils/deploy';
 
 export interface DeployBeaconFunction {
   (ImplFactory: ContractFactory, opts?: DeployBeaconOptions): Promise<Contract>;

@@ -13,7 +13,7 @@ import {
   deployProxyImpl,
   getInitializerData,
 } from './utils';
-import { setPlatformDefaults, wait } from './utils/platform-deploy';
+import { setPlatformDefaults, wait } from './platform/utils/deploy';
 
 export interface DeployFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployProxyOptions): Promise<Contract>;

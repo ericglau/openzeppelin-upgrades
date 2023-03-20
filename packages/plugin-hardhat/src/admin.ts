@@ -3,7 +3,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Manifest, getAdminAddress } from '@openzeppelin/upgrades-core';
 import { Contract } from 'ethers';
 import { getProxyAdminFactory } from './utils';
-import { assertNotPlatform } from './utils/platform-deploy';
+import { assertNotPlatform } from './platform/utils/deploy';
 
 const SUCCESS_CHECK = chalk.green('✔') + ' ';
 const FAILURE_CROSS = chalk.red('✘') + ' ';

@@ -3,7 +3,7 @@ import debug from './debug';
 import type { ethers, ContractFactory } from 'ethers';
 import { getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { platformDeploy } from './platform-deploy';
+import { platformDeploy } from '../platform/utils/deploy';
 import { PlatformSupportedOptions } from './options';
 
 export interface DeployTransaction {

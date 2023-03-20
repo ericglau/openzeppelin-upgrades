@@ -21,7 +21,7 @@ import {
   getContractAddress,
   getInitializerData,
 } from './utils';
-import { setPlatformDefaults, wait } from './utils/platform-deploy';
+import { setPlatformDefaults, wait } from './platform/utils/deploy';
 
 export interface DeployBeaconProxyFunction {
   (

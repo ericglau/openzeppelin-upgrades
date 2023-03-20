@@ -1,9 +1,10 @@
 import { AdminClient, VerificationRequest } from 'defender-admin-client';
 import { Artifact, BuildInfo, CompilerOutputBytecode, HardhatRuntimeEnvironment } from 'hardhat/types';
-import { Platform } from './utils';
+import { Platform } from '../utils';
 import { sha256FromString } from 'ethereumjs-util';
-import { setPlatformDefaults } from './utils/platform-deploy';
-import { getAdminClient, getNetwork } from './utils/platform-utils';
+import { setPlatformDefaults } from './utils/deploy';
+import { getNetwork } from './utils/network';
+import { getAdminClient } from './utils/config';
 
 export type VerificationResponse = Awaited<ReturnType<AdminClient['verifyDeployment']>>;
 
@@ -34,7 +35,7 @@ export function makeVerifyDeploy(hre: HardhatRuntimeEnvironment, platformModule:
     setPlatformDefaults(platformModule, opts);
 
     if (opts.platform === undefined || !opts.platform) {
-      throw new Error(`The ${verifyDeploy.name} function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.verifyDeploy instead.`);
+      throw new Error(`The verifyDeployment function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.verifyDeployment instead.`);
     }
 
     const client = getAdminClient(hre);
@@ -62,7 +63,7 @@ export function makeVerifyDeployWithUploadedArtifact(
     setPlatformDefaults(platformModule, opts);
 
     if (opts.platform === undefined || !opts.platform) {
-      throw new Error(`The ${verifyDeploy.name} function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.verifyDeploy instead.`);
+      throw new Error(`The verifyDeploymentWithUploadedArtifact function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.verifyDeploymentWithUploadedArtifact instead.`);
     }
 
     const client = getAdminClient(hre);

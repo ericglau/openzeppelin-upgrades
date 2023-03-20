@@ -1,14 +1,14 @@
-import { Deployment, DeploymentResponse, getChainId, hasCode, InvalidDeployment, UpgradesError } from '@openzeppelin/upgrades-core';
+import { Deployment, DeploymentResponse, hasCode, InvalidDeployment, UpgradesError } from '@openzeppelin/upgrades-core';
 import type { ethers, ContractFactory } from 'ethers';
 
 import { promises as fs } from 'fs';
 
 import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
-import { Network } from 'defender-base-client'; // TODO fix dependencies
+import { Network } from 'defender-base-client';
 
 import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
 
-import debug from './debug';
+import debug from '../../utils/debug';
 
 import artifactsBuildInfo from '@openzeppelin/upgrades-core/artifacts/build-info.json';
 
@@ -18,11 +18,12 @@ import BeaconProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/con
 import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json';
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
-import { getEtherscanAPIConfig } from './etherscan-api';
-import { Platform } from './options';
+import { getEtherscanAPIConfig } from '../../utils/etherscan-api';
+import { Platform } from '../../utils/options';
 
 import { promisify } from 'util';
-import { getNetwork, getPlatformApiKey } from './platform-utils';
+import { getNetwork } from './network';
+import { getPlatformApiKey } from './config';
 
 export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
@@ -94,8 +95,6 @@ export async function platformDeploy(
     constructorInputs: constructorArgs,
     verifySourceCode: verifySourceCode,
   });
-
-  console.log("DEPLOYMENT RESPONSE " + JSON.stringify(deploymentResponse, null, 2));
 
   const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
   const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address); 

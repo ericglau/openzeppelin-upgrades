@@ -59,6 +59,9 @@ export interface HardhatUpgrades {
   proposeUpgrade: ProposeUpgradeFunction;
   verifyDeployment: VerifyDeployFunction;
   verifyDeploymentWithUploadedArtifact: VerifyDeployWithUploadedArtifactFunction;
+  getDeploymentArtifact: GetVerifyDeployArtifactFunction;
+  getDeploymentBuildInfo: GetVerifyDeployBuildInfoFunction;
+  getBytecodeDigest: GetBytecodeDigestFunction;
 }
 
 interface RunCompilerArgs {

@@ -14,14 +14,16 @@ test.beforeEach(async t => {
   t.context.fakeClient = sinon.createStubInstance(AdminClient);
   t.context.fakeChainId = 'goerli';
   t.context.proposeUpgrade = proxyquire('../dist/platform/propose-upgrade', {
-    './utils': {
+    './utils/network': {
       getNetwork: () => t.context.fakeChainId,
+    },
+    './utils/config': {
       getAdminClient: () => t.context.fakeClient,
     },
-  }).makeProposeUpgrade(hre);
+  }).makeProposeUpgrade(hre, true);
 
-  t.context.Greeter = await ethers.getContractFactory('GreeterProxiable');
-  t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable');
+  t.context.Greeter = await ethers.getContractFactory('GreeterPlatformProxiable');
+  t.context.GreeterV2 = await ethers.getContractFactory('GreeterPlatformV2Proxiable');
   t.context.greeter = await upgrades.deployProxy(t.context.Greeter, { kind: 'uups' });
 });
 

@@ -12,20 +12,22 @@ const multisig = '0xc0889725c22e2e36c524F41AECfddF5650432464';
 
 test.beforeEach(async t => {
   t.context.fakeClient = sinon.createStubInstance(AdminClient);
-  t.context.fakeDefender = { verifyDeployment: sinon.stub() };
+  t.context.fakePlatform = { verifyDeployment: sinon.stub() };
   t.context.fakeChainId = 'goerli';
   t.context.proposeUpgrade = proxyquire('../dist/platform/propose-upgrade', {
-    './utils': {
+    './utils/network': {
       getNetwork: () => t.context.fakeChainId,
+    },
+    './utils/config': {
       getAdminClient: () => t.context.fakeClient,
     },
   }).makeProposeUpgrade({
     ...hre,
-    defender: t.context.fakeDefender,
-  });
+    platform: t.context.fakePlatform,
+  }, true);
 
-  t.context.Greeter = await ethers.getContractFactory('GreeterProxiable');
-  t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable');
+  t.context.Greeter = await ethers.getContractFactory('GreeterPlatformProxiable');
+  t.context.GreeterV2 = await ethers.getContractFactory('GreeterPlatformV2Proxiable');
   t.context.greeter = await upgrades.deployProxy(t.context.Greeter, { kind: 'uups' });
 });
 

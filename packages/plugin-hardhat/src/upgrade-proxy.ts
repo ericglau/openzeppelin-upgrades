@@ -21,7 +21,7 @@ export type UpgradeFunction = (
 
 export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, platformModule: boolean): UpgradeFunction {
   return async function upgradeProxy(proxy, ImplFactory, opts: UpgradeProxyOptions = {}) {
-    assertNotPlatform(platformModule, opts, upgradeProxy.name, "Use the proposeUpgrade function");
+    assertNotPlatform(platformModule, opts, upgradeProxy.name, 'Use the proposeUpgrade function');
 
     const proxyAddress = getContractAddress(proxy);
 

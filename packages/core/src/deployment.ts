@@ -154,9 +154,8 @@ export async function waitAndValidateDeployment(
 
   let foundCode = false;
 
-  // Note: If only deploymentId exists without getDeploymentResponse, user may be using regular Hardhat so just use txHash 
+  // Note: If only deploymentId exists without getDeploymentResponse, user may be using regular Hardhat so just use txHash
   if (deploymentId !== undefined && getDeploymentResponse !== undefined) {
-
     const startTime = Date.now();
 
     // eslint-disable-next-line no-constant-condition
@@ -170,13 +169,13 @@ export async function waitAndValidateDeployment(
       debug('verifying deployment id', deploymentId);
       const response = await getDeploymentResponse(deploymentId);
       const status = response.status;
-      if (status === "completed") {
+      if (status === 'completed') {
         debug('succeeded verifying deployment id completed', deploymentId);
         break;
-      } else if (status === "failed") {
+      } else if (status === 'failed') {
         debug(`tx hash ${response.txHash} was reverted for deployment id ${deploymentId}`);
         throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
-      } else if (status === "submitted") {
+      } else if (status === 'submitted') {
         debug('waiting for deployment id completed', deploymentId);
         await sleep(pollInterval);
       } else {
@@ -234,9 +233,9 @@ export async function waitAndValidateDeployment(
 export class TransactionMinedTimeout extends UpgradesError {
   constructor(readonly deployment: Deployment, type?: string, configurableTimeout?: boolean) {
     super(
-      `Timed out waiting for ${type ? type + ' ' : ''}contract deployment to address ${
-        deployment.address
-      } with ${deployment.deploymentId ? `deployment id ${deployment.deploymentId}` : `transaction ${deployment.txHash}`}`,
+      `Timed out waiting for ${type ? type + ' ' : ''}contract deployment to address ${deployment.address} with ${
+        deployment.deploymentId ? `deployment id ${deployment.deploymentId}` : `transaction ${deployment.txHash}`
+      }`,
       () =>
         'Run the function again to continue waiting for the transaction confirmation.' +
         (configurableTimeout

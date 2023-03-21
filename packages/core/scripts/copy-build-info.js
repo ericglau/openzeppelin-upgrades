@@ -54,7 +54,7 @@ let buildInfo = readJSON(jsonRelativePath);
 // for (const contractFile in contractFiles){
 //   const contractNames = contractFiles[contractFile];
 //   for (const contractName in contractNames) {
-//     contractNames[contractName] = { 
+//     contractNames[contractName] = {
 //       abi: contractNames[contractName].abi,
 //       evm: contractNames[contractName].evm,
 //       metadata: contractNames[contractName].metadata // metadata needed if we want to get the license type

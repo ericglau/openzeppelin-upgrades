@@ -26,30 +26,39 @@ export async function deployNonUpgradeableContract(
   const deployData = await getDeployData(hre, ImplFactory, opts);
 
   if (!opts.unsafeAllowDeployContract) {
-    const [fullContractName, runValidation] = getContractNameAndRunValidation(deployData.validations, deployData.version);
+    const [fullContractName, runValidation] = getContractNameAndRunValidation(
+      deployData.validations,
+      deployData.version,
+    );
     const c = runValidation[fullContractName];
     const inherit = c.inherit;
-    if (inherit.includes("@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:Initializable") ||
-      inherit.includes("@openzeppelin/contracts/proxy/utils/Initializable.sol:Initializable") ||
-      inherit.includes("@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable")) {
-        throw new UpgradesError(`The contract ${fullContractName} looks like an upgradeable contract.`, 
-          () => "Upgradable contracts cannot be deployed using the deployContract function. Use deployProxy, deployBeacon, or deployImplementation.\n" + 
-                "If this is not intended to be an upgradeable contract, set the unsafeAllowDeployContract option to true and run the deployContract function again.");
+    if (
+      inherit.includes('@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:Initializable') ||
+      inherit.includes('@openzeppelin/contracts/proxy/utils/Initializable.sol:Initializable') ||
+      inherit.includes('@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable')
+    ) {
+      throw new UpgradesError(
+        `The contract ${fullContractName} looks like an upgradeable contract.`,
+        () =>
+          'Upgradable contracts cannot be deployed using the deployContract function. Use deployProxy, deployBeacon, or deployImplementation.\n' +
+          'If this is not intended to be an upgradeable contract, set the unsafeAllowDeployContract option to true and run the deployContract function again.',
+      );
     }
   }
 
   const deployment = await deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
   const impl = deployment.address;
-  const txResponse = deployment.txHash !== undefined ? await hre.ethers.provider.getTransaction(deployment.txHash) : undefined;
+  const txResponse =
+    deployment.txHash !== undefined ? await hre.ethers.provider.getTransaction(deployment.txHash) : undefined;
   return { impl, txResponse, deploymentId: deployment.deploymentId };
 }
 
 export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployContractFunction {
   return async function deployContract(
-    ImplFactory, 
+    ImplFactory,
     args: unknown[] | DeployContractOptions = [],
     opts: DeployContractOptions = {},
-  ) {    
+  ) {
     if (!Array.isArray(args)) {
       opts = args;
       args = [];
@@ -60,9 +69,11 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
     if (opts.platform === undefined || !opts.platform) {
       throw new Error(`The ${deployContract.name} function can only be used with the \`platform\` module or option.`);
     }
-    
+
     if (opts.constructorArgs !== undefined) {
-      throw new Error(`The ${deployContract.name} function does not support the constructorArgs option. Pass in constructor arguments using the format: deployContract(MyContract, [ 'my arg' ]);`);
+      throw new Error(
+        `The ${deployContract.name} function does not support the constructorArgs option. Pass in constructor arguments using the format: deployContract(MyContract, [ 'my arg' ]);`,
+      );
     }
     opts.constructorArgs = args;
 
@@ -79,6 +90,5 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
       };
     }
     return inst;
-
   };
 }

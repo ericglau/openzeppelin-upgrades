@@ -12,7 +12,10 @@ export type DeployImplementationFunction = (
 
 export type DeployImplementationResponse = string | ethers.providers.TransactionResponse;
 
-export function makeDeployImplementation(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployImplementationFunction {
+export function makeDeployImplementation(
+  hre: HardhatRuntimeEnvironment,
+  platformModule: boolean,
+): DeployImplementationFunction {
   return async function deployImplementation(ImplFactory, opts: DeployImplementationOptions = {}) {
     setPlatformDefaults(platformModule, opts);
 

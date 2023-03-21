@@ -12,7 +12,6 @@ import debug from '../utils/debug';
 
 import artifactsBuildInfo from '@openzeppelin/upgrades-core/artifacts/build-info.json';
 
-
 import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json';
 import BeaconProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.json';
 import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json';
@@ -28,27 +27,35 @@ export interface DeployTransaction {
   deployTransaction: ethers.providers.TransactionResponse;
 }
 
-const deployableProxyContracts = [ ERC1967Proxy, BeaconProxy, UpgradeableBeacon, TransparentUpgradeableProxy, ProxyAdmin ];
-
-
+const deployableProxyContracts = [
+  ERC1967Proxy,
+  BeaconProxy,
+  UpgradeableBeacon,
+  TransparentUpgradeableProxy,
+  ProxyAdmin,
+];
 
 function getPlatformClient(hre: HardhatRuntimeEnvironment) {
   return PlatformClient(getPlatformApiKey(hre));
 }
 
-async function validateBlockExplorerApiKey(hre: HardhatRuntimeEnvironment, network: Network, client: BlockExplorerApiKeyClient) {
+async function validateBlockExplorerApiKey(
+  hre: HardhatRuntimeEnvironment,
+  network: Network,
+  client: BlockExplorerApiKeyClient,
+) {
   const registeredKeys = await client.list();
 
   if (registeredKeys.length == 0 || !(await hasNetworkKey())) {
     const etherscanApiConfig = await getEtherscanAPIConfig(hre); // hardhat-etherscan throws an error here if the network is not configured
-    debug("Found Etherscan API key in Hardhat configuration. Registering as block explorer API key on Platform...");
+    debug('Found Etherscan API key in Hardhat configuration. Registering as block explorer API key on Platform...');
     try {
       await client.create({
         key: etherscanApiConfig.key,
         network: network,
       });
       debug(`Successfully registered block explorer API key for network ${network} on Platform.`);
-    } catch(e: any) {
+    } catch (e: any) {
       console.error(`Could not register block explorer API key for network ${network} on Platform.`);
       throw e;
     }
@@ -69,13 +76,13 @@ async function validateBlockExplorerApiKey(hre: HardhatRuntimeEnvironment, netwo
 export async function platformDeploy(
   hre: HardhatRuntimeEnvironment,
   factory: ContractFactory,
-  verifySourceCode: boolean = true,
+  verifySourceCode = true,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
   const client = getPlatformClient(hre);
 
   const contractInfo = await getContractInfo(factory, hre);
-  
+
   const constructorArgs = [...args] as (string | number | boolean)[];
 
   const network = await getNetwork(hre);
@@ -96,11 +103,19 @@ export async function platformDeploy(
   });
 
   const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
-  const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address); 
-  return { address: checksumAddress, txHash: deploymentResponse.txHash, deployTransaction: txResponse, deploymentId: deploymentResponse.deploymentId };
+  const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address);
+  return {
+    address: checksumAddress,
+    txHash: deploymentResponse.txHash,
+    deployTransaction: txResponse,
+    deploymentId: deploymentResponse.deploymentId,
+  };
 }
 
-export async function getDeploymentResponse(hre: HardhatRuntimeEnvironment, deploymentId: string): Promise<DeploymentResponse> {
+export async function getDeploymentResponse(
+  hre: HardhatRuntimeEnvironment,
+  deploymentId: string,
+): Promise<DeploymentResponse> {
   const client = getPlatformClient(hre);
   return await client.Deployment.get(deploymentId);
 }
@@ -108,6 +123,7 @@ export async function getDeploymentResponse(hre: HardhatRuntimeEnvironment, depl
 const sleep = promisify(setTimeout);
 
 export async function wait(hre: HardhatRuntimeEnvironment, address: string, deploymentId: string) {
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     if (await hasCode(hre.ethers.provider, address)) {
       debug('code in target address found', address);
@@ -117,13 +133,13 @@ export async function wait(hre: HardhatRuntimeEnvironment, address: string, depl
     debug('verifying deployment id', deploymentId);
     const response = await getDeploymentResponse(hre, deploymentId);
     const status = response.status;
-    if (status === "completed") {
+    if (status === 'completed') {
       debug('succeeded verifying deployment id mined', deploymentId);
       break;
-    } else if (status === "failed") {
+    } else if (status === 'failed') {
       debug('deployment id was reverted', deploymentId);
       throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
-    } else if (status === "submitted") {
+    } else if (status === 'submitted') {
       debug('waiting for deployment id mined', deploymentId);
       await sleep(5000); // TODO
     } else {
@@ -136,14 +152,15 @@ interface ContractInfo {
   contractPath: string;
   contractName: string;
   buildInfo: BuildInfo;
-};
+}
 
 type CompilerOutputWithMetadata = CompilerOutputContract & {
   metadata?: string;
-}
+};
 
 function getLicense(contractInfo: ContractInfo): SourceCodeLicense | undefined {
-  const compilerOutput: CompilerOutputWithMetadata = contractInfo.buildInfo.output.contracts[contractInfo.contractPath][contractInfo.contractName];
+  const compilerOutput: CompilerOutputWithMetadata =
+    contractInfo.buildInfo.output.contracts[contractInfo.contractPath][contractInfo.contractName];
 
   const metadataString = compilerOutput.metadata;
   if (metadataString === undefined) {
@@ -174,13 +191,15 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
     if (artifact.bytecode === bytecode) {
       const contractPath = artifact.sourceName;
       const contractName = artifact.contractName;
-      const fullyQualifiedContract = contractPath + ":" + contractName;
+      const fullyQualifiedContract = contractPath + ':' + contractName;
       debug(`Contract ${fullyQualifiedContract}`);
 
       // 3. Look for build-info file that has fully qualified contract name in its solc input
       const buildInfo = await hre.artifacts.getBuildInfo(fullyQualifiedContract);
       if (buildInfo === undefined) {
-        throw new Error(`Could not get Hardhat compilation artifact for contract ${fullyQualifiedContract}. Run \`npx hardhat compile\``);
+        throw new Error(
+          `Could not get Hardhat compilation artifact for contract ${fullyQualifiedContract}. Run \`npx hardhat compile\``,
+        );
       }
       return { contractPath, contractName, buildInfo };
     }
@@ -196,8 +215,8 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
       return { contractPath, contractName, buildInfo };
     }
   }
-  
-  throw new Error("Could not find Hardhat compilation artifact corresponding to the given ethers contract factory"); // TODO figure out user action
+
+  throw new Error('Could not find Hardhat compilation artifact corresponding to the given ethers contract factory'); // TODO figure out user action
 }
 
 class PlatformUnsupportedError extends UpgradesError {
@@ -215,7 +234,12 @@ export function setPlatformDefaults(platformModule: boolean, opts: Platform) {
   }
 }
 
-export function assertNotPlatform(platformModule: boolean, opts: Platform | undefined, unsupportedFunction: string, details?: string) {
+export function assertNotPlatform(
+  platformModule: boolean,
+  opts: Platform | undefined,
+  unsupportedFunction: string,
+  details?: string,
+) {
   if (platformModule || opts?.platform) {
     throw new PlatformUnsupportedError(unsupportedFunction, details);
   }

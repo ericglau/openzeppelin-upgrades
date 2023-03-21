@@ -25,7 +25,10 @@ test.beforeEach(async t => {
   });
 
   t.context.verifyDeployment = verifyDeploymentModule.makeVerifyDeploy(hre, true);
-  t.context.verifyDeploymentWithUploadedArtifact = verifyDeploymentModule.makeVerifyDeployWithUploadedArtifact(hre, true);
+  t.context.verifyDeploymentWithUploadedArtifact = verifyDeploymentModule.makeVerifyDeployWithUploadedArtifact(
+    hre,
+    true,
+  );
   t.context.getVerifyDeployArtifact = verifyDeploymentModule.makeGetVerifyDeployArtifact(hre);
   t.context.getVerifyDeployBuildInfo = verifyDeploymentModule.makeGetVerifyDeployBuildInfo(hre);
   t.context.getBytecodeDigest = verifyDeploymentModule.makeGetBytecodeDigest(hre);

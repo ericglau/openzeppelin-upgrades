@@ -1,9 +1,9 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Network, fromChainId } from 'defender-base-client';
-import { getChainId } from "@openzeppelin/upgrades-core";
+import { getChainId } from '@openzeppelin/upgrades-core';
 
-import { AdminClient } from "defender-admin-client";
-import { HardhatPlatformConfig } from "../type-extensions";
+import { AdminClient } from 'defender-admin-client';
+import { HardhatPlatformConfig } from '../type-extensions';
 
 export function getPlatformApiKey(hre: HardhatRuntimeEnvironment): HardhatPlatformConfig {
   const cfg = hre.config.platform;
@@ -20,9 +20,9 @@ export function getAdminClient(hre: HardhatRuntimeEnvironment): AdminClient {
   return new AdminClient(getPlatformApiKey(hre));
 }
 
-export async function getNetwork(hre: HardhatRuntimeEnvironment) : Promise<Network> {
+export async function getNetwork(hre: HardhatRuntimeEnvironment): Promise<Network> {
   const { provider } = hre.network;
-  let chainId = hre.network.config.chainId ?? await getChainId(provider);
+  const chainId = hre.network.config.chainId ?? (await getChainId(provider));
   const network = fromChainId(chainId);
   if (network === undefined) {
     throw new Error(`Network ${chainId} is not supported by Platform`);

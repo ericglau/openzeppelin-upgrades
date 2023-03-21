@@ -33,7 +33,7 @@ async function ethersDeploy(factory: ContractFactory, ...args: unknown[]) {
   });
   if (address !== contractInstance.address) {
     debug(
-      `overriding contract address from ${contractInstance.address} to ${address} for nonce ${deployTransaction.nonce}`
+      `overriding contract address from ${contractInstance.address} to ${address} for nonce ${deployTransaction.nonce}`,
     );
   }
 

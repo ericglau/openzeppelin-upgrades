@@ -134,7 +134,10 @@ if (tryRequire('@nomiclabs/hardhat-etherscan')) {
 
 function makeFunctions(hre: HardhatRuntimeEnvironment, platform: boolean) {
   const {
-    silenceWarnings, getAdminAddress, getImplementationAddress, getBeaconAddress,
+    silenceWarnings,
+    getAdminAddress,
+    getImplementationAddress,
+    getBeaconAddress,
   } = require('@openzeppelin/upgrades-core');
   const { makeDeployProxy } = require('./deploy-proxy');
   const { makeUpgradeProxy } = require('./upgrade-proxy');
@@ -182,7 +185,8 @@ function makeFunctions(hre: HardhatRuntimeEnvironment, platform: boolean) {
       getBeaconAddress: (proxyAddress: string) => getBeaconAddress(hre.network.provider, proxyAddress),
     },
     beacon: {
-      getImplementationAddress: (beaconAddress: string) => getImplementationAddressFromBeacon(hre.network.provider, beaconAddress),
+      getImplementationAddress: (beaconAddress: string) =>
+        getImplementationAddressFromBeacon(hre.network.provider, beaconAddress),
     },
     proposeUpgrade: makeProposeUpgrade(hre, platform),
     verifyDeployment: makeVerifyDeploy(hre),

@@ -6,9 +6,9 @@ test.beforeEach(async t => {
   t.context.fakeChainId = '0x05';
   t.context.fakeHre = {
     config: { platform: { apiKey: 'API_KEY', apiSecret: 'API_SECRET' } },
-    network: { 
+    network: {
       provider: { send: async () => t.context.fakeChainId },
-      config: {}
+      config: {},
     },
   };
 });

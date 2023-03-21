@@ -33,7 +33,10 @@ export interface DeployBeaconProxyFunction {
   (beacon: ContractAddressOrInstance, attachTo: ContractFactory, opts?: DeployBeaconProxyOptions): Promise<Contract>;
 }
 
-export function makeDeployBeaconProxy(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployBeaconProxyFunction {
+export function makeDeployBeaconProxy(
+  hre: HardhatRuntimeEnvironment,
+  platformModule: boolean,
+): DeployBeaconProxyFunction {
   return async function deployBeaconProxy(
     beacon: ContractAddressOrInstance,
     attachTo: ContractFactory,

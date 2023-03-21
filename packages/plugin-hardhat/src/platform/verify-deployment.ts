@@ -48,7 +48,7 @@ export function makeVerifyDeploy(hre: HardhatRuntimeEnvironment): VerifyDeployFu
 }
 
 export function makeVerifyDeployWithUploadedArtifact(
-  hre: HardhatRuntimeEnvironment
+  hre: HardhatRuntimeEnvironment,
 ): VerifyDeployWithUploadedArtifactFunction {
   return async function verifyDeploy(address, contractName, artifactUri) {
     const client = getAdminClient(hre);

@@ -117,7 +117,7 @@ async function deployImpl(
     undefined,
     async (deploymentId: string) => {
       return await getDeploymentResponse(hre, deploymentId);
-    }
+    },
   );
 
   let txResponse;

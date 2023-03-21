@@ -39,10 +39,6 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment, platformModul
   return async function proposeUpgrade(proxyAddress, contractNameOrImplFactory, opts = {}) {
     setPlatformDefaults(platformModule, opts);
 
-    if (opts.platform === undefined || !opts.platform) {
-      throw new Error(`The ${proposeUpgrade.name} function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.proposeUpgrade instead.`);
-    }
-
     const client = getAdminClient(hre);
     const network = await getNetwork(hre);
 

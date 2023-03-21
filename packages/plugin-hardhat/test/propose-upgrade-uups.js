@@ -22,7 +22,7 @@ test.beforeEach(async t => {
   }).makeProposeUpgrade({
     ...hre,
     platform: t.context.fakePlatform,
-  }, true);
+  });
 
   t.context.Greeter = await ethers.getContractFactory('GreeterPlatformProxiable');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterPlatformV2Proxiable');
@@ -83,13 +83,13 @@ test('proposes an upgrade', async t => {
 });
 
 test('proposes an upgrade and verifies bytecode', async t => {
-  const { proposeUpgrade, fakeClient, fakeDefender, greeter, GreeterV2 } = t.context;
+  const { proposeUpgrade, fakeClient, fakePlatform, greeter, GreeterV2 } = t.context;
   fakeClient.proposeUpgrade.resolves({ url: proposalUrl });
-  fakeDefender.verifyDeployment.resolves({ match: 'EXACT' });
+  fakePlatform.verifyDeployment.resolves({ match: 'EXACT' });
 
   const title = 'My upgrade';
   const description = 'My contract upgrade';
-  const proposal = await proposeUpgrade(greeter.address, 'GreeterV2Proxiable', {
+  const proposal = await proposeUpgrade(greeter.address, 'GreeterPlatformV2Proxiable', {
     title,
     description,
     multisig,
@@ -117,9 +117,9 @@ test('proposes an upgrade and verifies bytecode', async t => {
   );
 
   sinon.assert.calledWithExactly(
-    fakeDefender.verifyDeployment,
+    fakePlatform.verifyDeployment,
     sinon.match(/^0x[A-Fa-f0-9]{40}$/),
-    'GreeterV2Proxiable',
+    'GreeterPlatformV2Proxiable',
     'http://example.com',
   );
 });

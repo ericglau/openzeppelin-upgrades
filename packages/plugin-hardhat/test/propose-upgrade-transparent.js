@@ -17,7 +17,7 @@ test.beforeEach(async t => {
       getNetwork: () => t.context.fakeChainId,
       getAdminClient: () => t.context.fakeClient,
     },
-  }).makeProposeUpgrade(hre, true);
+  }).makeProposeUpgrade(hre);
 
   t.context.Greeter = await ethers.getContractFactory('GreeterPlatform');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterPlatformV2');

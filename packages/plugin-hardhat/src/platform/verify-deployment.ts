@@ -2,7 +2,6 @@ import { AdminClient, VerificationRequest } from 'defender-admin-client';
 import { Artifact, BuildInfo, CompilerOutputBytecode, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Platform } from '../utils';
 import { sha256FromString } from 'ethereumjs-util';
-import { setPlatformDefaults } from './deploy';
 import { getNetwork, getAdminClient } from './utils';
 
 export type VerificationResponse = Awaited<ReturnType<AdminClient['verifyDeployment']>>;
@@ -29,14 +28,8 @@ export type GetVerifyDeployBuildInfoFunction = (contractName: string) => Promise
 
 export type GetBytecodeDigestFunction = (contractName: string) => Promise<string>;
 
-export function makeVerifyDeploy(hre: HardhatRuntimeEnvironment, platformModule: boolean): VerifyDeployFunction {
-  return async function verifyDeploy(address, contractName, referenceUri, opts = {}) {
-    setPlatformDefaults(platformModule, opts);
-
-    if (opts.platform === undefined || !opts.platform) {
-      throw new Error(`The verifyDeployment function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.verifyDeployment instead.`);
-    }
-
+export function makeVerifyDeploy(hre: HardhatRuntimeEnvironment): VerifyDeployFunction {
+  return async function verifyDeploy(address, contractName, referenceUri) {
     const client = getAdminClient(hre);
     const contractNetwork = await getNetwork(hre);
     const artifact = await getExtendedArtifact(hre, contractName);
@@ -55,16 +48,9 @@ export function makeVerifyDeploy(hre: HardhatRuntimeEnvironment, platformModule:
 }
 
 export function makeVerifyDeployWithUploadedArtifact(
-  hre: HardhatRuntimeEnvironment,
-  platformModule: boolean
+  hre: HardhatRuntimeEnvironment
 ): VerifyDeployWithUploadedArtifactFunction {
-  return async function verifyDeploy(address, contractName, artifactUri, opts = {}) {
-    setPlatformDefaults(platformModule, opts);
-
-    if (opts.platform === undefined || !opts.platform) {
-      throw new Error(`The verifyDeploymentWithUploadedArtifact function can only be used with the \`platform\` module or option. If you are using OpenZeppelin Defender, use defender.verifyDeploymentWithUploadedArtifact instead.`);
-    }
-
+  return async function verifyDeploy(address, contractName, artifactUri) {
     const client = getAdminClient(hre);
     const contractNetwork = await getNetwork(hre);
     const artifact = await hre.artifacts.readArtifact(contractName);

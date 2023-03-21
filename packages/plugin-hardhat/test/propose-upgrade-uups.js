@@ -15,10 +15,8 @@ test.beforeEach(async t => {
   t.context.fakePlatform = { verifyDeployment: sinon.stub() };
   t.context.fakeChainId = 'goerli';
   t.context.proposeUpgrade = proxyquire('../dist/platform/propose-upgrade', {
-    './utils/network': {
+    './utils': {
       getNetwork: () => t.context.fakeChainId,
-    },
-    './utils/config': {
       getAdminClient: () => t.context.fakeClient,
     },
   }).makeProposeUpgrade({

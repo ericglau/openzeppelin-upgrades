@@ -18,10 +18,8 @@ test.beforeEach(async t => {
   t.context.fakeChainId = 'goerli';
 
   const verifyDeploymentModule = proxyquire('../dist/platform/verify-deployment', {
-    './utils/network': {
+    './utils': {
       getNetwork: () => t.context.fakeChainId,
-    },
-    './utils/config': {
       getAdminClient: () => t.context.fakeClient,
     },
   });

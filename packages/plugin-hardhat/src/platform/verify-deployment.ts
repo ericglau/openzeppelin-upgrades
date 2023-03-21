@@ -2,9 +2,8 @@ import { AdminClient, VerificationRequest } from 'defender-admin-client';
 import { Artifact, BuildInfo, CompilerOutputBytecode, HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Platform } from '../utils';
 import { sha256FromString } from 'ethereumjs-util';
-import { setPlatformDefaults } from './utils/deploy';
-import { getNetwork } from './utils/network';
-import { getAdminClient } from './utils/config';
+import { setPlatformDefaults } from './deploy';
+import { getNetwork, getAdminClient } from './utils';
 
 export type VerificationResponse = Awaited<ReturnType<AdminClient['verifyDeployment']>>;
 

@@ -11,9 +11,8 @@ import { ContractFactory, ethers } from 'ethers';
 import { FormatTypes, getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { PlatformSupportedOptions, UpgradeOptions } from '../utils';
-import { setPlatformDefaults } from './utils/deploy';
-import { getNetwork } from './utils/network';
-import { getAdminClient } from './utils/config';
+import { setPlatformDefaults } from './deploy';
+import { getNetwork, getAdminClient } from './utils';
 import type { VerificationResponse } from './verify-deployment';
 
 export interface ExtendedProposalResponse extends ProposalResponse {

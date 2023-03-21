@@ -1,6 +1,6 @@
 const test = require('ava');
 const sinon = require('sinon');
-const { getNetwork, getAdminClient } = require(' ../../../dist/platform/utils');
+const { getNetwork, getAdminClient } = require('../dist/platform/utils');
 
 test.beforeEach(async t => {
   t.context.fakeChainId = '0x05';

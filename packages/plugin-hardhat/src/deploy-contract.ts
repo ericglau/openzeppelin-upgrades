@@ -3,7 +3,7 @@ import type { ContractFactory, Contract, ethers } from 'ethers';
 import assert from 'assert';
 
 import { deploy, DeployContractOptions } from './utils';
-import { getDeployData } from './utils/deploy-impl';
+import { DeployData, getDeployData } from './utils/deploy-impl';
 import { setPlatformDefaults, waitForDeployment } from './platform/utils';
 import { getContractNameAndRunValidation, UpgradesError } from '@openzeppelin/upgrades-core';
 
@@ -26,24 +26,7 @@ export async function deployNonUpgradeableContract(
   const deployData = await getDeployData(hre, ImplFactory, opts);
 
   if (!opts.unsafeAllowDeployContract) {
-    const [fullContractName, runValidation] = getContractNameAndRunValidation(
-      deployData.validations,
-      deployData.version,
-    );
-    const c = runValidation[fullContractName];
-    const inherit = c.inherit;
-    if (
-      inherit.includes('@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:Initializable') ||
-      inherit.includes('@openzeppelin/contracts/proxy/utils/Initializable.sol:Initializable') ||
-      inherit.includes('@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable')
-    ) {
-      throw new UpgradesError(
-        `The contract ${fullContractName} looks like an upgradeable contract.`,
-        () =>
-          'Upgradable contracts cannot be deployed using the deployContract function. Use deployProxy, deployBeacon, or deployImplementation.\n' +
-          'If this is not intended to be an upgradeable contract, set the unsafeAllowDeployContract option to true and run the deployContract function again.',
-      );
-    }
+    assertNonUpgradeable(deployData);
   }
 
   const deployment = await deploy(hre, opts, ImplFactory, ...deployData.fullOpts.constructorArgs);
@@ -51,6 +34,24 @@ export async function deployNonUpgradeableContract(
   const txResponse =
     deployment.txHash !== undefined ? await hre.ethers.provider.getTransaction(deployment.txHash) : undefined;
   return { impl, txResponse, deploymentId: deployment.deploymentId };
+}
+
+function assertNonUpgradeable(deployData: DeployData) {
+  const [fullContractName, runValidation] = getContractNameAndRunValidation(deployData.validations, deployData.version);
+  const c = runValidation[fullContractName];
+  const inherit = c.inherit;
+  if (
+    inherit.includes('@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:Initializable') ||
+    inherit.includes('@openzeppelin/contracts/proxy/utils/Initializable.sol:Initializable') ||
+    inherit.includes('@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol:UUPSUpgradeable')
+  ) {
+    throw new UpgradesError(
+      `The contract ${fullContractName} looks like an upgradeable contract.`,
+      () =>
+        'Upgradable contracts cannot be deployed using the deployContract function. Use deployProxy, deployBeacon, or deployImplementation.\n' +
+        'If this is not intended to be an upgradeable contract, set the unsafeAllowDeployContract option to true and run the deployContract function again.',
+    );
+  }
 }
 
 export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModule: boolean): DeployContractFunction {

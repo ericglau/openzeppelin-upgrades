@@ -1,14 +1,10 @@
-import { Deployment } from '@openzeppelin/upgrades-core';
-import type { ethers, ContractFactory } from 'ethers';
-
 import { promises as fs } from 'fs';
+import type { ethers, ContractFactory } from 'ethers';
+import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
 import { Network } from 'defender-base-client';
-
-import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
-
-import debug from '../utils/debug';
+import { Deployment } from '@openzeppelin/upgrades-core';
 
 import artifactsBuildInfo from '@openzeppelin/upgrades-core/artifacts/build-info.json';
 
@@ -17,10 +13,11 @@ import BeaconProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/con
 import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json';
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
-import { getEtherscanAPIConfig } from '../utils/etherscan-api';
 
 import { getNetwork, getPlatformApiKey } from './utils';
 import { DeployTransaction } from '../utils';
+import debug from '../utils/debug';
+import { getEtherscanAPIConfig } from '../utils/etherscan-api';
 
 const deployableProxyContracts = [
   ERC1967Proxy,
@@ -57,7 +54,7 @@ export async function platformDeploy(
   debug(`Network ${network}`);
 
   if (verifySourceCode) {
-    await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
+    await registerEtherscanApiKey(hre, network, client.BlockExplorerApiKey);
   }
 
   const deploymentResponse = await client.Deployment.deploy({
@@ -65,7 +62,7 @@ export async function platformDeploy(
     contractPath: contractInfo.contractPath,
     network: network,
     artifactPayload: JSON.stringify(contractInfo.buildInfo),
-    licenseType: getLicense(contractInfo),
+    licenseType: getLicenseFromMetadata(contractInfo),
     constructorInputs: constructorArgs,
     verifySourceCode: verifySourceCode,
   });
@@ -80,13 +77,14 @@ export async function platformDeploy(
   };
 }
 
-async function validateBlockExplorerApiKey(
+async function registerEtherscanApiKey(
   hre: HardhatRuntimeEnvironment,
   network: Network,
   client: BlockExplorerApiKeyClient,
 ) {
   const registeredKeys = await client.list();
 
+  // If this network does not already have an API key registered on Platform, then register the configured Hardhat Etherscan API key.
   if (registeredKeys.length == 0 || !(await hasNetworkKey())) {
     const etherscanApiConfig = await getEtherscanAPIConfig(hre); // hardhat-etherscan throws an error here if the network is not configured
     debug('Found Etherscan API key in Hardhat configuration. Registering as block explorer API key on Platform...');
@@ -153,7 +151,7 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
   throw new Error('Could not find Hardhat compilation artifact corresponding to the given ethers contract factory'); // TODO figure out user action
 }
 
-function getLicense(contractInfo: ContractInfo): SourceCodeLicense | undefined {
+function getLicenseFromMetadata(contractInfo: ContractInfo): SourceCodeLicense | undefined {
   const compilerOutput: CompilerOutputWithMetadata =
     contractInfo.buildInfo.output.contracts[contractInfo.contractPath][contractInfo.contractName];
 

@@ -94,7 +94,7 @@ export async function waitForDeployment(hre: HardhatRuntimeEnvironment, address:
       throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
     } else if (status === 'submitted') {
       debug('waiting for deployment id mined', deploymentId);
-      await sleep(5000); // TODO use an option for polling
+      await sleep(5000); // TODO use an option for polling interval
     } else {
       throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);
     }

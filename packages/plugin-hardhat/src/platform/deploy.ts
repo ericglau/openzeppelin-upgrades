@@ -4,7 +4,7 @@ import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'ha
 
 import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
 import { Network } from 'defender-base-client';
-import { Deployment } from '@openzeppelin/upgrades-core';
+import { Deployment, getContractNameAndRunValidation, UpgradesError } from '@openzeppelin/upgrades-core';
 
 import artifactsBuildInfo from '@openzeppelin/upgrades-core/artifacts/build-info.json';
 
@@ -15,9 +15,11 @@ import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 
 import { getNetwork, getPlatformApiKey } from './utils';
-import { DeployTransaction } from '../utils';
+import { DeployTransaction, PlatformSupportedOptions, StandaloneOptions } from '../utils';
 import debug from '../utils/debug';
 import { getEtherscanAPIConfig } from '../utils/etherscan-api';
+import { getDeployData } from '../utils/deploy-impl';
+import { ContractSourceNotFoundError } from '@openzeppelin/upgrades-core';
 
 const deployableProxyContracts = [
   ERC1967Proxy,
@@ -44,15 +46,17 @@ function getPlatformClient(hre: HardhatRuntimeEnvironment) {
 export async function platformDeploy(
   hre: HardhatRuntimeEnvironment,
   factory: ContractFactory,
-  verifySourceCode = true,
+  opts: StandaloneOptions & PlatformSupportedOptions,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
   const client = getPlatformClient(hre);
-  const contractInfo = await getContractInfo(factory, hre);
+
   const constructorArgs = [...args] as (string | number | boolean)[];
+  const contractInfo = await getContractInfo(hre, factory, { constructorArgs, ...opts });
   const network = await getNetwork(hre);
   debug(`Network ${network}`);
 
+  const verifySourceCode = opts.verifySourceCode ?? true;
   if (verifySourceCode) {
     await registerEtherscanApiKey(hre, network, client.BlockExplorerApiKey);
   }
@@ -112,43 +116,46 @@ async function registerEtherscanApiKey(
   }
 }
 
-async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRuntimeEnvironment): Promise<ContractInfo> {
-  // 1. Get ContractFactory's bytecode
-  const bytecode = factory.bytecode;
+function getContractPathAndName(fullyQualified: string) {
+  const lastIndex = fullyQualified.lastIndexOf(':');
+  const contractPath = fullyQualified.slice(0, lastIndex);
+  const contractName = fullyQualified.slice(lastIndex + 1);
+  return { contractPath, contractName };
+}
 
-  // 2. Look for Hardhat artifact file that has the same bytecode, then get fully qualified contract name.
-  const allArtifacts = await hre.artifacts.getArtifactPaths();
-  for (const artifactPath of allArtifacts) {
-    const artifact = await JSON.parse(await fs.readFile(artifactPath, 'utf8'));
-    if (artifact.bytecode === bytecode) {
-      const contractPath = artifact.sourceName;
-      const contractName = artifact.contractName;
-      const fullyQualifiedContract = contractPath + ':' + contractName;
-      debug(`Contract ${fullyQualifiedContract}`);
-
-      // 3. Look for build-info file that has fully qualified contract name in its solc input
-      const buildInfo = await hre.artifacts.getBuildInfo(fullyQualifiedContract);
-      if (buildInfo === undefined) {
-        throw new Error(
-          `Could not get Hardhat compilation artifact for contract ${fullyQualifiedContract}. Run \`npx hardhat compile\``,
-        );
+async function getContractInfo(hre: HardhatRuntimeEnvironment, factory: ethers.ContractFactory, opts: StandaloneOptions & PlatformSupportedOptions): Promise<ContractInfo> {
+  let fullContractName;
+  try {
+    // Get fully qualified contract name from validations
+    const deployData = await getDeployData(hre, factory, opts);
+    [fullContractName] = getContractNameAndRunValidation(deployData.validations, deployData.version);
+    debug(`Contract ${fullContractName}`);
+  } catch (e) {
+    if (e instanceof ContractSourceNotFoundError) {
+      // Proxy contracts would not be found in the validations, so try to get these from the plugin's precompiled artifacts.
+      for (const artifact of deployableProxyContracts) {
+        if (artifact.bytecode === factory.bytecode) {
+          const contractPath = artifact.sourceName;
+          const contractName = artifact.contractName;
+          const buildInfo = artifactsBuildInfo;
+          debug(`Proxy contract ${contractPath}:${contractName}`);
+          return { contractPath, contractName, buildInfo };
+        }
       }
-      return { contractPath, contractName, buildInfo };
     }
+    // If nothing else worked, re-throw error about the contract not being found.
+    throw e;
   }
 
-  // Proxy contracts would not be found in the Hardhat compilation artifacts, so get these from the plugin's precompiled artifacts.
-  for (const artifact of deployableProxyContracts) {
-    if (artifact.bytecode === bytecode) {
-      const contractPath = artifact.sourceName;
-      const contractName = artifact.contractName;
-      const buildInfo = artifactsBuildInfo;
-      debug(`Proxy contract ${contractPath}:${contractName}`);
-      return { contractPath, contractName, buildInfo };
-    }
+  const { contractPath, contractName } = getContractPathAndName(fullContractName);
+  // Get the build-info file corresponding to the fully qualified contract name
+  const buildInfo = await hre.artifacts.getBuildInfo(fullContractName);
+  if (buildInfo === undefined) {
+    throw new UpgradesError(
+      `Could not get Hardhat compilation artifact for contract ${fullContractName}`, () => `Run \`npx hardhat compile\``,
+    );
   }
-
-  throw new Error('Could not find Hardhat compilation artifact corresponding to the given ethers contract factory'); // TODO figure out user action
+  return { contractPath, contractName, buildInfo };
 }
 
 function getLicenseFromMetadata(contractInfo: ContractInfo): SourceCodeLicense | undefined {

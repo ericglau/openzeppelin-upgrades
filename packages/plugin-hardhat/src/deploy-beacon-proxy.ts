@@ -92,7 +92,7 @@ export function makeDeployBeaconProxy(
     if (opts.platform && proxyDeployment.deploymentId !== undefined) {
       inst.deployed = async () => {
         assert(proxyDeployment.deploymentId !== undefined);
-        await waitForDeployment(hre, inst.address, proxyDeployment.deploymentId);
+        await waitForDeployment(hre, opts, inst.address, proxyDeployment.deploymentId);
         return inst;
       };
     }

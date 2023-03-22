@@ -86,7 +86,7 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
     if (opts.platform && deployed.deploymentId !== undefined) {
       inst.deployed = async () => {
         assert(deployed.deploymentId !== undefined);
-        await waitForDeployment(hre, inst.address, deployed.deploymentId);
+        await waitForDeployment(hre, opts, inst.address, deployed.deploymentId);
         return inst;
       };
     }

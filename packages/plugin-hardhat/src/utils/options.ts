@@ -40,7 +40,7 @@ export type PlatformSupportedOptions = Platform & {
   verifySourceCode?: boolean;
 };
 
-export type DeployBeaconProxyOptions = ProxyKindOption & Initializer & PlatformSupportedOptions;
+export type DeployBeaconProxyOptions = DeployOpts & ProxyKindOption & Initializer & PlatformSupportedOptions;
 export type DeployBeaconOptions = StandaloneOptions & Platform;
 export type DeployImplementationOptions = StandaloneOptions & GetTxResponse & PlatformSupportedOptions;
 export type DeployContractOptions = StandaloneOptions &

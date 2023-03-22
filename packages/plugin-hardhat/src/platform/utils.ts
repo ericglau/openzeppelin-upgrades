@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { getChainId, hasCode, InvalidDeployment, UpgradesError, DeploymentResponse } from '@openzeppelin/upgrades-core';
+import { getChainId, hasCode, InvalidDeployment, UpgradesError, DeploymentResponse, DeployOpts } from '@openzeppelin/upgrades-core';
 
 import { Network, fromChainId } from 'defender-base-client';
 import { AdminClient } from 'defender-admin-client';
@@ -75,13 +75,15 @@ export async function getDeploymentResponse(
   return await client.Deployment.get(deploymentId);
 }
 
-export async function waitForDeployment(hre: HardhatRuntimeEnvironment, address: string, deploymentId: string) {
+export async function waitForDeployment(hre: HardhatRuntimeEnvironment, opts: DeployOpts, address: string, deploymentId: string) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     if (await hasCode(hre.ethers.provider, address)) {
       debug('code in target address found', address);
       break;
     }
+
+    const pollingInterval = opts.pollingInterval ?? 5e3;
 
     debug('verifying deployment id', deploymentId);
     const response = await getDeploymentResponse(hre, deploymentId);
@@ -94,7 +96,7 @@ export async function waitForDeployment(hre: HardhatRuntimeEnvironment, address:
       throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
     } else if (status === 'submitted') {
       debug('waiting for deployment id to be completed', deploymentId);
-      await sleep(5000); // TODO use an option for polling interval
+      await sleep(pollingInterval);
     } else {
       throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);
     }

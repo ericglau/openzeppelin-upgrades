@@ -8,7 +8,7 @@ import {
   deployBeaconImpl,
   UpgradeBeaconOptions,
 } from './utils';
-import { assertNotPlatform } from './platform/deploy';
+import { assertNotPlatform } from './platform/utils';
 
 export type UpgradeBeaconFunction = (
   beacon: ContractAddressOrInstance,

@@ -10,8 +10,7 @@ import { ContractFactory, ethers } from 'ethers';
 import { FormatTypes, getContractAddress } from 'ethers/lib/utils';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { PlatformSupportedOptions, UpgradeOptions } from '../utils';
-import { setPlatformDefaults } from './deploy';
-import { getNetwork, getAdminClient } from './utils';
+import { getNetwork, getAdminClient, setPlatformDefaults } from './utils';
 import type { VerificationResponse } from './verify-deployment';
 
 export interface ExtendedProposalResponse extends ProposalResponse {
@@ -68,13 +67,24 @@ export function makeProposeUpgrade(hre: HardhatRuntimeEnvironment, platformModul
       ...moreOpts,
     });
 
-    let txResponse, newImplementation;
+    let txResponse;
+    let newImplementation: string;
 
     if (typeof prepareUpgradeResult === 'string') {
       newImplementation = prepareUpgradeResult;
     } else {
       txResponse = prepareUpgradeResult;
-      newImplementation = getContractAddress(txResponse);
+      // The txResponse is a create2 transaction, so the deployment address is not easily retrievable from it.
+      // Instead, run the prepareUpgrade again but this time adjust the options to request the address and ensure it does not attempt another deployment.
+      const fetchedAddress = await hre.upgrades.prepareUpgrade(proxyAddress, implFactory, {
+        getTxResponse: false,
+        useDeployedImplementation: true,
+        ...moreOpts,
+      });
+      if (typeof fetchedAddress !== 'string') {
+        throw new Error('Broken invariant: prepareUpgrade should return a string since getTxResponse is false');
+      }
+      newImplementation = fetchedAddress;
     }
 
     const verificationResponse =

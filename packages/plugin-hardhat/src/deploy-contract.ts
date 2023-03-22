@@ -4,7 +4,7 @@ import assert from 'assert';
 
 import { deploy, DeployContractOptions } from './utils';
 import { getDeployData } from './utils/deploy-impl';
-import { setPlatformDefaults, wait } from './platform/deploy';
+import { setPlatformDefaults, waitForDeployment } from './platform/utils';
 import { getContractNameAndRunValidation, UpgradesError } from '@openzeppelin/upgrades-core';
 
 export interface DeployContractFunction {
@@ -85,7 +85,7 @@ export function makeDeployContract(hre: HardhatRuntimeEnvironment, platformModul
     if (opts.platform && deployed.deploymentId !== undefined) {
       inst.deployed = async () => {
         assert(deployed.deploymentId !== undefined);
-        await wait(hre, inst.address, deployed.deploymentId);
+        await waitForDeployment(hre, inst.address, deployed.deploymentId);
         return inst;
       };
     }

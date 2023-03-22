@@ -13,7 +13,7 @@ import {
   deployProxyImpl,
   getInitializerData,
 } from './utils';
-import { setPlatformDefaults, wait } from './platform/deploy';
+import { setPlatformDefaults, waitForDeployment } from './platform/utils';
 
 export interface DeployFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployProxyOptions): Promise<Contract>;
@@ -81,7 +81,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, platformModule: 
     if (opts.platform && proxyDeployment.deploymentId !== undefined) {
       inst.deployed = async () => {
         assert(proxyDeployment.deploymentId !== undefined);
-        await wait(hre, inst.address, proxyDeployment.deploymentId);
+        await waitForDeployment(hre, inst.address, proxyDeployment.deploymentId);
         return inst;
       };
     }

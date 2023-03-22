@@ -21,7 +21,7 @@ import {
   getContractAddress,
   getInitializerData,
 } from './utils';
-import { setPlatformDefaults, wait } from './platform/deploy';
+import { setPlatformDefaults, waitForDeployment } from './platform/utils';
 
 export interface DeployBeaconProxyFunction {
   (
@@ -92,7 +92,7 @@ export function makeDeployBeaconProxy(
     if (opts.platform && proxyDeployment.deploymentId !== undefined) {
       inst.deployed = async () => {
         assert(proxyDeployment.deploymentId !== undefined);
-        await wait(hre, inst.address, proxyDeployment.deploymentId);
+        await waitForDeployment(hre, inst.address, proxyDeployment.deploymentId);
         return inst;
       };
     }

@@ -1,4 +1,4 @@
-import { Deployment, DeploymentResponse, hasCode, InvalidDeployment, UpgradesError } from '@openzeppelin/upgrades-core';
+import { Deployment } from '@openzeppelin/upgrades-core';
 import type { ethers, ContractFactory } from 'ethers';
 
 import { promises as fs } from 'fs';
@@ -18,14 +18,9 @@ import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppel
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 import { getEtherscanAPIConfig } from '../utils/etherscan-api';
-import { Platform } from '../utils/options';
 
-import { promisify } from 'util';
 import { getNetwork, getPlatformApiKey } from './utils';
-
-export interface DeployTransaction {
-  deployTransaction: ethers.providers.TransactionResponse;
-}
+import { DeployTransaction } from '../utils';
 
 const deployableProxyContracts = [
   ERC1967Proxy,
@@ -35,8 +30,54 @@ const deployableProxyContracts = [
   ProxyAdmin,
 ];
 
+interface ContractInfo {
+  contractPath: string;
+  contractName: string;
+  buildInfo: BuildInfo;
+}
+
+type CompilerOutputWithMetadata = CompilerOutputContract & {
+  metadata?: string;
+};
+
 function getPlatformClient(hre: HardhatRuntimeEnvironment) {
   return PlatformClient(getPlatformApiKey(hre));
+}
+
+export async function platformDeploy(
+  hre: HardhatRuntimeEnvironment,
+  factory: ContractFactory,
+  verifySourceCode = true,
+  ...args: unknown[]
+): Promise<Required<Deployment & DeployTransaction>> {
+  const client = getPlatformClient(hre);
+  const contractInfo = await getContractInfo(factory, hre);
+  const constructorArgs = [...args] as (string | number | boolean)[];
+  const network = await getNetwork(hre);
+  debug(`Network ${network}`);
+
+  if (verifySourceCode) {
+    await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
+  }
+
+  const deploymentResponse = await client.Deployment.deploy({
+    contractName: contractInfo.contractName,
+    contractPath: contractInfo.contractPath,
+    network: network,
+    artifactPayload: JSON.stringify(contractInfo.buildInfo),
+    licenseType: getLicense(contractInfo),
+    constructorInputs: constructorArgs,
+    verifySourceCode: verifySourceCode,
+  });
+
+  const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
+  const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address);
+  return {
+    address: checksumAddress,
+    txHash: deploymentResponse.txHash,
+    deployTransaction: txResponse,
+    deploymentId: deploymentResponse.deploymentId,
+  };
 }
 
 async function validateBlockExplorerApiKey(
@@ -71,113 +112,6 @@ async function validateBlockExplorerApiKey(
     }
     return false;
   }
-}
-
-export async function platformDeploy(
-  hre: HardhatRuntimeEnvironment,
-  factory: ContractFactory,
-  verifySourceCode = true,
-  ...args: unknown[]
-): Promise<Required<Deployment & DeployTransaction>> {
-  const client = getPlatformClient(hre);
-
-  const contractInfo = await getContractInfo(factory, hre);
-
-  const constructorArgs = [...args] as (string | number | boolean)[];
-
-  const network = await getNetwork(hre);
-  debug(`Network ${network}`);
-
-  if (verifySourceCode) {
-    await validateBlockExplorerApiKey(hre, network, client.BlockExplorerApiKey);
-  }
-
-  const deploymentResponse = await client.Deployment.deploy({
-    contractName: contractInfo.contractName,
-    contractPath: contractInfo.contractPath,
-    network: network,
-    artifactPayload: JSON.stringify(contractInfo.buildInfo),
-    licenseType: getLicense(contractInfo),
-    constructorInputs: constructorArgs,
-    verifySourceCode: verifySourceCode,
-  });
-
-  const txResponse = await hre.ethers.provider.getTransaction(deploymentResponse.txHash);
-  const checksumAddress = hre.ethers.utils.getAddress(deploymentResponse.address);
-  return {
-    address: checksumAddress,
-    txHash: deploymentResponse.txHash,
-    deployTransaction: txResponse,
-    deploymentId: deploymentResponse.deploymentId,
-  };
-}
-
-export async function getDeploymentResponse(
-  hre: HardhatRuntimeEnvironment,
-  deploymentId: string,
-): Promise<DeploymentResponse> {
-  const client = getPlatformClient(hre);
-  return await client.Deployment.get(deploymentId);
-}
-
-const sleep = promisify(setTimeout);
-
-export async function wait(hre: HardhatRuntimeEnvironment, address: string, deploymentId: string) {
-  // eslint-disable-next-line no-constant-condition
-  while (true) {
-    if (await hasCode(hre.ethers.provider, address)) {
-      debug('code in target address found', address);
-      break;
-    }
-
-    debug('verifying deployment id', deploymentId);
-    const response = await getDeploymentResponse(hre, deploymentId);
-    const status = response.status;
-    if (status === 'completed') {
-      debug('succeeded verifying deployment id mined', deploymentId);
-      break;
-    } else if (status === 'failed') {
-      debug('deployment id was reverted', deploymentId);
-      throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
-    } else if (status === 'submitted') {
-      debug('waiting for deployment id mined', deploymentId);
-      await sleep(5000); // TODO
-    } else {
-      throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);
-    }
-  }
-}
-
-interface ContractInfo {
-  contractPath: string;
-  contractName: string;
-  buildInfo: BuildInfo;
-}
-
-type CompilerOutputWithMetadata = CompilerOutputContract & {
-  metadata?: string;
-};
-
-function getLicense(contractInfo: ContractInfo): SourceCodeLicense | undefined {
-  const compilerOutput: CompilerOutputWithMetadata =
-    contractInfo.buildInfo.output.contracts[contractInfo.contractPath][contractInfo.contractName];
-
-  const metadataString = compilerOutput.metadata;
-  if (metadataString === undefined) {
-    debug('Metadata not found in compiler output');
-    return undefined;
-  }
-
-  const metadata = JSON.parse(metadataString);
-
-  const license = metadata.sources[contractInfo.contractPath].license;
-  if (license === undefined) {
-    debug('License not found in metadata');
-    return undefined;
-  }
-
-  debug(`Found license from metadata: ${license}`);
-  return license;
 }
 
 async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRuntimeEnvironment): Promise<ContractInfo> {
@@ -219,28 +153,24 @@ async function getContractInfo(factory: ethers.ContractFactory, hre: HardhatRunt
   throw new Error('Could not find Hardhat compilation artifact corresponding to the given ethers contract factory'); // TODO figure out user action
 }
 
-class PlatformUnsupportedError extends UpgradesError {
-  constructor(functionName: string, details?: string) {
-    super(
-      `The function ${functionName} is not supported with \`platform\``,
-      () => details ?? `Call the upgrades.${functionName} function without the \`platform\` option.`,
-    );
-  }
-}
+function getLicense(contractInfo: ContractInfo): SourceCodeLicense | undefined {
+  const compilerOutput: CompilerOutputWithMetadata =
+    contractInfo.buildInfo.output.contracts[contractInfo.contractPath][contractInfo.contractName];
 
-export function setPlatformDefaults(platformModule: boolean, opts: Platform) {
-  if (platformModule && opts.platform === undefined) {
-    opts.platform = true;
+  const metadataString = compilerOutput.metadata;
+  if (metadataString === undefined) {
+    debug('Metadata not found in compiler output');
+    return undefined;
   }
-}
 
-export function assertNotPlatform(
-  platformModule: boolean,
-  opts: Platform | undefined,
-  unsupportedFunction: string,
-  details?: string,
-) {
-  if (platformModule || opts?.platform) {
-    throw new PlatformUnsupportedError(unsupportedFunction, details);
+  const metadata = JSON.parse(metadataString);
+
+  const license = metadata.sources[contractInfo.contractPath].license;
+  if (license === undefined) {
+    debug('License not found in metadata');
+    return undefined;
   }
+
+  debug(`Found license from metadata: ${license}`);
+  return license;
 }

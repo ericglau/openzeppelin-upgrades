@@ -3,7 +3,7 @@ import type { ContractFactory, ethers } from 'ethers';
 
 import { DeployImplementationOptions } from './utils';
 import { deployStandaloneImpl } from './utils/deploy-impl';
-import { setPlatformDefaults } from './platform/deploy';
+import { setPlatformDefaults } from './platform/utils';
 
 export type DeployImplementationFunction = (
   ImplFactory: ContractFactory,

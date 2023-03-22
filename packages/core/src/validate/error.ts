@@ -12,8 +12,6 @@ export class ValidationErrors extends UpgradesError {
 
 export class ContractSourceNotFoundError extends UpgradesError {
   constructor() {
-    super(
-      'The requested contract was not found. Make sure the source code is available for compilation',
-    );
+    super('The requested contract was not found. Make sure the source code is available for compilation');
   }
 }

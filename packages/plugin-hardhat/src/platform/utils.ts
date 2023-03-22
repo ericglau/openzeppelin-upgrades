@@ -1,5 +1,12 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { getChainId, hasCode, InvalidDeployment, UpgradesError, DeploymentResponse, DeployOpts } from '@openzeppelin/upgrades-core';
+import {
+  getChainId,
+  hasCode,
+  InvalidDeployment,
+  UpgradesError,
+  DeploymentResponse,
+  DeployOpts,
+} from '@openzeppelin/upgrades-core';
 
 import { Network, fromChainId } from 'defender-base-client';
 import { AdminClient } from 'defender-admin-client';
@@ -75,7 +82,12 @@ export async function getDeploymentResponse(
   return await client.Deployment.get(deploymentId);
 }
 
-export async function waitForDeployment(hre: HardhatRuntimeEnvironment, opts: DeployOpts, address: string, deploymentId: string) {
+export async function waitForDeployment(
+  hre: HardhatRuntimeEnvironment,
+  opts: DeployOpts,
+  address: string,
+  deploymentId: string,
+) {
   // eslint-disable-next-line no-constant-condition
   while (true) {
     if (await hasCode(hre.ethers.provider, address)) {

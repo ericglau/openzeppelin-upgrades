@@ -14,7 +14,7 @@ import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 
 import { getNetwork, getPlatformApiKey } from './utils';
-import { DeployTransaction, PlatformSupportedOptions, StandaloneOptions, UpgradeOptions } from '../utils';
+import { DeployTransaction, PlatformSupportedOptions, UpgradeOptions } from '../utils';
 import debug from '../utils/debug';
 import { getEtherscanAPIConfig } from '../utils/etherscan-api';
 import { getDeployData } from '../utils/deploy-impl';
@@ -122,7 +122,11 @@ function getContractPathAndName(fullyQualified: string) {
   return { contractPath, contractName };
 }
 
-async function getContractInfo(hre: HardhatRuntimeEnvironment, factory: ethers.ContractFactory, opts: UpgradeOptions): Promise<ContractInfo> {
+async function getContractInfo(
+  hre: HardhatRuntimeEnvironment,
+  factory: ethers.ContractFactory,
+  opts: UpgradeOptions,
+): Promise<ContractInfo> {
   let fullContractName;
   try {
     // Get fully qualified contract name from validations
@@ -151,7 +155,8 @@ async function getContractInfo(hre: HardhatRuntimeEnvironment, factory: ethers.C
   const buildInfo = await hre.artifacts.getBuildInfo(fullContractName);
   if (buildInfo === undefined) {
     throw new UpgradesError(
-      `Could not get Hardhat compilation artifact for contract ${fullContractName}`, () => `Run \`npx hardhat compile\``,
+      `Could not get Hardhat compilation artifact for contract ${fullContractName}`,
+      () => `Run \`npx hardhat compile\``,
     );
   }
   return { contractPath, contractName, buildInfo };

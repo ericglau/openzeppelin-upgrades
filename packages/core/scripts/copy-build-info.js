@@ -49,27 +49,46 @@ assert(
 
 let buildInfo = readJSON(jsonRelativePath);
 
-// // Keep only relevant sections of output.contracts
-// const contractFiles = buildInfo.output.contracts;
-// for (const contractFile in contractFiles){
-//   const contractNames = contractFiles[contractFile];
-//   for (const contractName in contractNames) {
-//     contractNames[contractName] = {
-//       abi: contractNames[contractName].abi,
-//       evm: contractNames[contractName].evm,
-//       metadata: contractNames[contractName].metadata // metadata needed if we want to get the license type
-//     };
-//   }
-// }
+// Keep only relevant sections of output.contracts
+const contractFiles = buildInfo.output.contracts;
+for (const contractFile in contractFiles) {
+  const contractNames = contractFiles[contractFile];
+  for (const contractName in contractNames) {
+    contractNames[contractName] = {
+      abi: contractNames[contractName].abi,
+      evm: contractNames[contractName].evm,
+      metadata: contractNames[contractName].metadata, // metadata is needed to determine the license type
+    };
+  }
+}
 
-// // TODO remove unused sections from input's outputSelection
+// Adjust correponding output selection
+const input = buildInfo.input;
 
-// // Keep only relevant sections of build info
-// buildInfo = { solcLongVersion: buildInfo.solcLongVersion, input: buildInfo.input, output: { contracts: contractFiles } };
+const origSelection = input.settings.outputSelection['*']['*'];
+assert(origSelection.includes('abi'));
+assert(origSelection.includes('evm.bytecode'));
+assert(origSelection.includes('evm.deployedBytecode'));
+assert(origSelection.includes('evm.methodIdentifiers'));
+assert(origSelection.includes('metadata'));
 
-// // TODO see why both license type and entire build info are needed to verify. Does it work if we just remove AST?
+input.settings.outputSelection['*'] = {
+  '*': ['abi', 'evm.bytecode', 'evm.deployedBytecode', 'evm.methodIdentifiers', 'metadata'],
+};
 
-const sources = buildInfo.input.sources;
+// Keep only relevant sections of build info
+buildInfo = {
+  _format: buildInfo._format,
+  id: buildInfo.id,
+  solcVersion: buildInfo.solcVersion,
+  solcLongVersion: buildInfo.solcLongVersion,
+  input: input,
+  output: {
+    contracts: contractFiles,
+  },
+};
+
+const sources = input.sources;
 
 // Assert that all deployable proxy artifacts exist in ERC1967's build-info file
 assert(hasProperty(sources, '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol'));

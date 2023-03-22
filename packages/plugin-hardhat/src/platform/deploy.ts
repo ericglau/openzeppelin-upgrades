@@ -1,5 +1,5 @@
 import type { ethers, ContractFactory } from 'ethers';
-import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
+import { CompilerInput, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import { BlockExplorerApiKeyClient, PlatformClient, SourceCodeLicense } from 'platform-deploy-client';
 import { Network } from 'defender-base-client';
@@ -28,10 +28,21 @@ const deployableProxyContracts = [
   ProxyAdmin,
 ];
 
+interface ReducedBuildInfo {
+  _format: string;
+  id: string;
+  solcVersion: string;
+  solcLongVersion: string;
+  input: CompilerInput;
+  output: {
+    contracts: any;
+  };
+}
+
 interface ContractInfo {
   contractPath: string;
   contractName: string;
-  buildInfo: BuildInfo;
+  buildInfo: ReducedBuildInfo;
 }
 
 type CompilerOutputWithMetadata = CompilerOutputContract & {

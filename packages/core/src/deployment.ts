@@ -154,7 +154,6 @@ export async function waitAndValidateDeployment(
 
   let foundCode = false;
 
-  // Note: If only deploymentId exists without getDeploymentResponse, user may be using regular Hardhat so just use txHash
   if (deploymentId !== undefined && getDeploymentResponse !== undefined) {
     const startTime = Date.now();
 
@@ -176,7 +175,7 @@ export async function waitAndValidateDeployment(
         debug(`tx hash ${response.txHash} was reverted for deployment id ${deploymentId}`);
         throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
       } else if (status === 'submitted') {
-        debug('waiting for deployment id completed', deploymentId);
+        debug('waiting for deployment id to be completed', deploymentId);
         await sleep(pollInterval);
       } else {
         throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);

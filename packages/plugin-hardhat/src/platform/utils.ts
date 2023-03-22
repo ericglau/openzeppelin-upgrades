@@ -87,13 +87,13 @@ export async function waitForDeployment(hre: HardhatRuntimeEnvironment, address:
     const response = await getDeploymentResponse(hre, deploymentId);
     const status = response.status;
     if (status === 'completed') {
-      debug('succeeded verifying deployment id mined', deploymentId);
+      debug('succeeded verifying deployment id completed', deploymentId);
       break;
     } else if (status === 'failed') {
-      debug('deployment id was reverted', deploymentId);
+      debug('deployment id failed', deploymentId);
       throw new InvalidDeployment({ address, txHash: response.txHash, deploymentId });
     } else if (status === 'submitted') {
-      debug('waiting for deployment id mined', deploymentId);
+      debug('waiting for deployment id to be completed', deploymentId);
       await sleep(5000); // TODO use an option for polling interval
     } else {
       throw new Error(`Broken invariant: Unrecognized status ${status} for deployment id ${deploymentId}`);

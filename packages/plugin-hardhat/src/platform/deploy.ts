@@ -1,4 +1,3 @@
-import { promises as fs } from 'fs';
 import type { ethers, ContractFactory } from 'ethers';
 import { BuildInfo, CompilerOutputContract, HardhatRuntimeEnvironment } from 'hardhat/types';
 
@@ -15,7 +14,7 @@ import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 
 import { getNetwork, getPlatformApiKey } from './utils';
-import { DeployTransaction, PlatformSupportedOptions, StandaloneOptions } from '../utils';
+import { DeployTransaction, PlatformSupportedOptions, StandaloneOptions, UpgradeOptions } from '../utils';
 import debug from '../utils/debug';
 import { getEtherscanAPIConfig } from '../utils/etherscan-api';
 import { getDeployData } from '../utils/deploy-impl';
@@ -46,7 +45,7 @@ function getPlatformClient(hre: HardhatRuntimeEnvironment) {
 export async function platformDeploy(
   hre: HardhatRuntimeEnvironment,
   factory: ContractFactory,
-  opts: StandaloneOptions & PlatformSupportedOptions,
+  opts: UpgradeOptions & PlatformSupportedOptions,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction>> {
   const client = getPlatformClient(hre);
@@ -123,7 +122,7 @@ function getContractPathAndName(fullyQualified: string) {
   return { contractPath, contractName };
 }
 
-async function getContractInfo(hre: HardhatRuntimeEnvironment, factory: ethers.ContractFactory, opts: StandaloneOptions & PlatformSupportedOptions): Promise<ContractInfo> {
+async function getContractInfo(hre: HardhatRuntimeEnvironment, factory: ethers.ContractFactory, opts: UpgradeOptions): Promise<ContractInfo> {
   let fullContractName;
   try {
     // Get fully qualified contract name from validations

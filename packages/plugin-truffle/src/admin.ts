@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { EthereumProvider, getAdminAddress, Manifest } from '@openzeppelin/upgrades-core';
-import { ContractInstance, getProxyAdminFactory, wrapProvider, UpgradeOptions, withDefaults } from './utils';
+import { getAdminAddress, Manifest } from '@openzeppelin/upgrades-core';
+import { ContractInstance, getProxyAdminFactory, wrapProvider, UpgradeOptions, withDefaults, Deployer } from './utils';
 
 const SUCCESS_CHECK = chalk.green('✔') + ' ';
 const FAILURE_CROSS = chalk.red('✘') + ' ';
@@ -8,7 +8,7 @@ const FAILURE_CROSS = chalk.red('✘') + ' ';
 async function changeProxyAdmin(proxyAddress: string, newAdmin: string, opts: UpgradeOptions = {}): Promise<void> {
   const { deployer } = withDefaults(opts);
   const provider = wrapProvider(deployer.provider);
-  const admin = await getManifestAdmin(provider);
+  const admin = await getManifestAdmin(deployer);
   const proxyAdminAddress = await getAdminAddress(provider, proxyAddress);
 
   if (admin.address !== proxyAdminAddress) {
@@ -21,7 +21,7 @@ async function changeProxyAdmin(proxyAddress: string, newAdmin: string, opts: Up
 async function transferProxyAdminOwnership(newOwner: string, opts: UpgradeOptions = {}): Promise<void> {
   const { deployer } = withDefaults(opts);
   const provider = wrapProvider(deployer.provider);
-  const admin = await getManifestAdmin(provider);
+  const admin = await getManifestAdmin(deployer);
   await admin.transferOwnership(newOwner);
 
   const manifest = await Manifest.forNetwork(provider);
@@ -37,14 +37,17 @@ async function transferProxyAdminOwnership(newOwner: string, opts: UpgradeOption
 
 async function getInstance(opts: UpgradeOptions = {}): Promise<ContractInstance> {
   const { deployer } = withDefaults(opts);
-  const provider = wrapProvider(deployer.provider);
-  return await getManifestAdmin(provider);
+  return await getManifestAdmin(deployer);
 }
 
-export async function getManifestAdmin(provider: EthereumProvider): Promise<ContractInstance> {
+async function getManifestAdmin(deployer: Deployer): Promise<ContractInstance> {
+  const provider = wrapProvider(deployer.provider);
   const manifest = await Manifest.forNetwork(provider);
   const manifestAdmin = await manifest.getAdmin();
+
   const AdminFactory = getProxyAdminFactory();
+  AdminFactory.setProvider(deployer.provider);
+
   const proxyAdminAddress = manifestAdmin?.address;
 
   if (proxyAdminAddress === undefined) {

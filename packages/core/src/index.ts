@@ -55,3 +55,9 @@ export {
   PrepareUpgradeRequiresKindError,
   assertNotProxy,
 } from './usage-error';
+
+export {
+  BuildInfoFile,
+  UpgradeSafetyReport,
+  validateUpgradeSafety,
+} from './build-info-report';

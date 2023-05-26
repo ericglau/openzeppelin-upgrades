@@ -269,53 +269,52 @@ function getReferenceContract(reference: string, origin: SourceContract, allCont
 function getAnnotationAssessment(contract: SourceContract): AnnotationAssessment {
   const node = contract.node;
 
-  const hasUpgradeAnnotation = hasUpgradesAnnotation(node); // TODO if this has args, throw error
-  const upgradesFrom = getUpgradesFrom(contract);
-  if (upgradesFrom !== undefined) {
-    return {
-      upgradeable: true,
-      referenceName: upgradesFrom,
-    };
-  } else {
-    return {
-      upgradeable: hasUpgradeAnnotation,
-    };
-  }
-}
-
-function hasUpgradesAnnotation(node: Node): boolean {
   if ('documentation' in node) {
     const doc = typeof node.documentation === 'string' ? node.documentation : node.documentation?.text ?? '';
-    const regex = new RegExp(/^\s*(@custom:oz-upgrades)(\s|$)/m);
-    return regex.test(doc);
-  } else {
-    return false;
-  }
-}
 
-// TODO combine with above
-function hasUpgradesFromAnnotation(node: Node): boolean {
-  if ('documentation' in node) {
-    const doc = typeof node.documentation === 'string' ? node.documentation : node.documentation?.text ?? '';
-    const regex = new RegExp(/^\s*(@custom:oz-upgrades-from)(\s|$)/m);
-    return regex.test(doc);
-  } else {
-    return false;
-  }
-}
-
-function getUpgradesFrom(contract: SourceContract): string | undefined {
-  const node = contract.node;
-  if ('documentation' in node && hasUpgradesFromAnnotation(node)) {
-    // TODO combine logic of hasUpgradesFromAnnotation and the below
-    const tag = 'oz-upgrades-from';
-    const doc = typeof node.documentation === 'string' ? node.documentation : node.documentation?.text ?? '';
-    const annotationArgs = getAnnotationArgs(doc, tag, undefined);
-    if (annotationArgs.length !== 1) {
-      throw new Error(
-        `Invalid number of arguments for @custom:${tag} annotation in contract ${contract.fullyQualifiedName}. Expected 1, found ${annotationArgs.length}`,
-      );
+    const tag = 'oz-upgrades';
+    const hasUpgradeAnnotation = hasAnnotationTag(doc, tag);
+    if (hasUpgradeAnnotation) {
+      getAndValidateAnnotationArgs(doc, tag, contract, 0);
     }
+  
+    const upgradesFrom = getUpgradesFrom(doc, contract);
+    if (upgradesFrom !== undefined) {
+      return {
+        upgradeable: true,
+        referenceName: upgradesFrom,
+      };
+    } else {
+      return {
+        upgradeable: hasUpgradeAnnotation,
+      };
+    }
+  } else {
+    return {
+      upgradeable: false,
+    }
+  }
+}
+
+function getAndValidateAnnotationArgs(doc: string, tag: string, contract: SourceContract, expectedLength: number) {
+  const annotationArgs = getAnnotationArgs(doc, tag, undefined);
+  if (annotationArgs.length !== expectedLength) {
+    throw new Error(
+      `Invalid number of arguments for @custom:${tag} annotation in contract ${contract.fullyQualifiedName}. Expected ${expectedLength}, found ${annotationArgs.length}`
+    );
+  }
+  return annotationArgs;
+}
+
+function hasAnnotationTag(doc: string, tag: string): boolean {
+  const regex = new RegExp(`^\\s*(@custom:${tag})(\\s|$)`, 'm');
+  return regex.test(doc);
+}
+
+function getUpgradesFrom(doc: string, contract: SourceContract): string | undefined {
+  const tag = 'oz-upgrades-from';
+  if (hasAnnotationTag(doc, tag)) {
+    const annotationArgs = getAndValidateAnnotationArgs(doc, tag, contract, 1);
     return annotationArgs[0];
   } else {
     return undefined;

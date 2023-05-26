@@ -60,4 +60,4 @@ export {
   BuildInfoFile,
   UpgradeSafetyErrorReport,
   validateUpgradeSafety,
-} from './build-info-report';
+} from './cli/cli-report';

@@ -58,6 +58,6 @@ export {
 
 export {
   BuildInfoFile,
-  UpgradeSafetyReport,
+  UpgradeSafetyErrorReport,
   validateUpgradeSafety,
 } from './build-info-report';

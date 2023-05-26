@@ -16,31 +16,33 @@ import {
   ValidationRunData,
   UpgradesError,
 } from '.';
+
 import { Node } from 'solidity-ast/node';
 import { findAll } from 'solidity-ast/utils';
-
 import { ContractDefinition } from 'solidity-ast';
+
+import { getFullyQualifiedName } from './utils/contract-name';
 
 export interface BuildInfoFile {
   /**
-   * The solc input from the Solidity compiler.
+   * The Solidity compiler input JSON object.
    */
   input: SolcInput;
 
   /**
-   * The solc output from the Solidity compiler.
+   * The Solidity compiler output JSON object.
    */
   output: SolcOutput;
 }
 
-export interface UpgradeSafetyReport {
+export interface UpgradeSafetyErrorReport {
   /**
    * The fully qualified name of the contract.
    */
   contract: string;
 
   /**
-   * The fully qualified name of the contract that this contract is meant to be upgraded from, if any.
+   * If there are storage layout errors, this is the fully qualified name of the contract that was used as the reference.
    */
   reference?: string;
 
@@ -55,6 +57,25 @@ export interface UpgradeSafetyReport {
   storageLayoutErrors?: UpgradesError;
 }
 
+type ValidationOptionsWithoutKind = Omit<ValidationOptions, 'kind'>;
+
+/**
+ * Validates the upgrade safety of all contracts in the given build info files. Only contracts that are detected as upgradeable will be validated.
+ * 
+ * @param buildInfoFiles The build info files with Solidity compiler input and output.
+ * @param opts Validation options, or undefined to use the default options.
+ * @returns An array of error reports, one for each contract that failed validation. Returns an empty array if all contracts passed validation.
+ */
+export function validateUpgradeSafety(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind = {}): UpgradeSafetyErrorReport[] {
+  const sourceContracts: SourceContract[] = [];
+  for (const buildInfoFile of buildInfoFiles) {
+    const validations = runValidations(buildInfoFile.input, buildInfoFile.output);
+    addContractsFromBuildInfo(buildInfoFile, validations, sourceContracts);
+  }
+
+  return getReports(sourceContracts, opts);
+}
+
 interface SourceContract {
   node: ContractDefinition;
   name: string;
@@ -62,27 +83,16 @@ interface SourceContract {
   validationData: ValidationRunData;
 }
 
-export function validateUpgradeSafety(buildInfoFiles: BuildInfoFile[]): UpgradeSafetyReport[] {
-  const sourceContracts: SourceContract[] = [];
-  for (const buildInfoFile of buildInfoFiles) {
-    const validations = runValidations(buildInfoFile.input, buildInfoFile.output);
-    addContractsFromBuildInfo(buildInfoFile, validations, sourceContracts);
-  }
-
-  return getContractValidationReports(sourceContracts);
-}
-
-function getContractValidationReports(sourceContracts: SourceContract[]) {
-  const validationReports: UpgradeSafetyReport[] = [];
+function getReports(sourceContracts: SourceContract[], opts: ValidationOptionsWithoutKind) {
+  const validationReports: UpgradeSafetyErrorReport[] = [];
   for (const sourceContract of sourceContracts) {
-    const upgradeability = getUpgradeability(sourceContract, sourceContracts);
-    if (upgradeability.upgradeable) {
-      const reference = upgradeability.referenceContract;
-      const uups = upgradeability.uups;
+    const upgradeabilityAssessment = getUpgradeabilityAssessment(sourceContract, sourceContracts);
+    if (upgradeabilityAssessment.upgradeable) {
+      const reference = upgradeabilityAssessment.referenceContract;
+      const uups = upgradeabilityAssessment.uups;
       const kind = uups ? 'uups' : 'transparent';
 
-      // TODO take opts from command line
-      const report = getContractValidationReport(sourceContract, reference, { kind: kind });
+      const report = getContractReport(sourceContract, reference, { ...opts, kind: kind });
       if (report !== undefined && (report.standaloneErrors !== undefined || report.storageLayoutErrors !== undefined)) {
         validationReports.push(report);
       }
@@ -113,19 +123,11 @@ function addContractsFromBuildInfo(
   }
 }
 
-/**
- * For each upgradeable contract, check upgrade safety by itself or compare with reference contract.
- * If not ok, throw error report.
- *
- * @param sourceContracts Array of source contracts.
- * @param opts Validation options.
- * @returns false if contract is not upgrade safe
- */
-function getContractValidationReport(
+function getContractReport(
   contract: SourceContract,
   referenceContract: SourceContract | undefined,
   opts: ValidationOptions,
-): UpgradeSafetyReport | undefined {
+): UpgradeSafetyErrorReport | undefined {
   let version;
   try {
     version = getContractVersion(contract.validationData, contract.name);
@@ -139,13 +141,8 @@ function getContractValidationReport(
     }
   }
 
-  const report: UpgradeSafetyReport = {
-    contract: contract.fullyQualifiedName,
-    reference: referenceContract?.fullyQualifiedName,
-  };
-
   console.log('Checking: ' + contract.fullyQualifiedName);
-  const standaloneError = logStandaloneErrors(contract.validationData, version, opts);
+  const standaloneErrors = logStandaloneErrors(contract.validationData, version, opts);
 
   if (opts.unsafeSkipStorageCheck !== true && referenceContract !== undefined) {
     const layout = getStorageLayout(contract.validationData, version);
@@ -153,65 +150,61 @@ function getContractValidationReport(
     const referenceVersion = getContractVersion(referenceContract.validationData, referenceContract.name);
     const referenceLayout = getStorageLayout(referenceContract.validationData, referenceVersion);
 
-    const storageUpgradeError = logStorageUpgradeErrors(referenceLayout, layout, withValidationDefaults(opts));
+    const storageLayoutErrors = logStorageLayoutErrors(referenceLayout, layout, withValidationDefaults(opts));
 
-    if (standaloneError || storageUpgradeError) {
-      report.standaloneErrors = standaloneError;
-      report.storageLayoutErrors = storageUpgradeError;
-      return report;
+    if (standaloneErrors || storageLayoutErrors) {
+      return {
+        contract: contract.fullyQualifiedName,
+        reference: referenceContract.fullyQualifiedName,
+        standaloneErrors: standaloneErrors,
+        storageLayoutErrors: storageLayoutErrors,
+      }
     } else {
       console.log('Passed: from ' + referenceContract.fullyQualifiedName + ' to ' + contract.fullyQualifiedName);
     }
   } else {
-    if (standaloneError) {
-      report.standaloneErrors = standaloneError;
-      return report;
+    if (standaloneErrors) {
+      return {
+        contract: contract.fullyQualifiedName,
+        standaloneErrors: standaloneErrors,
+      }
     } else {
       console.log('Passed: ' + contract.fullyQualifiedName);
     }
   }
 }
 
-export function logStandaloneErrors(
+function captureUpgradesError(e: any) {
+  if (e instanceof UpgradesError) {
+    console.error(e);
+    return e;
+  } else {
+    throw e;
+  }
+}
+
+function logStandaloneErrors(
   data: ValidationData,
   version: Version,
   opts: ValidationOptions,
 ): UpgradesError | undefined {
-  let error = undefined;
   try {
     assertUpgradeSafe(data, version, withValidationDefaults(opts));
   } catch (e: any) {
-    if (e instanceof UpgradesError) {
-      error = e;
-      console.error(e);
-    } else {
-      throw e;
-    }
+    return captureUpgradesError(e);
   }
-  return error;
 }
 
-export function logStorageUpgradeErrors(
+function logStorageLayoutErrors(
   referenceLayout: StorageLayout,
   layout: StorageLayout,
   opts: ValidationOptions,
 ): UpgradesError | undefined {
-  let error = undefined;
   try {
     assertStorageUpgradeSafe(referenceLayout, layout, withValidationDefaults(opts));
   } catch (e: any) {
-    if (e instanceof UpgradesError) {
-      error = e;
-      console.error(e);
-    } else {
-      throw e;
-    }
+    return captureUpgradesError(e);
   }
-  return error;
-}
-
-function getFullyQualifiedName(source: string, contractName: string) {
-  return `${source}:${contractName}`;
 }
 
 interface UpgradesAnnotation {
@@ -219,23 +212,22 @@ interface UpgradesAnnotation {
   referenceName?: string;
 }
 
-interface Upgradeability {
+interface UpgradeabilityAssessment {
   upgradeable: boolean;
   referenceContract?: SourceContract;
-  uups: boolean;
+  uups?: boolean;
 }
 
-function getUpgradeability(contract: SourceContract, allContracts: SourceContract[]): Upgradeability {
+function getUpgradeabilityAssessment(contract: SourceContract, allContracts: SourceContract[]): UpgradeabilityAssessment {
   const fullContractName = contract.fullyQualifiedName;
   const c = contract.validationData[fullContractName];
   if (c === undefined) {
-    return { upgradeable: false, uups: false };
+    return { upgradeable: false };
   }
   const inherit = c.inherit;
 
   const upgradesAnnotation = readUpgradesAnnotation(contract);
   if (upgradesAnnotation.upgradeable) {
-    // TODO even if reference contract does not have upgradeability annotation, should we still check it?
     let referenceContract = undefined;
     let isReferenceUUPS = false;
     if (upgradesAnnotation.referenceName !== undefined) {
@@ -245,15 +237,15 @@ function getUpgradeability(contract: SourceContract, allContracts: SourceContrac
 
     return {
       upgradeable: true,
-      uups: isReferenceUUPS || isUUPS(contract.validationData, fullContractName), // if reference OR current contract is UUPS, set opts.kind to 'uups'
       referenceContract: referenceContract,
+      uups: isReferenceUUPS || isUUPS(contract.validationData, fullContractName), // if reference OR current contract is UUPS, perform validations for UUPS
     };
   } else {
     const initializable = hasInitializable(inherit);
     const uups = isUUPS(contract.validationData, fullContractName);
     return {
       upgradeable: initializable || uups,
-      uups: uups,
+      uups: uups, // if current contract is UUPS, perform validations for UUPS
     };
   }
 }

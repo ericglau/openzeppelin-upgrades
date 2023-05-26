@@ -11,6 +11,7 @@ import { Version, getVersion } from '../version';
 import { extractLinkReferences, LinkReference } from '../link-refs';
 import { extractStorageLayout } from '../storage/extract';
 import { StorageLayout } from '../storage/layout';
+import { getFullyQualifiedName } from '../utils/contract-name';
 
 export type ValidationRunData = Record<string, ContractValidation>;
 
@@ -147,10 +148,6 @@ function skipCheckReachable(error: string, node: Node): boolean {
 function skipCheck(error: string, node: Node): boolean {
   // skip both allow and allow-reachable errors in the lexical scope
   return getAllowed(node, false).includes(error) || getAllowed(node, true).includes(error);
-}
-
-function getFullyQualifiedName(source: string, contractName: string) {
-  return `${source}:${contractName}`;
 }
 
 export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVersion?: string): ValidationRunData {

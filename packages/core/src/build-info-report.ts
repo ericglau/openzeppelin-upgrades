@@ -22,6 +22,7 @@ import { findAll } from 'solidity-ast/utils';
 import { ContractDefinition } from 'solidity-ast';
 
 import { getFullyQualifiedName } from './utils/contract-name';
+import { getAnnotationArgs } from './utils/annotations';
 
 export interface BuildInfoFile {
   /**
@@ -83,22 +84,10 @@ interface SourceContract {
   validationData: ValidationRunData;
 }
 
-function getReports(sourceContracts: SourceContract[], opts: ValidationOptionsWithoutKind) {
-  const validationReports: UpgradeSafetyErrorReport[] = [];
-  for (const sourceContract of sourceContracts) {
-    const upgradeabilityAssessment = getUpgradeabilityAssessment(sourceContract, sourceContracts);
-    if (upgradeabilityAssessment.upgradeable) {
-      const reference = upgradeabilityAssessment.referenceContract;
-      const uups = upgradeabilityAssessment.uups;
-      const kind = uups ? 'uups' : 'transparent';
-
-      const report = getContractReport(sourceContract, reference, { ...opts, kind: kind });
-      if (report !== undefined && (report.standaloneErrors !== undefined || report.storageLayoutErrors !== undefined)) {
-        validationReports.push(report);
-      }
-    }
-  }
-  return validationReports;
+function runValidations(solcInput: SolcInput, solcOutput: SolcOutput) {
+  const decodeSrc = solcInputOutputDecoder(solcInput, solcOutput);
+  const validation = validate(solcOutput, decodeSrc);
+  return validation;
 }
 
 function addContractsFromBuildInfo(
@@ -121,6 +110,24 @@ function addContractsFromBuildInfo(
       });
     }
   }
+}
+
+function getReports(sourceContracts: SourceContract[], opts: ValidationOptionsWithoutKind) {
+  const validationReports: UpgradeSafetyErrorReport[] = [];
+  for (const sourceContract of sourceContracts) {
+    const upgradeabilityAssessment = getUpgradeabilityAssessment(sourceContract, sourceContracts);
+    if (upgradeabilityAssessment.upgradeable) {
+      const reference = upgradeabilityAssessment.referenceContract;
+      const uups = upgradeabilityAssessment.uups;
+      const kind = uups ? 'uups' : 'transparent';
+
+      const report = getContractReport(sourceContract, reference, { ...opts, kind: kind });
+      if (report !== undefined && (report.standaloneErrors !== undefined || report.storageLayoutErrors !== undefined)) {
+        validationReports.push(report);
+      }
+    }
+  }
+  return validationReports;
 }
 
 function getContractReport(
@@ -207,7 +214,7 @@ function logStorageLayoutErrors(
   }
 }
 
-interface UpgradesAnnotation {
+interface AnnotationAssessment {
   upgradeable: boolean;
   referenceName?: string;
 }
@@ -226,12 +233,12 @@ function getUpgradeabilityAssessment(contract: SourceContract, allContracts: Sou
   }
   const inherit = c.inherit;
 
-  const upgradesAnnotation = readUpgradesAnnotation(contract);
-  if (upgradesAnnotation.upgradeable) {
+  const annotationAssessment = getAnnotationAssessment(contract);
+  if (annotationAssessment.upgradeable) {
     let referenceContract = undefined;
     let isReferenceUUPS = false;
-    if (upgradesAnnotation.referenceName !== undefined) {
-      referenceContract = getReferenceContract(upgradesAnnotation.referenceName, contract, allContracts);
+    if (annotationAssessment.referenceName !== undefined) {
+      referenceContract = getReferenceContract(annotationAssessment.referenceName, contract, allContracts);
       isReferenceUUPS = isUUPS(referenceContract.validationData, referenceContract.fullyQualifiedName);
     }
 
@@ -259,7 +266,7 @@ function getReferenceContract(reference: string, origin: SourceContract, allCont
   }
 }
 
-function readUpgradesAnnotation(contract: SourceContract): UpgradesAnnotation {
+function getAnnotationAssessment(contract: SourceContract): AnnotationAssessment {
   const node = contract.node;
 
   const hasUpgradeAnnotation = hasUpgradesAnnotation(node); // TODO if this has args, throw error
@@ -303,7 +310,7 @@ function getUpgradesFrom(contract: SourceContract): string | undefined {
     // TODO combine logic of hasUpgradesFromAnnotation and the below
     const tag = 'oz-upgrades-from';
     const doc = typeof node.documentation === 'string' ? node.documentation : node.documentation?.text ?? '';
-    const annotationArgs = getAnnotationArgs(doc, tag);
+    const annotationArgs = getAnnotationArgs(doc, tag, undefined);
     if (annotationArgs.length !== 1) {
       throw new Error(
         `Invalid number of arguments for @custom:${tag} annotation in contract ${contract.fullyQualifiedName}. Expected 1, found ${annotationArgs.length}`,
@@ -314,47 +321,6 @@ function getUpgradesFrom(contract: SourceContract): string | undefined {
     return undefined;
   }
 }
-
-// ====== from packages/core/src/validate/run.ts
-function* execall(re: RegExp, text: string) {
-  re = new RegExp(re, re.flags + (re.sticky ? '' : 'y'));
-  while (true) {
-    const match = re.exec(text);
-    if (match && match[0] !== '') {
-      yield match;
-    } else {
-      break;
-    }
-  }
-}
-// ======
-
-/**
- * Get args from the doc string matching the given tag
- */
-export function getAnnotationArgs(doc: string, tag: string) {
-  const result: string[] = [];
-  for (const { groups } of execall(
-    /^\s*(?:@(?<title>\w+)(?::(?<tag>[a-z][a-z-]*))? )?(?<args>(?:(?!^\s*@\w+)[^])*)/m,
-    doc,
-  )) {
-    if (groups && groups.title === 'custom' && groups.tag === tag) {
-      const trimmedArgs = groups.args.trim();
-      if (trimmedArgs.length > 0) {
-        result.push(...trimmedArgs.split(/\s+/));
-      }
-    }
-  }
-
-  // result.forEach(arg => {
-  //   if (!(errorKinds as readonly string[]).includes(arg)) {
-  //     throw new Error(`NatSpec: ${tag} argument not recognized: ${arg}`);
-  //   }
-  // });
-
-  return result;
-}
-// ======================
 
 /**
  * Whether inherit has any contract that ends with ":Initializable"
@@ -377,8 +343,4 @@ export function isUUPS(data: ValidationRunData, fqName: string): boolean {
   return methods.includes(upgradeToSignature);
 }
 
-function runValidations(solcInput: SolcInput, solcOutput: SolcOutput) {
-  const decodeSrc = solcInputOutputDecoder(solcInput, solcOutput);
-  const validation = validate(solcOutput, decodeSrc);
-  return validation;
-}
+

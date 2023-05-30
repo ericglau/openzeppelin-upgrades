@@ -6,10 +6,7 @@ import {
   withValidationDefaults,
   StorageLayout,
   Version,
-  assertUpgradeSafe,
-  assertStorageUpgradeSafe,
   ValidationData,
-  UpgradesError,
   ValidateUpgradeSafetyOptions,
   getErrors,
   UpgradeableContractErrorReport,
@@ -52,7 +49,7 @@ export interface ContractErrorReport {
  * @param opts The validation options.
  * @returns Error reports for contracts that failed upgrade safety checks.
  */
-export function getReports(sourceContracts: SourceContract[], opts: ValidateUpgradeSafetyOptions) {
+export function getContractErrorReports(sourceContracts: SourceContract[], opts: ValidateUpgradeSafetyOptions) {
   const errorReports: ContractErrorReport[] = [];
   for (const sourceContract of sourceContracts) {
     const upgradeabilityAssessment = getUpgradeabilityAssessment(sourceContract, sourceContracts);

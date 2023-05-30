@@ -1,5 +1,5 @@
-import { ValidationRunData } from '..';
 import { getAnnotationArgs } from '../utils/annotations';
+import { inferUUPS } from '../validate/query';
 import { SourceContract } from './validations';
 
 interface AnnotationAssessment {
@@ -27,17 +27,17 @@ export function getUpgradeabilityAssessment(contract: SourceContract, allContrac
     let isReferenceUUPS = false;
     if (annotationAssessment.referenceName !== undefined) {
       referenceContract = getReferenceContract(annotationAssessment.referenceName, contract, allContracts);
-      isReferenceUUPS = isUUPS(referenceContract.validationData, referenceContract.fullyQualifiedName);
+      isReferenceUUPS = inferUUPS(referenceContract.validationData, referenceContract.fullyQualifiedName);
     }
 
     return {
       upgradeable: true,
       referenceContract: referenceContract,
-      uups: isReferenceUUPS || isUUPS(contract.validationData, fullContractName), // if reference OR current contract is UUPS, perform validations for UUPS
+      uups: isReferenceUUPS || inferUUPS(contract.validationData, fullContractName), // if reference OR current contract is UUPS, perform validations for UUPS
     };
   } else {
     const initializable = hasInitializable(inherit);
-    const uups = isUUPS(contract.validationData, fullContractName);
+    const uups = inferUUPS(contract.validationData, fullContractName);
     return {
       upgradeable: initializable || uups,
       uups: uups, // if current contract is UUPS, perform validations for UUPS
@@ -116,16 +116,4 @@ function getUpgradesFrom(doc: string, contract: SourceContract): string | undefi
  */
 function hasInitializable(inherit: string[]) {
   return inherit.some(c => c.endsWith(':Initializable'));
-}
-
-function getAllMethods(runValidation: ValidationRunData, fullContractName: string): string[] {
-  const c = runValidation[fullContractName];
-  return c.methods.concat(...c.inherit.map(name => runValidation[name].methods));
-}
-
-const upgradeToSignature = 'upgradeTo(address)';
-
-export function isUUPS(data: ValidationRunData, fqName: string): boolean {
-  const methods = getAllMethods(data, fqName);
-  return methods.includes(upgradeToSignature);
 }

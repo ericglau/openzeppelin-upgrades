@@ -186,11 +186,15 @@ export function isUpgradeSafe(data: ValidationData, version: Version): boolean {
   return getErrors(dataV3, version).length == 0;
 }
 
+export function inferUUPS(runValidation: ValidationRunData, fullContractName: string): boolean {
+  const methods = getAllMethods(runValidation, fullContractName);
+  return methods.includes(upgradeToSignature);
+}
+
 export function inferProxyKind(data: ValidationData, version: Version): ProxyDeployment['kind'] {
   const dataV3 = normalizeValidationData(data);
   const [fullContractName, runValidation] = getContractNameAndRunValidation(dataV3, version);
-  const methods = getAllMethods(runValidation, fullContractName);
-  if (methods.includes(upgradeToSignature)) {
+  if (inferUUPS(runValidation, fullContractName)) {
     return 'uups';
   } else {
     return 'transparent';

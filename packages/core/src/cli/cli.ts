@@ -7,11 +7,6 @@ export function main(args: string[]): void {
   }
 
   const result = validateUpgradeSafety(args);
-  if (result.ok) {
-    console.log('\n' + result.summary);
-  } else {
-    console.error('\n' + result.summary);
-  }
   process.exit(result.ok ? 0 : 1);
 }
 

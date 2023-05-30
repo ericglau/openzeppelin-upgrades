@@ -28,12 +28,12 @@ import { getAnnotationArgs } from '../utils/annotations';
 /**
  * The overall validation result.
  * 
- * @param ok True if all contracts passed validation, false otherwise.
- * @param summary A summary of the validation results.
+ * @param ok False if any errors were found, otherwise true.
+ * @param errorReport An error report that describes all of the errors found if any, otherwise undefined.
  */
 export interface ValidationResult {
   ok: boolean;
-  summary: string;
+  errorReport?: string;
 }
 
 /**
@@ -45,14 +45,15 @@ export type ValidationOptionsWithoutKind = Omit<ValidationOptions, 'kind'>;
  * Validates the upgrade safety of all contracts in the given build info files. Only contracts that are detected as upgradeable will be validated.
  * 
  * @param buildInfoFilePaths Absolute paths of build info files with Solidity compiler input and output.
+ * @param skipSummaryLogging Whether to skip logging the summary report before returning it.
  * @param ignoreInvalidFiles Whether to ignore files that don't look like build info files.
  * @param opts Validation options, or undefined to use the default options.
- * @returns A summary of the validation, including any errors found.
+ * @returns The validation result.
  */
-export function validateUpgradeSafety(buildInfoFilePaths: string[], ignoreInvalidFiles: boolean = false, opts: ValidationOptionsWithoutKind = {}): ValidationResult {
+export function validateUpgradeSafety(buildInfoFilePaths: string[], skipSummaryLogging: boolean = false, ignoreInvalidFiles: boolean = false, opts: ValidationOptionsWithoutKind = {}): ValidationResult {
   const buildInfoFiles = getBuildInfoFiles(buildInfoFilePaths, ignoreInvalidFiles);
   const reports = validateBuildInfoContracts(buildInfoFiles, opts);
-  return summarize(reports);
+  return getSummaryReport(reports, skipSummaryLogging);
 }
 
 /**
@@ -128,12 +129,18 @@ function validateBuildInfoContracts(buildInfoFiles: BuildInfoFile[], opts: Valid
   return getReports(sourceContracts, opts);
 }
 
-function summarize(errorReports: UpgradeSafetyErrorReport[]): ValidationResult {
-  let ok = false;
+function getSummaryReport(errorReports: UpgradeSafetyErrorReport[], skipSummaryLogging: boolean): ValidationResult {
+  let ok;
+  let summaryReport;
+
   const lines: string[] = [];
-  if (errorReports.length > 0) {
-    lines.push(chalk.bold('=========================================================='));
-    lines.push(chalk.bold('Upgrade safety checks completed with the following errors:'));
+  if (errorReports.length === 0) {
+    ok = true;
+
+    if (!skipSummaryLogging) {
+      console.log('\nUpgrade safety checks completed successfully.');
+    }
+  } else {
     for (const validationReport of errorReports) {
       if (validationReport.standaloneErrors !== undefined) {
         lines.push(chalk.bold(`- ${validationReport.contract}: `) + validationReport.standaloneErrors.message);
@@ -145,13 +152,19 @@ function summarize(errorReports: UpgradeSafetyErrorReport[]): ValidationResult {
         lines.push(chalk.bold(`- ${validationReport.reference} to ${validationReport.contract}: `) + validationReport.storageLayoutErrors.message);
       }
     }
-  } else {
-    ok = true;
-    lines.push('Upgrade safety checks completed successfully.');
+    ok = false;
+    summaryReport = lines.join('\n\n');
+
+    if (!skipSummaryLogging) {
+      console.error(chalk.bold('\n=========================================================='));
+      console.error(chalk.bold('\nUpgrade safety checks completed with the following errors:'));
+      console.error(`\n${summaryReport}`);  
+    }
   }
+
   return {
     ok,
-    summary: lines.join('\n\n'),
+    errorReport: summaryReport,
   };
 }
 

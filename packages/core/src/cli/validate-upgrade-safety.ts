@@ -37,23 +37,47 @@ export interface ValidationResult {
 }
 
 /**
+ * Report options.
+ */
+export interface ReportOptions {
+  /**
+   * Whether to skip logging the summary report before returning it.
+   */
+  skipSummaryLogging?: boolean;
+
+  /**
+   * Any files that don't look like build info files will be ignored if this is true, 
+   * otherwise an error will be thrown.
+   */
+  ignoreInvalidFiles?: boolean;
+}
+
+/**
  * Validation options for upgrade safety checks.
  */
-export type ValidationOptionsWithoutKind = Omit<ValidationOptions, 'kind'>;
+export type ValidateUpgradeSafetyOptions = Omit<ValidationOptions, 'kind'>;
 
 /**
  * Validates the upgrade safety of all contracts in the given build info files. Only contracts that are detected as upgradeable will be validated.
  * 
  * @param buildInfoFilePaths Absolute paths of build info files with Solidity compiler input and output.
- * @param skipSummaryLogging Whether to skip logging the summary report before returning it.
- * @param ignoreInvalidFiles Whether to ignore files that don't look like build info files.
- * @param opts Validation options, or undefined to use the default options.
+ * @param reportOpts Report options, or undefined to use the default report options.
+ * @param opts Validation options, or undefined to use the default validation options.
  * @returns The validation result.
  */
-export function validateUpgradeSafety(buildInfoFilePaths: string[], skipSummaryLogging: boolean = false, ignoreInvalidFiles: boolean = false, opts: ValidationOptionsWithoutKind = {}): ValidationResult {
-  const buildInfoFiles = getBuildInfoFiles(buildInfoFilePaths, ignoreInvalidFiles);
+export function validateUpgradeSafety(buildInfoFilePaths: string[], reportOpts: ReportOptions = {}, opts: ValidateUpgradeSafetyOptions = {}): ValidationResult {
+  const fullReportOpts = withReportDefaults(reportOpts);
+  
+  const buildInfoFiles = getBuildInfoFiles(buildInfoFilePaths, fullReportOpts.ignoreInvalidFiles);
   const reports = validateBuildInfoContracts(buildInfoFiles, opts);
-  return getSummaryReport(reports, skipSummaryLogging);
+  return getSummaryReport(reports, fullReportOpts.skipSummaryLogging);
+}
+
+function withReportDefaults(cmdOpts: ReportOptions): Required<ReportOptions> {
+  return {
+    skipSummaryLogging: cmdOpts.skipSummaryLogging ?? false,
+    ignoreInvalidFiles: cmdOpts.ignoreInvalidFiles ?? false,
+  };
 }
 
 /**
@@ -119,7 +143,7 @@ function readJSON(path: string) {
   return JSON.parse(fs.readFileSync(path, 'utf8'));
 }
 
-function validateBuildInfoContracts(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind) {
+function validateBuildInfoContracts(buildInfoFiles: BuildInfoFile[], opts: ValidateUpgradeSafetyOptions) {
   const sourceContracts: SourceContract[] = [];
   for (const buildInfoFile of buildInfoFiles) {
     const validations = runValidations(buildInfoFile.input, buildInfoFile.output);
@@ -203,7 +227,7 @@ function addContractsFromBuildInfo(
   }
 }
 
-function getReports(sourceContracts: SourceContract[], opts: ValidationOptionsWithoutKind) {
+function getReports(sourceContracts: SourceContract[], opts: ValidateUpgradeSafetyOptions) {
   const validationReports: UpgradeSafetyErrorReport[] = [];
   for (const sourceContract of sourceContracts) {
     const upgradeabilityAssessment = getUpgradeabilityAssessment(sourceContract, sourceContracts);

@@ -58,6 +58,7 @@ export {
 
 export {
   ValidationResult,
-  ValidationOptionsWithoutKind,
+  ReportOptions,
+  ValidateUpgradeSafetyOptions,
   validateUpgradeSafety,
 } from './cli/validate-upgrade-safety';

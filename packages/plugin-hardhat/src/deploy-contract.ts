@@ -43,8 +43,7 @@ async function deployNonUpgradeableContract(
 function assertNonUpgradeable(deployData: DeployData) {
   const [fullContractName, runValidation] = getContractNameAndRunValidation(deployData.validations, deployData.version);
   const c = runValidation[fullContractName];
-  const inherit = c.inherit;
-  if (inferInitializable(inherit) || inferProxyKind(deployData.validations, deployData.version) === 'uups') {
+  if (inferInitializable(c) || inferProxyKind(deployData.validations, deployData.version) === 'uups') {
     throw new UpgradesError(
       `The contract ${fullContractName} looks like an upgradeable contract.`,
       () =>

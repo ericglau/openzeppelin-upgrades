@@ -15,12 +15,8 @@ export interface UpgradeabilityAssessment {
 
 export function getUpgradeabilityAssessment(contract: SourceContract, allContracts: SourceContract[]): UpgradeabilityAssessment {
   const fullContractName = contract.fullyQualifiedName;
-  const c = contract.validationData[fullContractName];
-  if (c === undefined) {
-    return { upgradeable: false };
-  }
+  const contractValidation = contract.validationData[fullContractName];
 
-  const inherit = c.inherit;
   const isUUPS = inferUUPS(contract.validationData, fullContractName);
 
   const annotationAssessment = getAnnotationAssessment(contract);
@@ -38,7 +34,7 @@ export function getUpgradeabilityAssessment(contract: SourceContract, allContrac
       uups: isReferenceUUPS || isUUPS,
     };
   } else {
-    const initializable = inferInitializable(inherit);
+    const initializable = inferInitializable(contractValidation);
     return {
       upgradeable: initializable || isUUPS,
       uups: isUUPS,

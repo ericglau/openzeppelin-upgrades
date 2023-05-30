@@ -1,5 +1,5 @@
 import { Version, getVersion } from '../version';
-import { ValidationRunData, ValidationError, isOpcodeError } from './run';
+import { ValidationRunData, ValidationError, isOpcodeError, ContractValidation } from './run';
 import { StorageLayout } from '../storage/layout';
 import { unlinkBytecode } from '../link-refs';
 import { ValidationOptions, processExceptions } from './overrides';
@@ -202,10 +202,10 @@ export function inferProxyKind(data: ValidationData, version: Version): ProxyDep
 }
 
 /**
- * Whether inherit has any contract named "Initializable"
- * @param inherit an array of fully qualified contract names
- * @return true if inherit has any contract fully qualified name that ends with ":Initializable"
+ * Whether the contract inherits any contract named "Initializable"
+ * @param contractValidation The validation result for the contract
+ * @return true if the contract inheritss any contract whose fully qualified name ends with ":Initializable"
  */
-export function inferInitializable(inherit: string[]) {
-  return inherit.some(c => c.endsWith(':Initializable'));
+export function inferInitializable(contractValidation: ContractValidation) {
+  return contractValidation.inherit.some(c => c.endsWith(':Initializable'));
 }

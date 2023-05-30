@@ -1,4 +1,3 @@
-
 import {
   solcInputOutputDecoder,
   getContractVersion,
@@ -19,10 +18,14 @@ import {
 
 import { findAll } from 'solidity-ast/utils';
 import { ContractDefinition } from 'solidity-ast';
+import chalk from "chalk";
 
 import { getFullyQualifiedName } from '../utils/contract-name';
 import { getAnnotationArgs } from '../utils/annotations';
 
+/**
+ * A build info file containing Solidity compiler input and output JSON objects.
+ */
 export interface BuildInfoFile {
   /**
    * The Solidity compiler input JSON object.
@@ -35,7 +38,32 @@ export interface BuildInfoFile {
   output: SolcOutput;
 }
 
-export interface UpgradeSafetyErrorReport {
+/**
+ * The overall validation result.
+ * 
+ * @param ok True if all contracts passed validation, false otherwise.
+ * @param summary A summary of the validation results.
+ */
+export interface ValidationResult {
+  ok: boolean;
+  summary: string;
+}
+
+export type ValidationOptionsWithoutKind = Omit<ValidationOptions, 'kind'>;
+
+/**
+ * Validates the upgrade safety of all contracts in the given build info files. Only contracts that are detected as upgradeable will be validated.
+ * 
+ * @param buildInfoFiles The build info files with Solidity compiler input and output.
+ * @param opts Validation options, or undefined to use the default options.
+ * @returns A summary of the validation, including any errors found.
+ */
+export function validateUpgradeSafety(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind = {}): ValidationResult {
+  const reports = validateBuildInfo(buildInfoFiles, opts);
+  return summarize(reports);
+}
+
+interface UpgradeSafetyErrorReport {
   /**
    * The fully qualified name of the contract.
    */
@@ -57,16 +85,7 @@ export interface UpgradeSafetyErrorReport {
   storageLayoutErrors?: UpgradesError;
 }
 
-type ValidationOptionsWithoutKind = Omit<ValidationOptions, 'kind'>;
-
-/**
- * Validates the upgrade safety of all contracts in the given build info files. Only contracts that are detected as upgradeable will be validated.
- * 
- * @param buildInfoFiles The build info files with Solidity compiler input and output.
- * @param opts Validation options, or undefined to use the default options.
- * @returns An array of error reports, one for each contract that failed validation. Returns an empty array if all contracts passed validation.
- */
-export function validateUpgradeSafety(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind = {}): UpgradeSafetyErrorReport[] {
+function validateBuildInfo(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind) {
   const sourceContracts: SourceContract[] = [];
   for (const buildInfoFile of buildInfoFiles) {
     const validations = runValidations(buildInfoFile.input, buildInfoFile.output);
@@ -74,6 +93,33 @@ export function validateUpgradeSafety(buildInfoFiles: BuildInfoFile[], opts: Val
   }
 
   return getReports(sourceContracts, opts);
+}
+
+function summarize(errorReports: UpgradeSafetyErrorReport[]): ValidationResult {
+  const lines: string[] = [];
+  if (errorReports.length > 0) {
+    lines.push(chalk.bold('Upgrade safety checks completed with the following errors:'));
+    for (const validationReport of errorReports) {
+      if (validationReport.standaloneErrors !== undefined) {
+        lines.push(chalk.bold(`- ${validationReport.contract}: `) + validationReport.standaloneErrors.message);
+      }
+      if (validationReport.storageLayoutErrors !== undefined) {
+        if (validationReport.reference === undefined) {
+          throw new Error('Broken invariant: Storage layout errors reported without a reference contract');
+        }
+        lines.push(chalk.bold(`- ${validationReport.reference} to ${validationReport.contract}: `) + validationReport.storageLayoutErrors.message);
+      }
+    }
+    return {
+      ok: false,
+      summary: lines.join('\n\n'),
+    };
+  } else {
+    return {
+      ok: true,
+      summary: 'Upgrade safety checks completed successfully.',
+    }
+  }
 }
 
 interface SourceContract {
@@ -148,7 +194,7 @@ function getContractReport(
   }
 
   console.log('Checking: ' + contract.fullyQualifiedName);
-  const standaloneErrors = logStandaloneErrors(contract.validationData, version, opts);
+  const standaloneErrors = getStandaloneErrors(contract.validationData, version, opts);
 
   if (opts.unsafeSkipStorageCheck !== true && referenceContract !== undefined) {
     const layout = getStorageLayout(contract.validationData, version);
@@ -156,7 +202,7 @@ function getContractReport(
     const referenceVersion = getContractVersion(referenceContract.validationData, referenceContract.name);
     const referenceLayout = getStorageLayout(referenceContract.validationData, referenceVersion);
 
-    const storageLayoutErrors = logStorageLayoutErrors(referenceLayout, layout, withValidationDefaults(opts));
+    const storageLayoutErrors = getStorageLayoutErrors(referenceLayout, layout, withValidationDefaults(opts));
 
     if (standaloneErrors || storageLayoutErrors) {
       return {
@@ -189,7 +235,7 @@ function captureUpgradesError(e: any) {
   }
 }
 
-function logStandaloneErrors(
+function getStandaloneErrors(
   data: ValidationData,
   version: Version,
   opts: ValidationOptions,
@@ -201,7 +247,7 @@ function logStandaloneErrors(
   }
 }
 
-function logStorageLayoutErrors(
+function getStorageLayoutErrors(
   referenceLayout: StorageLayout,
   layout: StorageLayout,
   opts: ValidationOptions,
@@ -340,5 +386,3 @@ export function isUUPS(data: ValidationRunData, fqName: string): boolean {
   const methods = getAllMethods(data, fqName);
   return methods.includes(upgradeToSignature);
 }
-
-

@@ -58,6 +58,7 @@ export {
 
 export {
   BuildInfoFile,
-  UpgradeSafetyErrorReport,
+  ValidationResult,
+  ValidationOptionsWithoutKind,
   validateUpgradeSafety,
-} from './cli/cli-report';
+} from './cli/validate-build-info';

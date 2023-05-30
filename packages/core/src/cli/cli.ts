@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 
 import { validateUpgradeSafety } from './validate-upgrade-safety';
 

@@ -57,8 +57,9 @@ export {
 } from './usage-error';
 
 export {
-  ValidationResult,
   ReportOptions,
   ValidateUpgradeSafetyOptions,
   validateUpgradeSafety,
 } from './cli/validate-upgrade-safety';
+
+export { SummaryReport } from './cli/summary-report';

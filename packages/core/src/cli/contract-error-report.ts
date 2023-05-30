@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import {
   getContractVersion,
   getStorageLayout,
@@ -10,9 +11,13 @@ import {
   ValidationData,
   UpgradesError,
   ValidateUpgradeSafetyOptions,
+  getErrors,
+  UpgradeableContractErrorReport,
+  getStorageUpgradeReport,
 } from '..';
+import { Report } from '../standalone';
 
-import { getUpgradeabilityAssessment } from './upgradeability';
+import { getUpgradeabilityAssessment } from './upgradeability-assessment';
 import { SourceContract } from './validations';
 
 /**
@@ -32,12 +37,12 @@ export interface ContractErrorReport {
   /**
    * If standalone upgrade safety checks failed, this will contain an Error object where the message describes all of the errors found in the contract.
    */
-  standaloneErrors?: UpgradesError;
+  standaloneErrors?: Report;
 
   /**
    * If storage layout comparisons failed when compared to the reference contract, this will contain an Error object where the message describes all of the errors found in the storage layout comparison.
    */
-  storageLayoutErrors?: UpgradesError;
+  storageLayoutErrors?: Report;
 }
 
 /**
@@ -84,7 +89,7 @@ function getContractErrorReport(
   }
 
   console.log('Checking: ' + contract.fullyQualifiedName);
-  const standaloneErrors = getStandaloneErrors(contract.validationData, version, opts);
+  const standaloneErrors = reportStandaloneErrors(contract.validationData, version, opts, contract.fullyQualifiedName);
 
   if (opts.unsafeSkipStorageCheck !== true && referenceContract !== undefined) {
     const layout = getStorageLayout(contract.validationData, version);
@@ -92,9 +97,9 @@ function getContractErrorReport(
     const referenceVersion = getContractVersion(referenceContract.validationData, referenceContract.name);
     const referenceLayout = getStorageLayout(referenceContract.validationData, referenceVersion);
 
-    const storageLayoutErrors = getStorageLayoutErrors(referenceLayout, layout, withValidationDefaults(opts));
+    const storageLayoutErrors = reportStorageLayoutErrors(referenceLayout, layout, withValidationDefaults(opts), referenceContract.fullyQualifiedName, contract.fullyQualifiedName);
 
-    if (standaloneErrors || storageLayoutErrors) {
+    if (!standaloneErrors.ok || !storageLayoutErrors.ok) {
       return {
         contract: contract.fullyQualifiedName,
         reference: referenceContract.fullyQualifiedName,
@@ -105,7 +110,7 @@ function getContractErrorReport(
       console.log('Passed: from ' + referenceContract.fullyQualifiedName + ' to ' + contract.fullyQualifiedName);
     }
   } else {
-    if (standaloneErrors) {
+    if (!standaloneErrors.ok) {
       return {
         contract: contract.fullyQualifiedName,
         standaloneErrors: standaloneErrors,
@@ -116,35 +121,32 @@ function getContractErrorReport(
   }
 }
 
-function captureUpgradesError(e: any) {
-  if (e instanceof UpgradesError) {
-    console.error(e);
-    return e;
-  } else {
-    throw e;
-  }
-}
-
-function getStandaloneErrors(
+function reportStandaloneErrors(
   data: ValidationData,
   version: Version,
   opts: ValidationOptions,
-): UpgradesError | undefined {
-  try {
-    assertUpgradeSafe(data, version, withValidationDefaults(opts));
-  } catch (e: any) {
-    return captureUpgradesError(e);
+  name: string,
+): Report {
+  const errors = getErrors(data, version, opts);
+  const report = new UpgradeableContractErrorReport(errors);
+  if (!report.ok) {
+    console.error(chalk.red(chalk.bold(`Failed: ${name}`)));
+    console.error(report.explain());
   }
+  return report;
 }
 
-function getStorageLayoutErrors(
+function reportStorageLayoutErrors(
   referenceLayout: StorageLayout,
   layout: StorageLayout,
   opts: ValidationOptions,
-): UpgradesError | undefined {
-  try {
-    assertStorageUpgradeSafe(referenceLayout, layout, withValidationDefaults(opts));
-  } catch (e: any) {
-    return captureUpgradesError(e);
+  referenceName: string,
+  name: string,
+): Report {
+  const report = getStorageUpgradeReport(referenceLayout, layout, withValidationDefaults(opts));
+  if (!report.ok) {
+    console.error(chalk.red(chalk.bold(`Failed: from ${referenceName} to ${name}`)));
+    console.error(report.explain());
   }
+  return report;
 }

@@ -200,3 +200,12 @@ export function inferProxyKind(data: ValidationData, version: Version): ProxyDep
     return 'transparent';
   }
 }
+
+/**
+ * Whether inherit has any contract named "Initializable"
+ * @param inherit an array of fully qualified contract names
+ * @return true if inherit has any contract fully qualified name that ends with ":Initializable"
+ */
+export function inferInitializable(inherit: string[]) {
+  return inherit.some(c => c.endsWith(':Initializable'));
+}

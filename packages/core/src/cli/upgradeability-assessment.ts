@@ -1,5 +1,5 @@
 import { getAnnotationArgs } from '../utils/annotations';
-import { inferUUPS } from '../validate/query';
+import { inferInitializable, inferUUPS } from '../validate/query';
 import { SourceContract } from './validations';
 
 interface AnnotationAssessment {
@@ -19,7 +19,9 @@ export function getUpgradeabilityAssessment(contract: SourceContract, allContrac
   if (c === undefined) {
     return { upgradeable: false };
   }
+
   const inherit = c.inherit;
+  const isUUPS = inferUUPS(contract.validationData, fullContractName);
 
   const annotationAssessment = getAnnotationAssessment(contract);
   if (annotationAssessment.upgradeable) {
@@ -33,14 +35,13 @@ export function getUpgradeabilityAssessment(contract: SourceContract, allContrac
     return {
       upgradeable: true,
       referenceContract: referenceContract,
-      uups: isReferenceUUPS || inferUUPS(contract.validationData, fullContractName), // if reference OR current contract is UUPS, perform validations for UUPS
+      uups: isReferenceUUPS || isUUPS,
     };
   } else {
-    const initializable = hasInitializable(inherit);
-    const uups = inferUUPS(contract.validationData, fullContractName);
+    const initializable = inferInitializable(inherit);
     return {
-      upgradeable: initializable || uups,
-      uups: uups, // if current contract is UUPS, perform validations for UUPS
+      upgradeable: initializable || isUUPS,
+      uups: isUUPS,
     };
   }
 }
@@ -107,13 +108,4 @@ function getUpgradesFrom(doc: string, contract: SourceContract): string | undefi
   } else {
     return undefined;
   }
-}
-
-/**
- * Whether inherit has any contract that ends with ":Initializable"
- * @param inherit an array of fully qualified contract names
- * @return true if inherit has any contract that ends with ":Initializable"
- */
-function hasInitializable(inherit: string[]) {
-  return inherit.some(c => c.endsWith(':Initializable'));
 }

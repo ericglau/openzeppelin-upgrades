@@ -61,4 +61,4 @@ export {
   ValidationResult,
   ValidationOptionsWithoutKind,
   validateUpgradeSafety,
-} from './cli/validate-build-info';
+} from './cli/validate-upgrade-safety';

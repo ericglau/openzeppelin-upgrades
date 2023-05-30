@@ -60,6 +60,5 @@ export {
   ReportOptions,
   ValidateUpgradeSafetyOptions,
   validateUpgradeSafety,
-} from './cli/validate-upgrade-safety';
-
-export { SummaryReport } from './cli/summary-report';
+  SummaryReport,
+} from './cli';

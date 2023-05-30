@@ -1,4 +1,4 @@
-import chalk from "chalk";
+import _chalk from "chalk";
 import { ContractErrorReport } from "./contract-error-report";
 import { Report } from '../standalone';
 
@@ -10,6 +10,8 @@ export class SummaryReport implements Report {
   }
 
   explain(color = true): string {
+    const chalk = new _chalk.Instance({ level: color && _chalk.supportsColor ? _chalk.supportsColor.level : 0 });
+
     const lines: string[] = [];
     for (const errorReport of this.errorReports) {
       if (errorReport.standaloneErrors !== undefined) {
@@ -34,8 +36,8 @@ export function getSummaryReport(errorReports: ContractErrorReport[], suppressSu
     if (report.ok) {
       console.log('\nUpgrade safety checks completed successfully.');
     } else {
-      console.error(chalk.bold('\n=========================================================='));
-      console.error(chalk.bold('\nUpgrade safety checks completed with the following errors:'));
+      console.error(_chalk.bold('\n=========================================================='));
+      console.error(_chalk.bold('\nUpgrade safety checks completed with the following errors:'));
       console.error(`\n${report.explain()}`);  
     }
   }

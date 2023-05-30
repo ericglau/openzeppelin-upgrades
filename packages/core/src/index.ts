@@ -57,7 +57,6 @@ export {
 } from './usage-error';
 
 export {
-  BuildInfoFile,
   ValidationResult,
   ValidationOptionsWithoutKind,
   validateUpgradeSafety,

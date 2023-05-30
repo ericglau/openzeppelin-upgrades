@@ -16,27 +16,14 @@ import {
   UpgradesError,
 } from '..';
 
+import fs from 'fs';
+
 import { findAll } from 'solidity-ast/utils';
 import { ContractDefinition } from 'solidity-ast';
 import chalk from "chalk";
 
 import { getFullyQualifiedName } from '../utils/contract-name';
 import { getAnnotationArgs } from '../utils/annotations';
-
-/**
- * A build info file containing Solidity compiler input and output JSON objects.
- */
-export interface BuildInfoFile {
-  /**
-   * The Solidity compiler input JSON object.
-   */
-  input: SolcInput;
-
-  /**
-   * The Solidity compiler output JSON object.
-   */
-  output: SolcOutput;
-}
 
 /**
  * The overall validation result.
@@ -49,18 +36,38 @@ export interface ValidationResult {
   summary: string;
 }
 
+/**
+ * Validation options for upgrade safety checks.
+ */
 export type ValidationOptionsWithoutKind = Omit<ValidationOptions, 'kind'>;
 
 /**
  * Validates the upgrade safety of all contracts in the given build info files. Only contracts that are detected as upgradeable will be validated.
  * 
- * @param buildInfoFiles The build info files with Solidity compiler input and output.
+ * @param buildInfoFilePaths Absolute paths of build info files with Solidity compiler input and output.
+ * @param ignoreInvalidFiles Whether to ignore files that don't look like build info files.
  * @param opts Validation options, or undefined to use the default options.
  * @returns A summary of the validation, including any errors found.
  */
-export function validateUpgradeSafety(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind = {}): ValidationResult {
-  const reports = validateBuildInfo(buildInfoFiles, opts);
+export function validateUpgradeSafety(buildInfoFilePaths: string[], ignoreInvalidFiles: boolean = false, opts: ValidationOptionsWithoutKind = {}): ValidationResult {
+  const buildInfoFiles = getBuildInfoFiles(buildInfoFilePaths, ignoreInvalidFiles);
+  const reports = validateBuildInfoContracts(buildInfoFiles, opts);
   return summarize(reports);
+}
+
+/**
+ * A build info file containing Solidity compiler input and output JSON objects.
+ */
+interface BuildInfoFile {
+  /**
+   * The Solidity compiler input JSON object.
+   */
+  input: SolcInput;
+
+  /**
+   * The Solidity compiler output JSON object.
+   */
+  output: SolcOutput;
 }
 
 interface UpgradeSafetyErrorReport {
@@ -85,7 +92,33 @@ interface UpgradeSafetyErrorReport {
   storageLayoutErrors?: UpgradesError;
 }
 
-function validateBuildInfo(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind) {
+function getBuildInfoFiles(buildInfoFilePaths: string[], ignoreInvalidFiles: boolean) {
+  const buildInfoFiles: BuildInfoFile[] = [];
+
+  for (const buildInfoFilePath of buildInfoFilePaths) {
+    const buildInfoJson = readJSON(buildInfoFilePath);
+    if (buildInfoJson.input === undefined || buildInfoJson.output === undefined) {
+      if (ignoreInvalidFiles) {
+        console.log(`Skipping ${buildInfoFilePath} because it does not look like a build-info file.`);
+        continue;
+      } else {
+        throw new Error(`Build info file ${buildInfoFilePath} must contain Solidity compiler input and output.`);
+      }
+    } else {
+      buildInfoFiles.push({
+        input: buildInfoJson.input,
+        output: buildInfoJson.output,
+      });
+    }
+  }
+  return buildInfoFiles;
+}
+
+function readJSON(path: string) {
+  return JSON.parse(fs.readFileSync(path, 'utf8'));
+}
+
+function validateBuildInfoContracts(buildInfoFiles: BuildInfoFile[], opts: ValidationOptionsWithoutKind) {
   const sourceContracts: SourceContract[] = [];
   for (const buildInfoFile of buildInfoFiles) {
     const validations = runValidations(buildInfoFile.input, buildInfoFile.output);
@@ -96,8 +129,10 @@ function validateBuildInfo(buildInfoFiles: BuildInfoFile[], opts: ValidationOpti
 }
 
 function summarize(errorReports: UpgradeSafetyErrorReport[]): ValidationResult {
+  let ok = false;
   const lines: string[] = [];
   if (errorReports.length > 0) {
+    lines.push(chalk.bold('=========================================================='));
     lines.push(chalk.bold('Upgrade safety checks completed with the following errors:'));
     for (const validationReport of errorReports) {
       if (validationReport.standaloneErrors !== undefined) {
@@ -110,16 +145,14 @@ function summarize(errorReports: UpgradeSafetyErrorReport[]): ValidationResult {
         lines.push(chalk.bold(`- ${validationReport.reference} to ${validationReport.contract}: `) + validationReport.storageLayoutErrors.message);
       }
     }
-    return {
-      ok: false,
-      summary: lines.join('\n\n'),
-    };
   } else {
-    return {
-      ok: true,
-      summary: 'Upgrade safety checks completed successfully.',
-    }
+    ok = true;
+    lines.push('Upgrade safety checks completed successfully.');
   }
+  return {
+    ok,
+    summary: lines.join('\n\n'),
+  };
 }
 
 interface SourceContract {

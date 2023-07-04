@@ -39,6 +39,14 @@ export interface DeployOpts {
    * Polling interval in milliseconds between checks for the transaction confirmation when deploying an implementation contract or proxy admin contract.
    */
   pollingInterval?: number;
+
+  /**
+   * Whether to calculate and override the returned contract address for deployments according to the CREATE operation, using the deployer's address and nonce.
+   * Some RPC endpoints can return an incorrect address (see https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/487), so set this to true if you encounter errors with the returned address for deployments.
+   * This should only be set to true for networks that are fully EVM-compatible. If you are using a chain where deployment addresses are calculated differently, this must be false.
+   * Defaults to false.
+   */
+  overrideContractAddress?: boolean;
 }
 
 /**

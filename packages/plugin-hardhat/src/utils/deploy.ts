@@ -21,12 +21,13 @@ export async function deploy(
   if (opts?.usePlatformDeploy) {
     return await platformDeploy(hre, factory, opts, ...args);
   } else {
-    return await ethersDeploy(factory, ...args);
+    return await ethersDeploy(factory, opts, ...args);
   }
 }
 
 async function ethersDeploy(
   factory: ContractFactory,
+  opts: UpgradeOptions,
   ...args: unknown[]
 ): Promise<Required<Deployment & DeployTransaction> & RemoteDeploymentId> {
   const contractInstance = await factory.deploy(...args);
@@ -41,7 +42,7 @@ async function ethersDeploy(
 
   let address = contractAddress;
 
-  if (signer !== undefined) {
+  if (signer !== undefined && opts.overrideContractAddress) {
     const from = await signer.getAddress();
 
     // Some RPC endpoints can return an incorrect address. See https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/487
@@ -52,6 +53,8 @@ async function ethersDeploy(
     });
     if (address !== contractAddress) {
       debug(`overriding contract address from ${contractAddress} to ${address} for nonce ${deployTransaction.nonce}`);
+    } else {
+      debug(`contract address ${contractAddress} matches CREATE address for nonce ${deployTransaction.nonce}`);
     }
   }
 

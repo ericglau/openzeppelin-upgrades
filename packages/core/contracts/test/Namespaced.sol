@@ -51,7 +51,7 @@ contract ExampleV2_Ok {
 contract ExampleV2_Bad {
     /// @custom:storage-location erc7201:example.main
     struct MainStorage {
-        uint256 x;
+        uint256 y;
     }
 
     // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
@@ -64,9 +64,9 @@ contract ExampleV2_Bad {
         }
     }
 
-    function _getXSquared() internal view returns (uint256) {
+    function _getYSquared() internal view returns (uint256) {
         MainStorage storage $ = _getMainStorage();
-        return $.x * $.x;
+        return $.y * $.y;
     }
 }
 

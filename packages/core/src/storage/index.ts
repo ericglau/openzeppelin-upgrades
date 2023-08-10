@@ -44,7 +44,25 @@ export function getStorageUpgradeReport(
   const originalDetailed = getDetailedLayout(original);
   const updatedDetailed = getDetailedLayout(updated);
   const comparator = new StorageLayoutComparator(opts.unsafeAllowCustomTypes, opts.unsafeAllowRenames);
-  const report = comparator.compareLayouts(originalDetailed, updatedDetailed);
+  const ops = comparator.getStorageOperations(originalDetailed, updatedDetailed);
+
+  if (original.namespaces !== undefined) {
+    for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
+      const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types }); // TODO check if types is correct
+      
+      const updatedNamespaceLayout = updated.namespaces?.[namespace];
+      if (updatedNamespaceLayout === undefined) {
+        throw new Error(`Namespace ${namespace} not found in updated layout`);
+      }
+      const updatedNamespaceDetailed = getDetailedLayout({ storage: updatedNamespaceLayout, types: updated.types }); // TODO check if types is correct
+
+      const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
+
+      ops.push(...namespaceOps);
+    }
+  }
+
+  const report = new LayoutCompatibilityReport(ops);
 
   if (comparator.hasAllowedUncheckedCustomTypes) {
     logWarning(`Potentially unsafe deployment`, [

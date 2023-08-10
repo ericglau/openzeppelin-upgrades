@@ -11,6 +11,7 @@ export interface StorageLayout {
   storage: StorageItem[];
   types: Record<string, TypeItem>;
   flat?: boolean;
+  namespaces?: Record<string, StorageItem[]>;
 }
 
 export type StorageField<Type = string> = StorageItem<Type> | StructMember<Type>;
@@ -32,6 +33,7 @@ export interface TypeItem<Type = string> {
   members?: TypeItemMembers<Type>;
   numberOfBytes?: string;
   underlying?: Type;
+  src?: string;
 }
 
 export type TypeItemMembers<Type = string> = StructMember<Type>[] | EnumMember[];
@@ -43,6 +45,7 @@ export interface StructMember<Type = string> {
   renamedFrom?: string;
   offset?: number;
   slot?: string;
+  src?: string;
 }
 
 export type EnumMember = string;

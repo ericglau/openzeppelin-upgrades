@@ -7,7 +7,7 @@ import {
   VariableDeclaration,
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
-import { StorageLayout, TypeItem } from './layout';
+import { StorageItem, StorageLayout, TypeItem } from './layout';
 import { normalizeTypeIdentifier } from '../utils/type-id';
 import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
@@ -70,7 +70,42 @@ export function extractStorageLayout(
       }
     }
   }
+  layout.namespaces = getNamespaces(contractDef, decodeSrc);
   return layout;
+}
+
+function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,): Record<string, StorageItem[]> {
+  const namespaces: Record<string, StorageItem[]> = {};
+  for (const node of contractDef.nodes) {
+    if (isNodeType('StructDefinition', node)) {
+      if (node.documentation?.text.startsWith('@custom:storage-location')) {
+        const key = node.documentation.text.split(' ')[1]; // TODO cleanup
+        const typeMembers = getTypeMembers(node);
+        if (typeMembers !== undefined) {
+          console.log('key', key);
+          console.log('typeMembers', typeMembers);
+          const storageItems: StorageItem[] = [];
+          for (const member of typeMembers) {
+            if (typeof member !== 'string') {
+              if (member.src === undefined) {
+                throw new Error('struct member src is undefined'); // TODO handle undefined
+              }
+              const storageItem: StorageItem = {
+                contract: contractDef.name,
+                label: member.label,
+                type: member.type,
+                src: decodeSrc({ src: member.src }), // need to wrap object since src is never undefined
+              }
+              storageItems.push(storageItem);
+            }
+          }
+          namespaces[key] = storageItems;
+        }
+      }
+    }
+  }
+  console.log('namespaces', namespaces);
+  return namespaces;
 }
 
 const findTypeNames = findAll([
@@ -99,6 +134,7 @@ function getTypeMembers(typeDef: StructDefinition | EnumDefinition): TypeItem['m
       return {
         label: m.name,
         type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
+        src: m.src,
       };
     });
   } else {

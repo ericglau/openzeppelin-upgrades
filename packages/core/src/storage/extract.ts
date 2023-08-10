@@ -82,8 +82,8 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,):
         const key = node.documentation.text.split(' ')[1]; // TODO cleanup
         const typeMembers = getTypeMembers(node);
         if (typeMembers !== undefined) {
-          console.log('key', key);
-          console.log('typeMembers', typeMembers);
+          // console.log('key', key);
+          // console.log('typeMembers', typeMembers);
           const storageItems: StorageItem[] = [];
           for (const member of typeMembers) {
             if (typeof member !== 'string') {
@@ -104,7 +104,7 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,):
       }
     }
   }
-  console.log('namespaces', namespaces);
+  // console.log('namespaces', namespaces);
   return namespaces;
 }
 

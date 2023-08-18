@@ -53,7 +53,7 @@ test('namespaced upgrade bad', t => {
   const v2 = t.context.extractStorageLayout('ExampleV2_Bad');
   const comparison = getStorageUpgradeErrors(v1, v2);
   t.like(comparison, {
-    length: 1,
+    length: 2,
     0: {
       kind: 'delete',
       original: {
@@ -62,6 +62,23 @@ test('namespaced upgrade bad', t => {
         type: {
           id: 't_uint256',
         },
+      },
+    },
+    1: {
+      kind: 'layoutchange',
+      original: {
+        label: 'y',
+        type: {
+          id: 't_uint256',
+        },
+        slot: '1',
+      },
+      updated: {
+        label: 'y',
+        type: {
+          id: 't_uint256',
+        },
+        slot: '0',
       },
     },
   });

@@ -50,11 +50,15 @@ export function getStorageUpgradeReport(
     for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
       const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types }); // TODO check if types is correct
       
+      console.log('original types', JSON.stringify(original.types, null, 2));
+
       const updatedNamespaceLayout = updated.namespaces?.[namespace];
       if (updatedNamespaceLayout === undefined) {
         throw new Error(`Namespace ${namespace} not found in updated layout`);
       }
       const updatedNamespaceDetailed = getDetailedLayout({ storage: updatedNamespaceLayout, types: updated.types }); // TODO check if types is correct
+
+      console.log('updated types', JSON.stringify(updated.types, null, 2));
 
       const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
 

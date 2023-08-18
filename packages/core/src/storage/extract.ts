@@ -14,6 +14,7 @@ import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
 import { pick } from '../utils/pick';
 import { execall } from '../utils/execall';
+import { stabilizeStorageLayout } from '../utils/stabilize-layout';
 
 const currentLayoutVersion = '1.2';
 
@@ -71,18 +72,23 @@ export function extractStorageLayout(
       }
     }
   }
-  layout.namespaces = getNamespaces(contractDef, decodeSrc);
+  layout.namespaces = getNamespaces(contractDef, decodeSrc, layout.types);
   return layout;
 }
 
-function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,): Record<string, StorageItem[]> {
+function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, types: Record<string, TypeItem>): Record<string, StorageItem[]> {
   const namespaces: Record<string, StorageItem[]> = {};
   for (const node of contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
       const documentation: StructuredDocumentation | null = (node as any).documentation;
       if (documentation?.text.startsWith('@custom:storage-location')) {
         const key = documentation.text.split(' ')[1]; // TODO cleanup
+
+        console.log('getting namespaces for node', JSON.stringify(node,null,2));
+
         const typeMembers = getTypeMembers(node);
+        console.log('type members', JSON.stringify(typeMembers,null,2));
+
         if (typeMembers !== undefined) {
           // console.log('key', key);
           // console.log('typeMembers', typeMembers);
@@ -92,10 +98,42 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,):
               if (member.src === undefined) {
                 throw new Error('struct member src is undefined'); // TODO handle undefined
               }
+
+              // console.log('non-stabilized storage layout', storageLayout);
+              // if (storageLayout) console.log('stabilized storage layout', JSON.stringify(stabilizeStorageLayout(storageLayout),null,2));
+              // console.log('current struct canonical name', node.canonicalName);
+
+              // console.log('member', JSON.stringify(member, null, 2));
+
+            
+
+              // console.log('getNamespaces - types', JSON.stringify(types, null, 2));
+
+              const structType = findStructTypeWithCanonicalName(types, node.canonicalName);
+              console.log('found struct type', JSON.stringify(structType, null, 2));
+
+              // find the same member name from the members of the struct type
+              const structMembers = structType?.members;
+              let storageLayoutStructMember;
+              if (structMembers !== undefined) {
+                for (const structMember of structMembers) {
+                  if (typeof structMember === 'string') {
+                    throw new Error('struct member is string'); // TODO handle string
+                  } else {
+                    if (structMember.label === member.label) {
+                      console.log('found struct member', JSON.stringify(structMember, null, 2));
+                      storageLayoutStructMember = structMember;
+                    }
+                  }
+                }
+              }
+
               const storageItem: StorageItem = {
                 contract: contractDef.name,
                 label: member.label,
                 type: member.type,
+                offset: storageLayoutStructMember?.offset,
+                slot: storageLayoutStructMember?.slot,
                 src: decodeSrc({ src: member.src }), // need to wrap object since src is never undefined
               }
               storageItems.push(storageItem);
@@ -108,6 +146,19 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,):
   }
   // console.log('namespaces', namespaces);
   return namespaces;
+}
+
+function findStructTypeWithCanonicalName(types: Record<string, TypeItem>, canonicalName: string) {
+  // iterate through storageLayout.types
+  for (const type of Object.values(types)) {
+    // console.log('findStructTypeWithCanonicalName - value', JSON.stringify(value, null, 2));
+    // const type = storageLayout.types[key];
+    // console.log('type', JSON.stringify(type, null, 2));
+    if (type.label === `struct ${canonicalName}`) {
+      return type;
+    }
+  }
+  return undefined;
 }
 
 const findTypeNames = findAll([

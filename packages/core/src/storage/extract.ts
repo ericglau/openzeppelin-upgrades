@@ -132,10 +132,11 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, t
                 contract: contractDef.name,
                 label: member.label,
                 type: member.type,
-                offset: storageLayoutStructMember?.offset,
-                slot: storageLayoutStructMember?.slot,
+                offset: storageLayoutStructMember?.offset, // TODO if this can be undefined, create a separate storageItem object without this property
+                slot: storageLayoutStructMember?.slot, // TODO same as above
                 src: decodeSrc({ src: member.src }), // need to wrap object since src is never undefined
               }
+
               storageItems.push(storageItem);
             }
           }
@@ -188,6 +189,7 @@ function getTypeMembers(typeDef: StructDefinition | EnumDefinition): TypeItem['m
         label: m.name,
         type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
         src: m.src,
+        // TODO check if we need numberOfBytes from the storage layout's types
       };
     });
   } else {

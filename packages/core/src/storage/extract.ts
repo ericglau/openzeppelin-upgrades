@@ -5,6 +5,7 @@ import {
   EnumDefinition,
   TypeDescriptions,
   VariableDeclaration,
+  StructuredDocumentation,
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
 import { StorageItem, StorageLayout, TypeItem } from './layout';
@@ -78,8 +79,9 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder,):
   const namespaces: Record<string, StorageItem[]> = {};
   for (const node of contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
-      if (node.documentation?.text.startsWith('@custom:storage-location')) {
-        const key = node.documentation.text.split(' ')[1]; // TODO cleanup
+      const documentation: StructuredDocumentation | null = (node as any).documentation;
+      if (documentation?.text.startsWith('@custom:storage-location')) {
+        const key = documentation.text.split(' ')[1]; // TODO cleanup
         const typeMembers = getTypeMembers(node);
         if (typeMembers !== undefined) {
           // console.log('key', key);

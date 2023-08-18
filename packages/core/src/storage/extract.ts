@@ -84,10 +84,10 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, t
       if (documentation?.text.startsWith('@custom:storage-location')) {
         const key = documentation.text.split(' ')[1]; // TODO cleanup
 
-        console.log('getting namespaces for node', JSON.stringify(node,null,2));
+        // console.log('getting namespaces for node', JSON.stringify(node,null,2));
 
         const typeMembers = getTypeMembers(node);
-        console.log('type members', JSON.stringify(typeMembers,null,2));
+        // console.log('type members', JSON.stringify(typeMembers,null,2));
 
         if (typeMembers !== undefined) {
           // console.log('key', key);
@@ -110,7 +110,7 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, t
               // console.log('getNamespaces - types', JSON.stringify(types, null, 2));
 
               const structType = findStructTypeWithCanonicalName(types, node.canonicalName);
-              console.log('found struct type', JSON.stringify(structType, null, 2));
+              // console.log('found struct type', JSON.stringify(structType, null, 2));
 
               // find the same member name from the members of the struct type
               const structMembers = structType?.members;
@@ -121,7 +121,7 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, t
                     throw new Error('struct member is string'); // TODO handle string
                   } else {
                     if (structMember.label === member.label) {
-                      console.log('found struct member', JSON.stringify(structMember, null, 2));
+                      // console.log('found struct member', JSON.stringify(structMember, null, 2));
                       storageLayoutStructMember = structMember;
                     }
                   }

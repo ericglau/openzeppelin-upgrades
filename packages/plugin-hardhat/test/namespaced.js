@@ -17,5 +17,41 @@ test('validate namespace - ok', async t => {
 test('validate namespace - bad', async t => {
   const { Example, ExampleV2_Bad } = t.context;
 
-  await upgrades.validateUpgrade(Example, ExampleV2_Bad);
+  try {
+    await upgrades.validateUpgrade(Example, ExampleV2_Bad);
+  } catch (e) {
+    const comparison = e.report.ops;
+
+    // Ensure the layout change is detected, in addition to the deletion. This is not normally reported since it has lower cost.
+    t.like(comparison, {
+      length: 2,
+      0: {
+        kind: 'delete',
+        original: {
+          contract: 'Example',
+          label: 'x',
+          type: {
+            id: 't_uint256',
+          },
+        },
+      },
+      1: {
+        kind: 'layoutchange',
+        original: {
+          label: 'y',
+          type: {
+            id: 't_uint256',
+          },
+          slot: '1',
+        },
+        updated: {
+          label: 'y',
+          type: {
+            id: 't_uint256',
+          },
+          slot: '0',
+        },
+      },
+    });
+  }
 });

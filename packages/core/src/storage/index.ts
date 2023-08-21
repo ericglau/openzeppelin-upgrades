@@ -68,7 +68,7 @@ export function getStorageUpgradeReport(
     }
   }
 
-  // console.log('ops', JSON.stringify(ops, null, 2));
+  console.log('ops', JSON.stringify(ops, null, 2));
 
   const report = new LayoutCompatibilityReport(ops);
 

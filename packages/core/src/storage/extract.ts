@@ -25,6 +25,7 @@ export function extractStorageLayout(
   decodeSrc: SrcDecoder,
   deref: ASTDereferencer,
   storageLayout?: StorageLayout | undefined,
+  namespacedStorageLayout?: StorageLayout | undefined, // TODO doc
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
   if (storageLayout !== undefined) {
@@ -70,7 +71,7 @@ export function extractStorageLayout(
       }
     }
   }
-  layout.namespaces = getNamespaces(contractDef, decodeSrc, layout.types);
+  layout.namespaces = getNamespaces(contractDef, decodeSrc, namespacedStorageLayout?.types ?? layout.types);
   return layout;
 }
 

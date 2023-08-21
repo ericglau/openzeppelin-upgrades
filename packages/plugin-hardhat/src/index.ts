@@ -88,7 +88,96 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
   const { isFullSolcOutput } = await import('./utils/is-full-solc-output');
   if (isFullSolcOutput(output)) {
     const decodeSrc = solcInputOutputDecoder(args.input, output);
-    const validations = validate(output, decodeSrc, args.solcVersion);
+
+    // TODO convert solc input to a modified solc input with contains only namespaces and injected variables that reference the structs
+    
+    // console.log('sources before modification, ' + JSON.stringify(args.input.sources, null, 2));
+
+    // We iterate through each source from the original solc input.
+    // For each source, delete all functions.
+    // If a source has namespaces, we also modify the source to inject variables that reference the namespace structs.
+    const modifiedInput: SolcInput = JSON.parse(JSON.stringify(args.input));
+    for (const [sourcePath, source] of Object.entries(modifiedInput.sources)) {
+      // console.log('got contents for ' + sourcePath + ': ' + source.content);
+
+
+      // TODO this is a hack to just get the namespace for Namespaced.sol
+      if (sourcePath === 'contracts/Namespaced.sol') {
+        console.log('found namespace code', source.content);
+        const replacement = `\
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Example {
+    MainStorage $;
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        uint256 x;
+        uint256 y;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
+    bytes32 private constant MAIN_STORAGE_LOCATION =
+        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
+
+
+}
+
+contract ExampleV2_Ok {
+    MainStorage $;
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        uint256 x;
+        uint256 y;
+        uint256 z;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
+    bytes32 private constant MAIN_STORAGE_LOCATION =
+        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
+
+
+}
+
+contract ExampleV2_Bad {
+    MainStorage $;
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        uint256 y;
+    }
+
+    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
+    bytes32 private constant MAIN_STORAGE_LOCATION =
+        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
+
+
+}
+`;
+        modifiedInput.sources[sourcePath].content = replacement;
+        console.log('original input sources has content for ' + sourcePath + ': ' + args.input.sources[sourcePath].content);
+        console.log('modified input sources has content for ' + sourcePath + ': ' + modifiedInput.sources[sourcePath].content);
+
+
+      }
+
+    }
+    
+    // console.log('sources before modification, ' + JSON.stringify(args.input.sources, null, 2));
+    // console.log('sources after modification, ' + JSON.stringify(modifiedInput.sources, null, 2));
+
+    console.log('Compiling for namespaces...');
+    const { output: modifiedOutput } = await runSuper({ ...args, input: modifiedInput });
+    console.log('Done compiling for namespaces: ', modifiedOutput);
+
+    // console.log('output types for namespaced: ' + JSON.stringify(modifiedOutput.contracts['contracts/Namespaced.sol']['Example'].storageLayout.types, null, 2));
+
+
+    // pass in transpiled output to validate
+
+    const validations = validate(output, decodeSrc, args.solcVersion, modifiedOutput);
     await writeValidations(hre, validations);
   }
 

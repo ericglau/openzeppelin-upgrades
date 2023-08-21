@@ -46,10 +46,12 @@ export function getStorageUpgradeReport(
   const comparator = new StorageLayoutComparator(opts.unsafeAllowCustomTypes, opts.unsafeAllowRenames);
   const ops = comparator.getStorageOperations(originalDetailed, updatedDetailed);
 
+  // console.log('orig', JSON.stringify(original, null, 2));
+
   if (original.namespaces !== undefined) {
     for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
       const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types }); // TODO check if types is correct
-      
+
       // console.log('original types', JSON.stringify(original.types, null, 2));
 
       const updatedNamespaceLayout = updated.namespaces?.[namespace];
@@ -65,6 +67,8 @@ export function getStorageUpgradeReport(
       ops.push(...namespaceOps);
     }
   }
+
+  // console.log('ops', JSON.stringify(ops, null, 2));
 
   const report = new LayoutCompatibilityReport(ops);
 

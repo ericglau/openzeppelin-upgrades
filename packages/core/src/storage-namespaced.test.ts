@@ -7,7 +7,6 @@ import { SolcOutput } from './solc-api';
 import { getStorageUpgradeErrors } from './storage';
 import { StorageLayout } from './storage/layout';
 import { extractStorageLayout } from './storage/extract';
-import { stabilizeTypeIdentifier } from './utils/type-id';
 import { stabilizeStorageLayout } from './utils/stabilize-layout';
 
 interface Context {

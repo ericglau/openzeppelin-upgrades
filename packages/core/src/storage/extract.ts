@@ -5,7 +5,6 @@ import {
   EnumDefinition,
   TypeDescriptions,
   VariableDeclaration,
-  StructuredDocumentation,
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
 import { StorageItem, StorageLayout, TypeItem } from './layout';
@@ -14,7 +13,6 @@ import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
 import { pick } from '../utils/pick';
 import { execall } from '../utils/execall';
-import { stabilizeStorageLayout } from '../utils/stabilize-layout';
 
 const currentLayoutVersion = '1.2';
 
@@ -76,13 +74,16 @@ export function extractStorageLayout(
   return layout;
 }
 
-function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, types: Record<string, TypeItem>): Record<string, StorageItem[]> {
+function getNamespaces(
+  contractDef: ContractDefinition,
+  decodeSrc: SrcDecoder,
+  types: Record<string, TypeItem>,
+): Record<string, StorageItem[]> {
   const namespaces: Record<string, StorageItem[]> = {};
   for (const node of contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
-      const documentation: StructuredDocumentation | null = (node as any).documentation;
-      if (documentation?.text.startsWith('@custom:storage-location')) {
-        const key = documentation.text.split(' ')[1]; // TODO cleanup
+      if (node.documentation?.text.startsWith('@custom:storage-location')) {
+        const key = node.documentation.text.split(' ')[1]; // TODO cleanup
 
         // console.log('getting namespaces for node', JSON.stringify(node,null,2));
 
@@ -104,8 +105,6 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, t
               // console.log('current struct canonical name', node.canonicalName);
 
               // console.log('member', JSON.stringify(member, null, 2));
-
-            
 
               // console.log('getNamespaces - types', JSON.stringify(types, null, 2));
 
@@ -135,7 +134,7 @@ function getNamespaces(contractDef: ContractDefinition, decodeSrc: SrcDecoder, t
                 offset: storageLayoutStructMember?.offset, // TODO if this can be undefined, create a separate storageItem object without this property
                 slot: storageLayoutStructMember?.slot, // TODO same as above
                 src: decodeSrc({ src: member.src }), // need to wrap object since src is never undefined
-              }
+              };
 
               storageItems.push(storageItem);
             }

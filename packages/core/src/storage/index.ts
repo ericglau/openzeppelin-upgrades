@@ -50,9 +50,10 @@ export function getStorageUpgradeReport(
 
   if (original.namespaces !== undefined) {
     for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
-      const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types }); // TODO check if types is correct
+      const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types }); // TODO check if types is correct.
 
       // console.log('original types', JSON.stringify(original.types, null, 2));
+      console.log('original namespace detailed', JSON.stringify(origNamespaceDetailed, null, 2));
 
       const updatedNamespaceLayout = updated.namespaces?.[namespace];
       if (updatedNamespaceLayout === undefined) {
@@ -61,14 +62,15 @@ export function getStorageUpgradeReport(
       const updatedNamespaceDetailed = getDetailedLayout({ storage: updatedNamespaceLayout, types: updated.types }); // TODO check if types is correct
 
       // console.log('updated types', JSON.stringify(updated.types, null, 2));
+      console.log('updated namespace detailed', JSON.stringify(updatedNamespaceDetailed, null, 2));
 
       const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
+      console.log('namespace ops', JSON.stringify(namespaceOps, null, 2));
+
 
       ops.push(...namespaceOps);
     }
   }
-
-  console.log('ops', JSON.stringify(ops, null, 2));
 
   const report = new LayoutCompatibilityReport(ops);
 

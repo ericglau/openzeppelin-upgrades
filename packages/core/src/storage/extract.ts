@@ -72,6 +72,12 @@ export function extractStorageLayout(
     }
   }
   layout.namespaces = getNamespaces(contractDef, decodeSrc, namespacedStorageLayout?.types ?? layout.types);
+
+  if (namespacedStorageLayout !== undefined) {
+    // use namespaced types as the default, then write original types to it (overwriting anything if needed)
+    layout.types = { ...namespacedStorageLayout.types, ...layout.types };
+  }
+
   return layout;
 }
 

@@ -28,8 +28,11 @@ export function extractStorageLayout(
   namespacedStorageLayout?: StorageLayout | undefined, // TODO doc
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
+
+  const mergedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
+
   if (storageLayout !== undefined) {
-    layout.types = mapValues(storageLayout.types, m => {
+    layout.types = mapValues(mergedTypes, m => {
       return {
         label: m.label,
         members: m.members?.map(m =>
@@ -71,12 +74,7 @@ export function extractStorageLayout(
       }
     }
   }
-  layout.namespaces = getNamespaces(contractDef, decodeSrc, namespacedStorageLayout?.types ?? layout.types);
-
-  if (namespacedStorageLayout !== undefined) {
-    // use namespaced types as the default, then write original types to it (overwriting anything if needed)
-    layout.types = { ...namespacedStorageLayout.types, ...layout.types };
-  }
+  layout.namespaces = getNamespaces(contractDef, decodeSrc, mergedTypes);
 
   return layout;
 }

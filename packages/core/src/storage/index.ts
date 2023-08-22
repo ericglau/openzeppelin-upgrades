@@ -45,31 +45,7 @@ export function getStorageUpgradeReport(
   const updatedDetailed = getDetailedLayout(updated);
   const comparator = new StorageLayoutComparator(opts.unsafeAllowCustomTypes, opts.unsafeAllowRenames);
   const ops = comparator.getStorageOperations(originalDetailed, updatedDetailed);
-
-  // console.log('orig', JSON.stringify(original, null, 2));
-
-  if (original.namespaces !== undefined) {
-    for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
-      const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types }); // TODO check if types is correct.
-
-      // console.log('original types', JSON.stringify(original.types, null, 2));
-      console.log('original namespace detailed', JSON.stringify(origNamespaceDetailed, null, 2));
-
-      const updatedNamespaceLayout = updated.namespaces?.[namespace];
-      if (updatedNamespaceLayout === undefined) {
-        throw new Error(`Namespace ${namespace} not found in updated layout`);
-      }
-      const updatedNamespaceDetailed = getDetailedLayout({ storage: updatedNamespaceLayout, types: updated.types }); // TODO check if types is correct
-
-      // console.log('updated types', JSON.stringify(updated.types, null, 2));
-      console.log('updated namespace detailed', JSON.stringify(updatedNamespaceDetailed, null, 2));
-
-      const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
-      console.log('namespace ops', JSON.stringify(namespaceOps, null, 2));
-
-      ops.push(...namespaceOps);
-    }
-  }
+  pushNamespacedStorageOperations(ops, comparator, original, updated);
 
   const report = new LayoutCompatibilityReport(ops);
 
@@ -83,6 +59,23 @@ export function getStorageUpgradeReport(
   }
 
   return report;
+}
+
+function pushNamespacedStorageOperations(ops: StorageOperation<StorageItem>[], comparator: StorageLayoutComparator, original: StorageLayout, updated: StorageLayout) {
+  if (original.namespaces !== undefined) {
+    for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
+      const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types });
+
+      const updatedNamespaceLayout = updated.namespaces?.[namespace];
+      if (updatedNamespaceLayout === undefined) {
+        throw new Error(`Namespace ${namespace} not found in updated layout`);
+      }
+      const updatedNamespaceDetailed = getDetailedLayout({ storage: updatedNamespaceLayout, types: updated.types });
+      const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
+
+      ops.push(...namespaceOps);
+    }
+  }
 }
 
 export class StorageUpgradeErrors extends UpgradesError {

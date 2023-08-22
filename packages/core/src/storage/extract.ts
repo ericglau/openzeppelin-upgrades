@@ -85,7 +85,7 @@ function getNamespaces(
   decodeSrc: SrcDecoder,
   types: Record<string, TypeItem>,
 ): Record<string, StorageItem[]> {
-  // TODO if there is a namespace comment, check if solidity version is >= 0.8.20
+  // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
   const namespaces: Record<string, StorageItem[]> = {};
   for (const node of contractDef.nodes) {
@@ -93,7 +93,6 @@ function getNamespaces(
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
-
         namespaces[storageLocation] = getNamespacedStorageItems(node, types, contractDef, decodeSrc);
       }
     }

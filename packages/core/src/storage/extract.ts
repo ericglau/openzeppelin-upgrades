@@ -92,56 +92,90 @@ function getNamespaces(
     if (isNodeType('StructDefinition', node)) {
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
-        const storageLocationArgs = getAnnotationArgs(doc, 'storage-location');
-        if (storageLocationArgs.length !== 1) {
-          throw new Error('@custom:storage-location annotation must have exactly one argument');  
-        }
-        const storageLocation = storageLocationArgs[0];
+        const storageLocation = getStorageLocation(doc);
 
-        const typeMembers = getTypeMembers(node);
-        if (typeMembers !== undefined) {
-          const storageItems: StorageItem[] = [];
-          for (const member of typeMembers) {
-            if (typeof member !== 'string') {
-              if (member.src === undefined) {
-                throw new Error('struct member src is undefined'); // TODO handle undefined
-              }
-
-              const structType = findStructTypeWithCanonicalName(types, node.canonicalName);
-
-              // find the same member name from the members of the struct type
-              const structMembers = structType?.members;
-              let storageLayoutStructMember;
-              if (structMembers !== undefined) {
-                for (const structMember of structMembers) {
-                  if (typeof structMember === 'string') {
-                    throw new Error('struct member is string'); // TODO handle string
-                  } else {
-                    if (structMember.label === member.label) {
-                      storageLayoutStructMember = structMember;
-                    }
-                  }
-                }
-              }
-
-              const storageItem: StorageItem = {
-                contract: contractDef.name,
-                label: member.label,
-                type: member.type,
-                offset: storageLayoutStructMember?.offset, // TODO if this can be undefined, create a separate storageItem object without this property
-                slot: storageLayoutStructMember?.slot, // TODO same as above
-                src: decodeSrc({ src: member.src }), // need to wrap object since src is never undefined
-              };
-
-              storageItems.push(storageItem);
-            }
-          }
-          namespaces[storageLocation] = storageItems;
-        }
+        namespaces[storageLocation] = getNamespacedStorageItems(node, types, contractDef, decodeSrc);
       }
     }
   }
   return namespaces;
+}
+
+function getNamespacedStorageItems(
+  node: StructDefinition,
+  types: Record<string, TypeItem<string>>,
+  contractDef: ContractDefinition,
+  decodeSrc: SrcDecoder,
+) {
+  const typeMembers = getTypeMembers(node);
+
+  // TODO there are a lot of invariants here. Can we make these typesafe?
+
+  if (typeMembers === undefined) {
+    throw new Error('Broken invariant: typeMembers is undefined'); // invariant!
+  }
+
+  const storageItems: StorageItem[] = [];
+  for (const member of typeMembers) {
+    if (typeof member !== 'string') {
+      if (member.src === undefined) {
+        throw new Error('Broken invariant: struct member src is undefined'); // invariant!
+      }
+
+      const structType = findStructTypeWithCanonicalName(types, node.canonicalName);
+
+      // find the same member name from the members of the struct type
+      const structMembers = structType?.members;
+      let structMemberFromTypes;
+      if (structMembers !== undefined) {
+        for (const structMember of structMembers) {
+          if (typeof structMember === 'string') {
+            throw new Error('Broken invariant: struct type has string member'); // invariant!
+          } else {
+            if (structMember.label === member.label) {
+              structMemberFromTypes = structMember;
+            }
+          }
+        }
+      }
+
+      const contract = contractDef.name;
+      const label = member.label;
+      const type = member.type;
+      const offset = structMemberFromTypes?.offset;
+      const slot = structMemberFromTypes?.slot;
+      const src = decodeSrc({ src: member.src });
+
+      const storageItem: StorageItem =
+        offset !== undefined && slot !== undefined
+          ? {
+              contract,
+              label,
+              type,
+              src,
+              offset,
+              slot,
+            }
+          : {
+              contract,
+              label,
+              type,
+              src,
+            };
+
+      storageItems.push(storageItem);
+    }
+  }
+  return storageItems;
+}
+
+function getStorageLocation(doc: string) {
+  const storageLocationArgs = getAnnotationArgs(doc, 'storage-location');
+  if (storageLocationArgs.length !== 1) {
+    throw new Error('@custom:storage-location annotation must have exactly one argument');
+  }
+  const storageLocation = storageLocationArgs[0];
+  return storageLocation;
 }
 
 function findStructTypeWithCanonicalName(types: Record<string, TypeItem>, canonicalName: string) {

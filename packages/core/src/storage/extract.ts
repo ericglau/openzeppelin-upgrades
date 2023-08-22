@@ -13,6 +13,7 @@ import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
 import { pick } from '../utils/pick';
 import { execall } from '../utils/execall';
+import { getAnnotationArgs, getDocumentation, hasAnnotationTag } from '../utils/annotations';
 
 const currentLayoutVersion = '1.2';
 
@@ -84,20 +85,21 @@ function getNamespaces(
   decodeSrc: SrcDecoder,
   types: Record<string, TypeItem>,
 ): Record<string, StorageItem[]> {
+  // TODO if there is a namespace comment, check if solidity version is >= 0.8.20
+
   const namespaces: Record<string, StorageItem[]> = {};
   for (const node of contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
-      if (node.documentation?.text.startsWith('@custom:storage-location')) {
-        const key = node.documentation.text.split(' ')[1]; // TODO cleanup
-
-        // console.log('getting namespaces for node', JSON.stringify(node,null,2));
+      const doc = getDocumentation(node);
+      if (hasAnnotationTag(doc, 'storage-location')) {
+        const storageLocationArgs = getAnnotationArgs(doc, 'storage-location');
+        if (storageLocationArgs.length !== 1) {
+          throw new Error('@custom:storage-location annotation must have exactly one argument');  
+        }
+        const storageLocation = storageLocationArgs[0];
 
         const typeMembers = getTypeMembers(node);
-        // console.log('type members', JSON.stringify(typeMembers,null,2));
-
         if (typeMembers !== undefined) {
-          // console.log('key', key);
-          // console.log('typeMembers', typeMembers);
           const storageItems: StorageItem[] = [];
           for (const member of typeMembers) {
             if (typeof member !== 'string') {
@@ -105,16 +107,7 @@ function getNamespaces(
                 throw new Error('struct member src is undefined'); // TODO handle undefined
               }
 
-              // console.log('non-stabilized storage layout', storageLayout);
-              // if (storageLayout) console.log('stabilized storage layout', JSON.stringify(stabilizeStorageLayout(storageLayout),null,2));
-              // console.log('current struct canonical name', node.canonicalName);
-
-              // console.log('member', JSON.stringify(member, null, 2));
-
-              // console.log('getNamespaces - types', JSON.stringify(types, null, 2));
-
               const structType = findStructTypeWithCanonicalName(types, node.canonicalName);
-              // console.log('found struct type', JSON.stringify(structType, null, 2));
 
               // find the same member name from the members of the struct type
               const structMembers = structType?.members;
@@ -125,7 +118,6 @@ function getNamespaces(
                     throw new Error('struct member is string'); // TODO handle string
                   } else {
                     if (structMember.label === member.label) {
-                      // console.log('found struct member', JSON.stringify(structMember, null, 2));
                       storageLayoutStructMember = structMember;
                     }
                   }
@@ -144,21 +136,16 @@ function getNamespaces(
               storageItems.push(storageItem);
             }
           }
-          namespaces[key] = storageItems;
+          namespaces[storageLocation] = storageItems;
         }
       }
     }
   }
-  // console.log('namespaces', namespaces);
   return namespaces;
 }
 
 function findStructTypeWithCanonicalName(types: Record<string, TypeItem>, canonicalName: string) {
-  // iterate through storageLayout.types
   for (const type of Object.values(types)) {
-    // console.log('findStructTypeWithCanonicalName - value', JSON.stringify(value, null, 2));
-    // const type = storageLayout.types[key];
-    // console.log('type', JSON.stringify(type, null, 2));
     if (type.label === `struct ${canonicalName}`) {
       return type;
     }

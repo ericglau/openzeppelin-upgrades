@@ -93,7 +93,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
     // For each source, delete all functions.
     // If a source has namespaces, we also modify the source to inject variables that reference the namespace structs.
     const modifiedInput: SolcInput = JSON.parse(JSON.stringify(args.input));
-    for (const [sourcePath, source] of Object.entries(modifiedInput.sources)) {
+    for (const [sourcePath /*source*/] of Object.entries(modifiedInput.sources)) {
       // TODO this is a hack just for Namespaced.sol to be used in the testcase in namespaced.js
       if (sourcePath === 'contracts/Namespaced.sol') {
         const replacement = `\
@@ -101,7 +101,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
 pragma solidity ^0.8.20;
 
 contract Example {
-    MainStorage $;
+    MainStorage $dummy;
 
     /// @custom:storage-location erc7201:example.main
     struct MainStorage {
@@ -115,7 +115,7 @@ contract Example {
 }
 
 contract ExampleV2_Ok {
-    MainStorage $;
+    MainStorage $dummy;
 
     /// @custom:storage-location erc7201:example.main
     struct MainStorage {
@@ -130,7 +130,7 @@ contract ExampleV2_Ok {
 }
 
 contract ExampleV2_Bad {
-    MainStorage $;
+    MainStorage $dummy;
 
     /// @custom:storage-location erc7201:example.main
     struct MainStorage {

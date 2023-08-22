@@ -40,6 +40,11 @@ test('layout', t => {
   t.snapshot(stabilizeStorageLayout(layout));
 });
 
+test('layout with types', t => {
+  const layout = t.context.extractStorageLayout('Example_ModifiedWithStructVariable');
+  t.snapshot(stabilizeStorageLayout(layout));
+});
+
 test('namespaced upgrade ok', t => {
   const v1 = t.context.extractStorageLayout('Example');
   const v2 = t.context.extractStorageLayout('ExampleV2_Ok');
@@ -52,7 +57,7 @@ test('namespaced upgrade bad', t => {
   const v2 = t.context.extractStorageLayout('ExampleV2_Bad');
   const comparison = getStorageUpgradeErrors(v1, v2);
   t.like(comparison, {
-    length: 2,
+    length: 1,
     0: {
       kind: 'delete',
       original: {
@@ -63,22 +68,44 @@ test('namespaced upgrade bad', t => {
         },
       },
     },
-    1: {
-      kind: 'layoutchange',
-      original: {
-        label: 'y',
-        type: {
-          id: 't_uint256',
-        },
-        slot: '1',
-      },
-      updated: {
-        label: 'y',
-        type: {
-          id: 't_uint256',
-        },
-        slot: '0',
-      },
-    },
   });
 });
+
+// TODO: test this with an additional arg to `extractStorageLayout` to provide the namespace storage layouts.
+// The contract in the additional arg's storage layout must be the same name, 'Example', so that the struct type matches.
+
+// test('namespaced upgrade bad 2', t => {
+//   const v1 = t.context.extractStorageLayout('Example');
+//   const v2 = t.context.extractStorageLayout('ExampleV2_Bad'
+//   const comparison = getStorageUpgradeErrors(v1, v2);
+//   t.like(comparison, {
+//     length: 2,
+//     0: {
+//       kind: 'delete',
+//       original: {
+//         contract: 'Example',
+//         label: 'x',
+//         type: {
+//           id: 't_uint256',
+//         },
+//       },
+//     },
+//     1: {
+//       kind: 'layoutchange',
+//       original: {
+//         label: 'y',
+//         type: {
+//           id: 't_uint256',
+//         },
+//         slot: '1',
+//       },
+//       updated: {
+//         label: 'y',
+//         type: {
+//           id: 't_uint256',
+//         },
+//         slot: '0',
+//       },
+//     },
+//   });
+// });

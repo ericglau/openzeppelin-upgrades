@@ -67,7 +67,6 @@ export function getStorageUpgradeReport(
       const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
       console.log('namespace ops', JSON.stringify(namespaceOps, null, 2));
 
-
       ops.push(...namespaceOps);
     }
   }

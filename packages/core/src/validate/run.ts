@@ -116,9 +116,12 @@ function skipCheck(error: string, node: Node): boolean {
   return getAllowed(node, false).includes(error) || getAllowed(node, true).includes(error);
 }
 
-export function validate(solcOutput: SolcOutput, decodeSrc: SrcDecoder, solcVersion?: string, namespacedOutput?: SolcOutput // TODO document this
-
-  ): ValidationRunData {
+export function validate(
+  solcOutput: SolcOutput,
+  decodeSrc: SrcDecoder,
+  solcVersion?: string,
+  namespacedOutput?: SolcOutput, // TODO document this
+): ValidationRunData {
   const validation: ValidationRunData = {};
   const fromId: Record<number, string> = {};
   const inheritIds: Record<string, number[]> = {};

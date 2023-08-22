@@ -90,7 +90,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
     const decodeSrc = solcInputOutputDecoder(args.input, output);
 
     // TODO convert solc input to a modified solc input with contains only namespaces and injected variables that reference the structs
-    
+
     // console.log('sources before modification, ' + JSON.stringify(args.input.sources, null, 2));
 
     // We iterate through each source from the original solc input.
@@ -99,7 +99,6 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
     const modifiedInput: SolcInput = JSON.parse(JSON.stringify(args.input));
     for (const [sourcePath, source] of Object.entries(modifiedInput.sources)) {
       // console.log('got contents for ' + sourcePath + ': ' + source.content);
-
 
       // TODO this is a hack to just get the namespace for Namespaced.sol
       if (sourcePath === 'contracts/Namespaced.sol') {
@@ -157,14 +156,15 @@ contract ExampleV2_Bad {
 }
 `;
         modifiedInput.sources[sourcePath].content = replacement;
-        console.log('original input sources has content for ' + sourcePath + ': ' + args.input.sources[sourcePath].content);
-        console.log('modified input sources has content for ' + sourcePath + ': ' + modifiedInput.sources[sourcePath].content);
-
-
+        console.log(
+          'original input sources has content for ' + sourcePath + ': ' + args.input.sources[sourcePath].content,
+        );
+        console.log(
+          'modified input sources has content for ' + sourcePath + ': ' + modifiedInput.sources[sourcePath].content,
+        );
       }
-
     }
-    
+
     // console.log('sources before modification, ' + JSON.stringify(args.input.sources, null, 2));
     // console.log('sources after modification, ' + JSON.stringify(modifiedInput.sources, null, 2));
 
@@ -173,7 +173,6 @@ contract ExampleV2_Bad {
     console.log('Done compiling for namespaces: ', modifiedOutput);
 
     // console.log('output types for namespaced: ' + JSON.stringify(modifiedOutput.contracts['contracts/Namespaced.sol']['Example'].storageLayout.types, null, 2));
-
 
     // pass in transpiled output to validate
 

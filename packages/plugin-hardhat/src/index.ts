@@ -94,7 +94,6 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
     // If a source has namespaces, we also modify the source to inject variables that reference the namespace structs.
     const modifiedInput: SolcInput = JSON.parse(JSON.stringify(args.input));
     for (const [sourcePath, source] of Object.entries(modifiedInput.sources)) {
-
       // TODO this is a hack just for Namespaced.sol to be used in the testcase in namespaced.js
       if (sourcePath === 'contracts/Namespaced.sol') {
         const replacement = `\

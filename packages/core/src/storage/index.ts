@@ -61,7 +61,12 @@ export function getStorageUpgradeReport(
   return report;
 }
 
-function pushNamespacedStorageOperations(ops: StorageOperation<StorageItem>[], comparator: StorageLayoutComparator, original: StorageLayout, updated: StorageLayout) {
+function pushNamespacedStorageOperations(
+  ops: StorageOperation<StorageItem>[],
+  comparator: StorageLayoutComparator,
+  original: StorageLayout,
+  updated: StorageLayout,
+) {
   if (original.namespaces !== undefined) {
     for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
       const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types });

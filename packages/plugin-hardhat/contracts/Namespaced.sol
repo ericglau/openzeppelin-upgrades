@@ -70,6 +70,47 @@ contract ExampleV2_Bad {
     }
 }
 
+contract RecursiveStruct {
+    struct MyStruct {
+        uint128 a;
+        uint256 b;
+    }
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        MyStruct s;
+        uint256 y;
+    }
+}
+
+contract RecursiveStructV2_Ok {
+    struct MyStruct {
+        uint128 a;
+        uint128 a2;
+        uint256 b;
+    }
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        MyStruct s;
+        uint256 y;
+    }
+}
+
+contract RecursiveStructV2_Bad {
+    struct MyStruct {
+        uint128 a;
+        uint256 b;
+        uint256 c;
+    }
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        MyStruct s;
+        uint256 y;
+    }
+}
+
 // TODO:
 
 // mixed usage of regular variables and namespaces

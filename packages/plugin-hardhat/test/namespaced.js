@@ -6,6 +6,9 @@ test.before(async t => {
   t.context.Example = await ethers.getContractFactory('Example');
   t.context.ExampleV2_Ok = await ethers.getContractFactory('ExampleV2_Ok');
   t.context.ExampleV2_Bad = await ethers.getContractFactory('ExampleV2_Bad');
+  t.context.RecursiveStruct = await ethers.getContractFactory('RecursiveStruct');
+  t.context.RecursiveStructV2_Ok = await ethers.getContractFactory('RecursiveStructV2_Ok');
+  t.context.RecursiveStructV2_Bad = await ethers.getContractFactory('RecursiveStructV2_Bad');
 });
 
 test('validate namespace - ok', async t => {
@@ -50,6 +53,37 @@ test('validate namespace - bad', async t => {
             id: 't_uint256',
           },
           slot: '0',
+        },
+      },
+    });
+  }
+});
+
+test('validate namespace - recursive - ok', async t => {
+  const { RecursiveStruct, RecursiveStructV2_Ok } = t.context;
+
+  await upgrades.validateUpgrade(RecursiveStruct, RecursiveStructV2_Ok);
+});
+
+test('validate namespace - recursive - bad', async t => {
+  const { RecursiveStruct, RecursiveStructV2_Bad } = t.context;
+
+  try {
+    await upgrades.validateUpgrade(RecursiveStruct, RecursiveStructV2_Bad);
+  } catch (e) {
+    const comparison = e.report.ops;
+
+    t.like(comparison, {
+      length: 1,
+      0: {
+        kind: 'layoutchange',
+        original: {
+          label: 'y',
+          slot: '2',
+        },
+        updated: {
+          label: 'y',
+          slot: '3',
         },
       },
     });

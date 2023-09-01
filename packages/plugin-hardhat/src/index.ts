@@ -140,7 +140,55 @@ contract ExampleV2_Bad {
     // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
     bytes32 private constant MAIN_STORAGE_LOCATION =
         0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
-}`;
+}
+
+contract RecursiveStruct {
+  MainStorage $dummy;
+
+  struct MyStruct {
+      uint128 a;
+      uint256 b;
+  }
+
+  /// @custom:storage-location erc7201:example.main
+  struct MainStorage {
+      MyStruct s;
+      uint256 y;
+  }
+}
+
+contract RecursiveStructV2_Ok {
+  MainStorage $dummy;
+
+  struct MyStruct {
+      uint128 a;
+      uint128 a2;
+      uint256 b;
+  }
+
+  /// @custom:storage-location erc7201:example.main
+  struct MainStorage {
+      MyStruct s;
+      uint256 y;
+  }
+}
+
+contract RecursiveStructV2_Bad {
+  MainStorage $dummy;
+
+  struct MyStruct {
+      uint128 a;
+      uint256 b;
+      uint256 c;
+  }
+
+  /// @custom:storage-location erc7201:example.main
+  struct MainStorage {
+      MyStruct s;
+      uint256 y;
+  }
+}
+`;
         modifiedInput.sources[sourcePath].content = replacement;
       }
     }

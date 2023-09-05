@@ -31,10 +31,10 @@ export function extractStorageLayout(
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
-  const mergedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
+  const storageAndNamespacedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
 
   if (storageLayout !== undefined) {
-    layout.types = mapValues(mergedTypes, m => {
+    layout.types = mapValues(storageAndNamespacedTypes, m => {
       return {
         label: m.label,
         members: m.members?.map(m =>
@@ -56,7 +56,6 @@ export function extractStorageLayout(
       layout.storage.push({ label, offset, slot, type, contract, src, retypedFrom, renamedFrom });
       layout.flat = true;
     }
-
   } else {
     for (const varDecl of contractDef.nodes) {
       if (isNodeType('VariableDeclaration', varDecl)) {
@@ -77,7 +76,7 @@ export function extractStorageLayout(
       }
     }
   }
-  layout.namespaces = getNamespaces(contractDef, decodeSrc, layout, deref, mergedTypes);
+  layout.namespaces = getNamespaces(contractDef, decodeSrc, layout, deref, storageAndNamespacedTypes);
 
   return layout;
 }
@@ -87,7 +86,7 @@ function getNamespaces(
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   deref: ASTDereferencer,
-  types: Record<string, TypeItem>,
+  storageAndNamespacedTypes: Record<string, TypeItem>,
 ): Record<string, StorageItem[]> {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
@@ -97,7 +96,7 @@ function getNamespaces(
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
-        namespaces[storageLocation] = getNamespacedStorageItems(node, types, contractDef, decodeSrc, layout, deref);
+        namespaces[storageLocation] = getNamespacedStorageItems(node, contractDef, decodeSrc, layout, deref, storageAndNamespacedTypes);
       }
     }
   }
@@ -106,11 +105,11 @@ function getNamespaces(
 
 function getNamespacedStorageItems(
   node: StructDefinition,
-  types: Record<string, TypeItem<string>>,
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   deref: ASTDereferencer,
+  storageAndNamespacedTypes: Record<string, TypeItem<string>>,
 ) {
   const typeMembers = getTypeMembers(node);
 
@@ -127,7 +126,7 @@ function getNamespacedStorageItems(
         throw new Error('Broken invariant: struct member src is undefined'); // invariant!
       }
 
-      const structType = findStructTypeWithCanonicalName(types, node.canonicalName);
+      const structType = findStructTypeWithCanonicalName(storageAndNamespacedTypes, node.canonicalName);
 
       // find the same member name from the members of the struct type
       const structMembers = structType?.members;

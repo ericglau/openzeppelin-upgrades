@@ -96,7 +96,14 @@ function getNamespaces(
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
-        namespaces[storageLocation] = getNamespacedStorageItems(node, contractDef, decodeSrc, layout, deref, storageAndNamespacedTypes);
+        namespaces[storageLocation] = getNamespacedStorageItems(
+          node,
+          contractDef,
+          decodeSrc,
+          layout,
+          deref,
+          storageAndNamespacedTypes,
+        );
       }
     }
   }

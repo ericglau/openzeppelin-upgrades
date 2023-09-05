@@ -99,7 +99,6 @@ test('recursive struct bad', t => {
   });
 });
 
-
 // TODO: test this with an additional arg to `extractStorageLayout` to provide the namespace storage layouts.
 // The contract in the additional arg's storage layout must be the same name, 'Example', so that the struct type matches.
 

@@ -76,18 +76,18 @@ export function extractStorageLayout(
       }
     }
   }
-  layout.namespaces = getNamespaces(contractDef, decodeSrc, layout, deref, storageAndNamespacedTypes);
+  loadLayoutNamespaces(contractDef, decodeSrc, layout, deref, storageAndNamespacedTypes);
 
   return layout;
 }
 
-function getNamespaces(
+function loadLayoutNamespaces(
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   deref: ASTDereferencer,
   storageAndNamespacedTypes: Record<string, TypeItem>,
-): Record<string, StorageItem[]> {
+) {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
   const namespaces: Record<string, StorageItem[]> = {};
@@ -107,7 +107,7 @@ function getNamespaces(
       }
     }
   }
-  return namespaces;
+  layout.namespaces = namespaces;
 }
 
 function getNamespacedStorageItems(

@@ -74,8 +74,20 @@ test('validate namespace - recursive - bad', async t => {
     const comparison = e.report.ops;
 
     t.like(comparison, {
-      length: 1,
+      length: 2,
       0: {
+        kind: 'typechange',
+        change: {
+          kind: 'struct members',
+          ops: {
+            length: 1,
+            0: { kind: 'append' },
+          },
+        },
+        original: { label: 's' },
+        updated: { label: 's' },
+      },
+      1: {
         kind: 'layoutchange',
         original: {
           label: 'y',

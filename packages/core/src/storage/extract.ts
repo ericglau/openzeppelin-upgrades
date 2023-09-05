@@ -122,16 +122,12 @@ function getNamespacedStorageItems(
 
   // TODO there are a lot of invariants here. Can we make these typesafe?
 
-  if (typeMembers === undefined) {
-    throw new Error('Broken invariant: typeMembers is undefined'); // invariant!
-  }
+  assert(typeMembers !== undefined);
 
   const storageItems: StorageItem[] = [];
   for (const member of typeMembers) {
     if (typeof member !== 'string') {
-      if (member.src === undefined) {
-        throw new Error('Broken invariant: struct member src is undefined'); // invariant!
-      }
+      assert(member.src !== undefined);
 
       const structType = findStructTypeWithCanonicalName(storageAndNamespacedTypes, node.canonicalName);
 
@@ -140,12 +136,9 @@ function getNamespacedStorageItems(
       let structMemberFromTypes;
       if (structMembers !== undefined) {
         for (const structMember of structMembers) {
-          if (typeof structMember === 'string') {
-            throw new Error('Broken invariant: struct type has string member'); // invariant!
-          } else {
-            if (structMember.label === member.label) {
-              structMemberFromTypes = structMember;
-            }
+          assert(typeof structMember !== 'string');
+          if (structMember.label === member.label) {
+            structMemberFromTypes = structMember;
           }
         }
       }

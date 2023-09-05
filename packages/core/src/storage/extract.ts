@@ -5,6 +5,7 @@ import {
   EnumDefinition,
   TypeDescriptions,
   VariableDeclaration,
+  TypeName,
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
 import { StorageItem, StorageLayout, TypeItem } from './layout';
@@ -49,12 +50,13 @@ export function extractStorageLayout(
       const { varDecl, contract } = origin;
       const { renamedFrom, retypedFrom } = getRetypedRenamed(varDecl);
       // Solc layout doesn't bring members for enums so we get them using the ast method
-      loadLayoutType(varDecl, layout, deref);
+      loadLayoutType(varDecl.typeName, layout, deref);
       const { label, offset, slot, type } = storage;
       const src = decodeSrc(varDecl);
       layout.storage.push({ label, offset, slot, type, contract, src, retypedFrom, renamedFrom });
       layout.flat = true;
     }
+
   } else {
     for (const varDecl of contractDef.nodes) {
       if (isNodeType('VariableDeclaration', varDecl)) {
@@ -70,12 +72,12 @@ export function extractStorageLayout(
             renamedFrom,
           });
 
-          loadLayoutType(varDecl, layout, deref);
+          loadLayoutType(varDecl.typeName, layout, deref);
         }
       }
     }
   }
-  layout.namespaces = getNamespaces(contractDef, decodeSrc, mergedTypes);
+  layout.namespaces = getNamespaces(contractDef, decodeSrc, layout, deref, mergedTypes);
 
   return layout;
 }
@@ -83,6 +85,8 @@ export function extractStorageLayout(
 function getNamespaces(
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
+  layout: StorageLayout,
+  deref: ASTDereferencer,
   types: Record<string, TypeItem>,
 ): Record<string, StorageItem[]> {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
@@ -93,7 +97,7 @@ function getNamespaces(
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
-        namespaces[storageLocation] = getNamespacedStorageItems(node, types, contractDef, decodeSrc);
+        namespaces[storageLocation] = getNamespacedStorageItems(node, types, contractDef, decodeSrc, layout, deref);
       }
     }
   }
@@ -105,6 +109,8 @@ function getNamespacedStorageItems(
   types: Record<string, TypeItem<string>>,
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
+  layout: StorageLayout,
+  deref: ASTDereferencer,
 ) {
   const typeMembers = getTypeMembers(node);
 
@@ -163,6 +169,8 @@ function getNamespacedStorageItems(
             };
 
       storageItems.push(storageItem);
+
+      loadLayoutType(member.typeName, layout, deref);
     }
   }
   return storageItems;
@@ -213,6 +221,7 @@ function getTypeMembers(typeDef: StructDefinition | EnumDefinition): TypeItem['m
         label: m.name,
         type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
         src: m.src,
+        typeName: m.typeName,
         // TODO check if we need numberOfBytes from the storage layout's types
       };
     });
@@ -231,16 +240,16 @@ function getOriginContract(contract: ContractDefinition, astId: number | undefin
   }
 }
 
-function loadLayoutType(varDecl: VariableDeclaration, layout: StorageLayout, deref: ASTDereferencer) {
+function loadLayoutType(typeName: TypeName | null | undefined, layout: StorageLayout, deref: ASTDereferencer) {
   // Note: A UserDefinedTypeName can also refer to a ContractDefinition but we won't care about those.
   const derefUserDefinedType = deref(['StructDefinition', 'EnumDefinition', 'UserDefinedValueTypeDefinition']);
 
-  assert(varDecl.typeName != null);
+  assert(typeName != null);
 
   // We will recursively look for all types involved in this variable declaration in order to store their type
   // information. We iterate over a Map that is indexed by typeIdentifier to ensure we visit each type only once.
   // Note that there can be recursive types.
-  const typeNames = new Map([...findTypeNames(varDecl.typeName)].map(n => [typeDescriptions(n).typeIdentifier, n]));
+  const typeNames = new Map([...findTypeNames(typeName)].map(n => [typeDescriptions(n).typeIdentifier, n]));
 
   for (const typeName of typeNames.values()) {
     const { typeIdentifier, typeString: label } = typeDescriptions(typeName);

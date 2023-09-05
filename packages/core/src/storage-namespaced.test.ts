@@ -71,6 +71,35 @@ test('namespaced upgrade bad', t => {
   });
 });
 
+test('recursive struct outer ok', t => {
+  const v1 = t.context.extractStorageLayout('RecursiveStruct');
+  const v2 = t.context.extractStorageLayout('RecursiveStructV2_Outer_Ok');
+  const comparison = getStorageUpgradeErrors(v1, v2);
+  t.deepEqual(comparison, []);
+});
+
+test('recursive struct bad', t => {
+  const v1 = t.context.extractStorageLayout('RecursiveStruct');
+  const v2 = t.context.extractStorageLayout('RecursiveStructV2_Bad');
+  const comparison = getStorageUpgradeErrors(v1, v2);
+  t.like(comparison, {
+    length: 1,
+    0: {
+      kind: 'typechange',
+      change: {
+        kind: 'struct members',
+        ops: {
+          length: 1,
+          0: { kind: 'append' },
+        },
+      },
+      original: { label: 's' },
+      updated: { label: 's' },
+    },
+  });
+});
+
+
 // TODO: test this with an additional arg to `extractStorageLayout` to provide the namespace storage layouts.
 // The contract in the additional arg's storage layout must be the same name, 'Example', so that the struct type matches.
 

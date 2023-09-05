@@ -119,9 +119,6 @@ function getNamespacedStorageItems(
   storageAndNamespacedTypes: Record<string, TypeItem<string>>,
 ) {
   const typeMembers = getTypeMembers(node);
-
-  // TODO there are a lot of invariants here. Can we make these typesafe?
-
   assert(typeMembers !== undefined);
 
   const storageItems: StorageItem[] = [];
@@ -166,7 +163,6 @@ function getNamespacedStorageItems(
               type,
               src,
             };
-
       storageItems.push(storageItem);
 
       loadLayoutType(member.typeName, layout, deref);

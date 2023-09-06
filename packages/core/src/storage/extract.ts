@@ -9,7 +9,7 @@ import {
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
 import { StorageItem, StorageLayout, TypeItem } from './layout';
-import { normalizeTypeIdentifier } from '../utils/type-id';
+import { normalizeTypeIdentifier, stabilizeTypeIdentifier } from '../utils/type-id';
 import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
 import { pick } from '../utils/pick';
@@ -85,16 +85,17 @@ export function extractStorageLayout(
 function replaceWithNamespacedTypes(layout: StorageLayout, namespacedTypes: Record<string, TypeItem>) {
   // Original storage layout's types have different type ids than namespaced types due to the modified compilation.
   // Replace the original layout's types with namespaced types of the same label, but keeping the original type ids.
-  for (const namespacedType of Object.values(namespacedTypes)) {
+  for (const namespacedKey of Object.keys(namespacedTypes)) {
+    const namespacedType = namespacedTypes[namespacedKey];
     const origKeys = Object.keys(layout.types);
 
-    // let previousMatch = undefined;
+    let previousMatch = undefined;
     for (const key of origKeys) {
-      if (layout.types[key].label === namespacedType.label) {
-        // assert(previousMatch === undefined, `Found multiple type ids '${key}', '${previousMatch}' with the same label '${namespacedType.label}'`);
-        // previousMatch = key;
+      if (stabilizeTypeIdentifier(key) === stabilizeTypeIdentifier(namespacedKey) && layout.types[key].label === namespacedType.label) {
+        assert(previousMatch === undefined, `Found multiple type ids '${key}', '${previousMatch}' with the same label '${namespacedType.label}'`);
+        previousMatch = key;
 
-        layout.types[key] = { ...layout.types[key], ...namespacedType };
+        layout.types[key] = namespacedType;
         layout.types[key].members = namespacedType.members?.map(m =>
           typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
         ) as TypeItem['members'];

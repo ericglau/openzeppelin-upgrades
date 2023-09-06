@@ -33,7 +33,7 @@ export function extractStorageLayout(
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
-  const combinedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
+  const combinedTypes = { ...storageLayout?.types };
 
   // const combinedTypes = combineStructTypes(storageLayout?.types, namespacedStorageLayout?.types);
   // layout.types = mapValues(combinedTypes, m => {
@@ -124,6 +124,9 @@ function rectifyNamespacedTypes(layout: StorageLayout, namespacedTypes: Record<s
     for (const key of origKeys) {      
       if (layout.types[key].label === namespacedType.label) {
         layout.types[key] = namespacedType;
+        layout.types[key].members = namespacedType.members?.map(m =>
+          typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
+        ) as TypeItem['members'];
       }
     }
   }

@@ -33,7 +33,7 @@ export function extractStorageLayout(
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
-  // const combinedTypes = { ...storageLayout?.types };
+  const combinedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
 
   // const combinedTypes = combineStructTypes(storageLayout?.types, namespacedStorageLayout?.types);
   // layout.types = mapValues(combinedTypes, m => {
@@ -47,7 +47,7 @@ export function extractStorageLayout(
   // });
   
   if (storageLayout !== undefined) {
-    layout.types = mapValues( { ...namespacedStorageLayout?.types, ...storageLayout?.types }, m => {
+    layout.types = mapValues( combinedTypes, m => {
       return {
         label: m.label,
         members: m.members?.map(m =>
@@ -117,6 +117,7 @@ export function extractStorageLayout(
 //   const combinedTypes: Record<string, TypeItem> = { ...storageLayoutTypes };
 
 //   for (const typeId of Object.keys(storageLayoutTypes)) {
+//     console.log('checking typeid ' + typeId);
 //     const type = storageLayoutTypes[typeId];
 //     const namespacedType = findTypeWithLabel(namespacedStorageLayoutTypes, type.label);
 //     if (namespacedType !== undefined) {
@@ -194,8 +195,6 @@ function getNamespacedStorageItems(
       const offset = structMemberFromTypes?.offset;
       const slot = structMemberFromTypes?.slot;
       const src = decodeSrc({ src: member.src });
-
-      console.log('got offset and slot ' + JSON.stringify({ offset, slot }, null, 2));
 
       const storageItem: StorageItem =
         offset !== undefined && slot !== undefined

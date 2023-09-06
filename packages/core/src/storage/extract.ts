@@ -47,7 +47,7 @@ export function extractStorageLayout(
   // });
   
   if (storageLayout !== undefined) {
-    layout.types = mapValues(storageLayout?.types, m => {
+    layout.types = mapValues( { ...namespacedStorageLayout?.types, ...storageLayout?.types }, m => {
       return {
         label: m.label,
         members: m.members?.map(m =>
@@ -89,6 +89,15 @@ export function extractStorageLayout(
       }
     }
   }
+
+  // // TODO for each type in layout, get the same type from namespacedStorageLayout.types and add it to layout.types but include offset and slot
+  // for (const type of Object.values(layout.types)) {
+  //   const namespacedType = findTypeWithLabel(namespacedStorageLayout?.types, type.label);
+  //   if (namespacedType !== undefined) {
+  //     type.members = namespacedType.members;
+  //   }
+  // }
+
 
   loadLayoutNamespaces(namespacedContractDef ?? contractDef, decodeSrc, layout, deref, { ...namespacedStorageLayout?.types });
 
@@ -153,9 +162,9 @@ function getNamespacedStorageItems(
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   deref: ASTDereferencer,
-  combinedTypes: Record<string, TypeItem<string>>,
+  namespaceTypes: Record<string, TypeItem<string>>,
 ) {
-  const typeMembers = getTypeMembers(node);
+  const typeMembers = getTypeMembers(node, true);
   assert(typeMembers !== undefined);
 
   const storageItems: StorageItem[] = [];
@@ -163,7 +172,7 @@ function getNamespacedStorageItems(
     if (typeof member !== 'string') {
       assert(member.src !== undefined);
 
-      const structType = findStructTypeWithCanonicalName(combinedTypes, node.canonicalName);
+      const structType = findStructTypeWithCanonicalName(namespaceTypes, node.canonicalName);
 
       console.log('got structType ' + JSON.stringify(structType, null, 2));
 
@@ -206,7 +215,7 @@ function getNamespacedStorageItems(
             };
       storageItems.push(storageItem);
 
-      // loadLayoutType(member.typeName, layout, deref);
+      loadLayoutType(member.typeName, layout, deref);
     }
   }
   return storageItems;
@@ -253,17 +262,29 @@ function typeDescriptions(x: { typeDescriptions: TypeDescriptions }): RequiredTy
   return x.typeDescriptions as RequiredTypeDescriptions;
 }
 
-function getTypeMembers(typeDef: StructDefinition | EnumDefinition): TypeItem['members'] {
+function getTypeMembers(typeDef: StructDefinition | EnumDefinition, includeTypeName?: boolean): TypeItem['members'] {
   if (typeDef.nodeType === 'StructDefinition') {
     return typeDef.members.map(m => {
       assert(typeof m.typeDescriptions.typeIdentifier === 'string');
-      return {
-        label: m.name,
-        type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
-        src: m.src,
-        typeName: m.typeName,
-        // TODO check if we need numberOfBytes from the storage layout's types
-      };
+
+      if (includeTypeName) {
+        // TODO remove this duplicate
+        return {
+          label: m.name,
+          type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
+          src: m.src,
+          typeName: m.typeName, // TODO remove this from here, but get typeName in getNamespacedStorageItems
+          // TODO check if we need numberOfBytes from the storage layout's types
+        };
+      } else {
+        return {
+          label: m.name,
+          type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
+          src: m.src,
+        };
+      }
+
+
     });
   } else {
     return typeDef.members.map(m => m.name);

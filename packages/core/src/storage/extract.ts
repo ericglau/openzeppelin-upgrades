@@ -22,10 +22,10 @@ export function isCurrentLayoutVersion(layout: StorageLayout): boolean {
   return layout?.layoutVersion === currentLayoutVersion;
 }
 
-interface NamespacedContext {
+interface CompilationContext {
   deref: ASTDereferencer;
   contractDef: ContractDefinition;
-  storageLayout: StorageLayout;
+  storageLayout?: StorageLayout;
 }
 
 export function extractStorageLayout(
@@ -33,7 +33,7 @@ export function extractStorageLayout(
   decodeSrc: SrcDecoder,
   deref: ASTDereferencer,
   storageLayout?: StorageLayout,
-  namespacedContext?: NamespacedContext,
+  namespacedContext?: CompilationContext,
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
@@ -91,10 +91,12 @@ export function extractStorageLayout(
     }
   }
 
-  if (namespacedContext !== undefined) {
-    loadNamespaces(decodeSrc, layout, namespacedContext);
-    // replaceWithNamespacedTypes(layout, namespacedContext.storageLayout.types);  
-  }
+  // if (namespacedContext !== undefined) {
+  loadNamespaces(decodeSrc, layout, namespacedContext ?? { deref, contractDef, storageLayout });
+  // replaceWithNamespacedTypes(layout, namespacedContext.storageLayout.types);
+  // } else {
+  //   loadNamespaces(decodeSrc, layout, { deref, contractDef, storageLayout });
+  // }
 
   return layout;
 }
@@ -108,8 +110,14 @@ function replaceWithNamespacedTypes(layout: StorageLayout, namespacedTypes: Reco
 
     let previousMatch = undefined;
     for (const key of origKeys) {
-      if (stabilizeTypeIdentifier(key) === stabilizeTypeIdentifier(namespacedKey) && layout.types[key].label === namespacedType.label) {
-        assert(previousMatch === undefined, `Found multiple type ids '${key}', '${previousMatch}' with the same label '${namespacedType.label}'`);
+      if (
+        stabilizeTypeIdentifier(key) === stabilizeTypeIdentifier(namespacedKey) &&
+        layout.types[key].label === namespacedType.label
+      ) {
+        assert(
+          previousMatch === undefined,
+          `Found multiple type ids '${key}', '${previousMatch}' with the same label '${namespacedType.label}'`,
+        );
         previousMatch = key;
 
         layout.types[key] = namespacedType;
@@ -121,25 +129,16 @@ function replaceWithNamespacedTypes(layout: StorageLayout, namespacedTypes: Reco
   }
 }
 
-function loadNamespaces(
-  decodeSrc: SrcDecoder,
-  layout: StorageLayout,
-  namespacedContext: NamespacedContext,
-) {
+function loadNamespaces(decodeSrc: SrcDecoder, layout: StorageLayout, compilationContext: CompilationContext) {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
   const namespaces: Record<string, StorageItem[]> = {};
-  for (const node of namespacedContext.contractDef.nodes) {
+  for (const node of compilationContext.contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
-        namespaces[storageLocation] = getNamespacedStorageItems(
-          node,
-          decodeSrc,
-          layout,
-          namespacedContext,
-        );
+        namespaces[storageLocation] = getNamespacedStorageItems(node, decodeSrc, layout, compilationContext);
       }
     }
   }
@@ -150,7 +149,7 @@ function getNamespacedStorageItems(
   node: StructDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
-  namespacedContext: NamespacedContext,
+  compilationContext: CompilationContext,
 ) {
   const typeMembers = getTypeMembers(node, true);
   assert(typeMembers !== undefined);
@@ -160,12 +159,16 @@ function getNamespacedStorageItems(
     if (typeof member !== 'string') {
       assert(member.src !== undefined);
 
-      const contract = namespacedContext.contractDef.name;
+      const contract = compilationContext.contractDef.name;
       const label = member.label;
       const type = member.type;
       const src = decodeSrc({ src: member.src });
 
-      const structMemberFromTypes = getStructMemberFromLayoutTypes(namespacedContext.storageLayout.types, node.canonicalName, member.label);
+      const structMemberFromTypes = getStructMemberFromLayoutTypes(
+        { ...compilationContext.storageLayout?.types },
+        node.canonicalName,
+        member.label,
+      );
 
       if (structMemberFromTypes !== undefined) {
         const offset = structMemberFromTypes?.offset;
@@ -187,7 +190,7 @@ function getNamespacedStorageItems(
         });
       }
 
-      loadLayoutType(member.typeName, layout, namespacedContext.deref);
+      loadLayoutType(member.typeName, layout, compilationContext.deref);
     }
   }
   return storageItems;

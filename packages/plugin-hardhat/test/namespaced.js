@@ -135,7 +135,7 @@ test('validate namespace - triple struct - bad', async t => {
                   length: 1,
                   0: { kind: 'append' },
                 },
-              }
+              },
             },
           },
         },

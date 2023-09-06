@@ -207,7 +207,12 @@ export function validate(
   return validation;
 }
 
-function getNamespacedContext(namespacedOutput: SolcOutput, source: string, contractDef: ContractDefinition, namespacedContext: any) {
+function getNamespacedContext(
+  namespacedOutput: SolcOutput,
+  source: string,
+  contractDef: ContractDefinition,
+  namespacedContext: any,
+) {
   const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(node => {
     const nodeName: string = (node as any).canonicalName;
     return nodeName !== undefined && nodeName === contractDef.canonicalName;

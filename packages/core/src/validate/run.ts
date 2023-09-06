@@ -176,16 +176,10 @@ export function validate(
           ...getLinkingErrors(contractDef, bytecode),
         ];
 
-        // get the contractDef with the same id from namespacedOutput
-        const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(
-          node => (node as any).canonicalName !== undefined && (node as any).canonicalName === contractDef.canonicalName,
-        ) as ContractDefinition | undefined;
-        if (contractDefNamespaced !== undefined) {
-          console.log('found namespaced contract def ' + contractDefNamespaced.canonicalName);
-          if (contractDefNamespaced.canonicalName === 'TripleStruct') {
-            console.log('triplestruct ' + JSON.stringify(contractDefNamespaced, null, 2));
-          }
-        }
+        const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(node => {
+          const nodeName: string = (node as any).canonicalName;
+          return nodeName !== undefined && nodeName === contractDef.canonicalName;
+        }) as ContractDefinition | undefined;
 
         if (namespacedOutput !== undefined) { // TODO cleanup
           validation[key].layout = extractStorageLayout(

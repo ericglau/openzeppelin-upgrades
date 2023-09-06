@@ -59,6 +59,8 @@ test('validate namespace - bad', async t => {
         },
       },
     });
+
+    t.snapshot(e.message);
   }
 });
 

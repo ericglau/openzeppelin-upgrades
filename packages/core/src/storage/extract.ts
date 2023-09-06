@@ -81,12 +81,17 @@ export function extractStorageLayout(
     }
   }
 
-  loadNamespaces(decodeSrc, layout, namespacedContext ?? { deref, contractDef, storageLayout });
+  loadNamespaces(decodeSrc, layout, namespacedContext ?? { deref, contractDef, storageLayout }, contractDef);
 
   return layout;
 }
 
-function loadNamespaces(decodeSrc: SrcDecoder, layout: StorageLayout, compilationContext: CompilationContext) {
+function loadNamespaces(
+  decodeSrc: SrcDecoder,
+  layout: StorageLayout,
+  compilationContext: CompilationContext,
+  origContractDef: ContractDefinition,
+) {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
   const namespaces: Record<string, StorageItem[]> = {};
@@ -95,7 +100,14 @@ function loadNamespaces(decodeSrc: SrcDecoder, layout: StorageLayout, compilatio
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
-        namespaces[storageLocation] = getNamespacedStorageItems(node, decodeSrc, layout, compilationContext);
+        namespaces[storageLocation] = getNamespacedStorageItems(
+          storageLocation,
+          node,
+          decodeSrc,
+          layout,
+          compilationContext,
+          origContractDef,
+        );
       }
     }
   }
@@ -103,10 +115,12 @@ function loadNamespaces(decodeSrc: SrcDecoder, layout: StorageLayout, compilatio
 }
 
 function getNamespacedStorageItems(
+  storageLocation: string,
   node: StructDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   compilationContext: CompilationContext,
+  origContractDef: ContractDefinition,
 ) {
   const typeMembers = getTypeMembers(node, true);
   assert(typeMembers !== undefined);
@@ -119,7 +133,15 @@ function getNamespacedStorageItems(
       const contract = compilationContext.contractDef.name;
       const label = member.label;
       const type = member.type;
-      const src = decodeSrc({ src: member.src });
+
+      const originalSource = getOriginalSource(storageLocation, node.canonicalName, member.label, origContractDef);
+      if (originalSource === undefined) {
+        throw new Error(
+          `Could not find original source location for namespace struct with name ${node.canonicalName} and member ${member.label}`,
+        );
+      }
+
+      const src = decodeSrc({ src: originalSource });
 
       const structMemberFromTypes = getStructMemberFromLayoutTypes(
         { ...compilationContext.storageLayout?.types },
@@ -151,6 +173,36 @@ function getNamespacedStorageItems(
     }
   }
   return storageItems;
+}
+
+function getOriginalSource(
+  storageLocation: string,
+  canonicalName: string,
+  memberLabel: string,
+  origContractDef: ContractDefinition,
+) {
+  // get the same namespace struct's ast node from original source
+  for (const node of origContractDef.nodes) {
+    if (isNodeType('StructDefinition', node)) {
+      if (node.canonicalName === canonicalName) {
+        const typeMembers = getTypeMembers(node, true);
+        assert(typeMembers !== undefined);
+
+        for (const member of typeMembers) {
+          if (typeof member !== 'string') {
+            if (member.label === memberLabel) {
+              return member.src;
+            }
+          }
+        }
+      }
+      // const doc = getDocumentation(node);
+      // if (hasAnnotationTag(doc, 'storage-location')) {
+      //   const storageLocation = getStorageLocation(doc);
+      //   namespaces[storageLocation] = getNamespacedStorageItems(node, decodeSrc, layout, compilationContext, origContractDef);
+      // }
+    }
+  }
 }
 
 function getStructMemberFromLayoutTypes(

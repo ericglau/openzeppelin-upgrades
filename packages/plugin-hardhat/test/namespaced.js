@@ -102,6 +102,8 @@ test('validate namespace - recursive - bad', async t => {
         },
       },
     });
+
+    t.snapshot(e.message);
   }
 });
 
@@ -152,5 +154,7 @@ test('validate namespace - triple struct - bad', async t => {
         },
       },
     });
+
+    t.snapshot(e.message);
   }
 });

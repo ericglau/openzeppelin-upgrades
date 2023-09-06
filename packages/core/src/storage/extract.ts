@@ -83,13 +83,18 @@ export function extractStorageLayout(
 }
 
 function replaceWithNamespacedTypes(layout: StorageLayout, namespacedTypes: Record<string, TypeItem>) {
-  // for each namespaced type, if it has the same label as a type in layout.types, overwrite the type in layout.types with the namespaced type
+  // Original storage layout's types have different type ids than namespaced types due to the modified compilation.
+  // Replace the original layout's types with namespaced types of the same label, but keeping the original type ids.
   for (const namespacedType of Object.values(namespacedTypes)) {
     const origKeys = Object.keys(layout.types);
 
+    // let previousMatch = undefined;
     for (const key of origKeys) {
       if (layout.types[key].label === namespacedType.label) {
-        layout.types[key] = namespacedType;
+        // assert(previousMatch === undefined, `Found multiple type ids '${key}', '${previousMatch}' with the same label '${namespacedType.label}'`);
+        // previousMatch = key;
+
+        layout.types[key] = { ...layout.types[key], ...namespacedType };
         layout.types[key].members = namespacedType.members?.map(m =>
           typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
         ) as TypeItem['members'];
@@ -143,49 +148,55 @@ function getNamespacedStorageItems(
     if (typeof member !== 'string') {
       assert(member.src !== undefined);
 
-      const structType = findStructTypeWithCanonicalName(namespaceTypes, node.canonicalName);
-
-      // find the same member name from the members of the struct type
-      const structMembers = structType?.members;
-      let structMemberFromTypes;
-      if (structMembers !== undefined) {
-        for (const structMember of structMembers) {
-          assert(typeof structMember !== 'string');
-          if (structMember.label === member.label) {
-            structMemberFromTypes = structMember;
-          }
-        }
-      }
-
       const contract = contractDef.name;
       const label = member.label;
       const type = member.type;
-      const offset = structMemberFromTypes?.offset;
-      const slot = structMemberFromTypes?.slot;
       const src = decodeSrc({ src: member.src });
 
-      const storageItem: StorageItem =
-        offset !== undefined && slot !== undefined
-          ? {
-              contract,
-              label,
-              type,
-              src,
-              offset,
-              slot,
-            }
-          : {
-              contract,
-              label,
-              type,
-              src,
-            };
-      storageItems.push(storageItem);
+      const structMemberFromTypes = getStructMemberFromLayoutTypes(namespaceTypes, node.canonicalName, member.label);
+
+      if (structMemberFromTypes !== undefined) {
+        const offset = structMemberFromTypes?.offset;
+        const slot = structMemberFromTypes?.slot;
+        storageItems.push({
+          contract,
+          label,
+          type,
+          src,
+          offset,
+          slot,
+        });
+      } else {
+        storageItems.push({
+          contract,
+          label,
+          type,
+          src,
+        });
+      }
 
       loadLayoutType(member.typeName, layout, deref);
     }
   }
   return storageItems;
+}
+
+function getStructMemberFromLayoutTypes(
+  namespaceTypes: Record<string, TypeItem<string>>,
+  structName: string,
+  memberLabel: string,
+) {
+  const structType = findTypeWithLabel(namespaceTypes, `struct ${structName}`);
+  const structMembers = structType?.members;
+  if (structMembers !== undefined) {
+    for (const structMember of structMembers) {
+      assert(typeof structMember !== 'string');
+      if (structMember.label === memberLabel) {
+        return structMember;
+      }
+    }
+  }
+  return undefined;
 }
 
 function getStorageLocation(doc: string) {
@@ -195,10 +206,6 @@ function getStorageLocation(doc: string) {
   }
   const storageLocation = storageLocationArgs[0];
   return storageLocation;
-}
-
-function findStructTypeWithCanonicalName(types: Record<string, TypeItem>, canonicalName: string) {
-  return findTypeWithLabel(types, `struct ${canonicalName}`);
 }
 
 function findTypeWithLabel(types: Record<string, TypeItem>, label: string) {

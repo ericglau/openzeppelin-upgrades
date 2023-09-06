@@ -176,17 +176,11 @@ export function validate(
           ...getLinkingErrors(contractDef, bytecode),
         ];
 
-        // get the contractDef with the same id from namespacedOutput
-        const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(
-          node => node.id === contractDef.id,
-        ) as ContractDefinition | undefined;
-
         validation[key].layout = extractStorageLayout(
           contractDef,
           decodeSrc,
           deref,
           solcOutput.contracts[source][contractDef.name].storageLayout,
-          contractDefNamespaced,
           namespacedOutput?.contracts[source][contractDef.name].storageLayout,
         );
         validation[key].methods = [...findAll('FunctionDefinition', contractDef)]

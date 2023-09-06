@@ -27,8 +27,6 @@ export function extractStorageLayout(
   decodeSrc: SrcDecoder,
   deref: ASTDereferencer,
   storageLayout?: StorageLayout | undefined,
-  // TODO make these combined into a single object
-  namespacedContractDef?: ContractDefinition | undefined, // TODO doc
   namespacedStorageLayout?: StorageLayout | undefined, // TODO doc
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
@@ -78,7 +76,7 @@ export function extractStorageLayout(
   }
 
   const namespacedTypes = { ...namespacedStorageLayout?.types };
-  loadNamespaces(namespacedContractDef ?? contractDef, decodeSrc, layout, deref, namespacedTypes);
+  loadNamespaces(contractDef, decodeSrc, layout, deref, namespacedTypes);
   replaceWithNamespacedTypes(layout, namespacedTypes);
 
   return layout;

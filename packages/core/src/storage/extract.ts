@@ -26,21 +26,33 @@ export function extractStorageLayout(
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   deref: ASTDereferencer,
-  storageLayout?: StorageLayout | undefined,
-  namespacedStorageLayout?: StorageLayout | undefined, // TODO doc
+  storageLayout?: StorageLayout,
+  derefNamespaced?: ASTDereferencer,
+  contractDefNamespaced?: ContractDefinition,
+  namespacedStorageLayout?: StorageLayout, // TODO doc
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
+  layout.types = mapValues({ ...namespacedStorageLayout?.types, ...storageLayout?.types }, m => {
+    return {
+      label: m.label,
+      members: m.members?.map(m =>
+        typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
+      ) as TypeItem['members'],
+      numberOfBytes: m.numberOfBytes,
+    };
+  });
+
   if (storageLayout !== undefined) {
-    layout.types = mapValues(storageLayout?.types, m => {
-      return {
-        label: m.label,
-        members: m.members?.map(m =>
-          typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
-        ) as TypeItem['members'],
-        numberOfBytes: m.numberOfBytes,
-      };
-    });
+    // layout.types = mapValues(storageLayout?.types, m => {
+    //   return {
+    //     label: m.label,
+    //     members: m.members?.map(m =>
+    //       typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
+    //     ) as TypeItem['members'],
+    //     numberOfBytes: m.numberOfBytes,
+    //   };
+    // });
 
     for (const storage of storageLayout.storage) {
       const origin = getOriginContract(contractDef, storage.astId, deref);
@@ -76,7 +88,7 @@ export function extractStorageLayout(
   }
 
   const namespacedTypes = { ...namespacedStorageLayout?.types };
-  loadNamespaces(contractDef, decodeSrc, layout, deref, namespacedTypes);
+  loadNamespaces(contractDefNamespaced ?? contractDef, decodeSrc, layout, derefNamespaced ?? deref, namespacedTypes);
   replaceWithNamespacedTypes(layout, namespacedTypes);
 
   return layout;

@@ -176,13 +176,36 @@ export function validate(
           ...getLinkingErrors(contractDef, bytecode),
         ];
 
-        validation[key].layout = extractStorageLayout(
-          contractDef,
-          decodeSrc,
-          deref,
-          solcOutput.contracts[source][contractDef.name].storageLayout,
-          namespacedOutput?.contracts[source][contractDef.name].storageLayout,
-        );
+        // get the contractDef with the same id from namespacedOutput
+        const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(
+          node => (node as any).canonicalName !== undefined && (node as any).canonicalName === contractDef.canonicalName,
+        ) as ContractDefinition | undefined;
+        if (contractDefNamespaced !== undefined) {
+          console.log('found namespaced contract def ' + contractDefNamespaced.canonicalName);
+          if (contractDefNamespaced.canonicalName === 'TripleStruct') {
+            console.log('triplestruct ' + JSON.stringify(contractDefNamespaced, null, 2));
+          }
+        }
+
+        if (namespacedOutput !== undefined) { // TODO cleanup
+          validation[key].layout = extractStorageLayout(
+            contractDef,
+            decodeSrc,
+            deref,
+            solcOutput.contracts[source][contractDef.name].storageLayout,
+            astDereferencer(namespacedOutput), // TODO just pass namespacedOutput?
+            contractDefNamespaced, // TODO combine with below
+            namespacedOutput?.contracts[source][contractDef.name].storageLayout,
+          );
+        } else {
+          validation[key].layout = extractStorageLayout(
+            contractDef,
+            decodeSrc,
+            deref,
+            solcOutput.contracts[source][contractDef.name].storageLayout,
+          );
+        }
+
         validation[key].methods = [...findAll('FunctionDefinition', contractDef)]
           .filter(fnDef => ['external', 'public'].includes(fnDef.visibility))
           .map(fnDef => getFunctionSignature(fnDef, deref));

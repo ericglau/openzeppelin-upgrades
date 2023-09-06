@@ -31,19 +31,20 @@ export function extractStorageLayout(
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
-  const storageAndNamespacedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
+  const combinedTypes = { ...namespacedStorageLayout?.types, ...storageLayout?.types };
 
+  // const combinedTypes = combineStructTypes(storageLayout?.types, namespacedStorageLayout?.types);
+  layout.types = mapValues(combinedTypes, m => {
+    return {
+      label: m.label,
+      members: m.members?.map(m =>
+        typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
+      ) as TypeItem['members'],
+      numberOfBytes: m.numberOfBytes,
+    };
+  });
+  
   if (storageLayout !== undefined) {
-    layout.types = mapValues(storageAndNamespacedTypes, m => {
-      return {
-        label: m.label,
-        members: m.members?.map(m =>
-          typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
-        ) as TypeItem['members'],
-        numberOfBytes: m.numberOfBytes,
-      };
-    });
-
     for (const storage of storageLayout.storage) {
       const origin = getOriginContract(contractDef, storage.astId, deref);
       assert(origin, `Did not find variable declaration node for '${storage.label}'`);
@@ -76,17 +77,41 @@ export function extractStorageLayout(
       }
     }
   }
-  loadLayoutNamespaces(contractDef, decodeSrc, layout, deref, storageAndNamespacedTypes);
+
+  loadLayoutNamespaces(contractDef, decodeSrc, layout, deref, combinedTypes);
 
   return layout;
 }
+
+// /**
+//  * Combine struct types that have the same struct name in their labels (but using the original storage layout's identifiers)
+//  */
+// function combineStructTypes(storageLayoutTypes?: Record<string, TypeItem>, namespacedStorageLayoutTypes?: Record<string, TypeItem>): Record<string, TypeItem> {
+//   if (!storageLayoutTypes) {
+//     return { ...namespacedStorageLayoutTypes };
+//   } else if (!namespacedStorageLayoutTypes) {
+//     return { ...storageLayoutTypes };
+//   }
+
+//   const combinedTypes: Record<string, TypeItem> = { ...storageLayoutTypes };
+
+//   for (const typeId of Object.keys(storageLayoutTypes)) {
+//     const type = storageLayoutTypes[typeId];
+//     const namespacedType = findTypeWithLabel(namespacedStorageLayoutTypes, type.label);
+//     if (namespacedType !== undefined) {
+//       combinedTypes[typeId] = { ...namespacedType, ...type };
+//       console.log('using combined type: ' + JSON.stringify(combinedTypes[typeId], null, 2));
+//     }
+//   }
+//   return combinedTypes;
+// }
 
 function loadLayoutNamespaces(
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   deref: ASTDereferencer,
-  storageAndNamespacedTypes: Record<string, TypeItem>,
+  combinedTypes: Record<string, TypeItem>,
 ) {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
@@ -102,7 +127,7 @@ function loadLayoutNamespaces(
           decodeSrc,
           layout,
           deref,
-          storageAndNamespacedTypes,
+          combinedTypes,
         );
       }
     }
@@ -116,7 +141,7 @@ function getNamespacedStorageItems(
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
   deref: ASTDereferencer,
-  storageAndNamespacedTypes: Record<string, TypeItem<string>>,
+  combinedTypes: Record<string, TypeItem<string>>,
 ) {
   const typeMembers = getTypeMembers(node);
   assert(typeMembers !== undefined);
@@ -126,7 +151,7 @@ function getNamespacedStorageItems(
     if (typeof member !== 'string') {
       assert(member.src !== undefined);
 
-      const structType = findStructTypeWithCanonicalName(storageAndNamespacedTypes, node.canonicalName);
+      const structType = findStructTypeWithCanonicalName(combinedTypes, node.canonicalName);
 
       // find the same member name from the members of the struct type
       const structMembers = structType?.members;
@@ -165,7 +190,7 @@ function getNamespacedStorageItems(
             };
       storageItems.push(storageItem);
 
-      loadLayoutType(member.typeName, layout, deref);
+      // loadLayoutType(member.typeName, layout, deref);
     }
   }
   return storageItems;
@@ -181,8 +206,12 @@ function getStorageLocation(doc: string) {
 }
 
 function findStructTypeWithCanonicalName(types: Record<string, TypeItem>, canonicalName: string) {
+  return findTypeWithLabel(types, `struct ${canonicalName}`);
+}
+
+function findTypeWithLabel(types: Record<string, TypeItem>, label: string) {
   for (const type of Object.values(types)) {
-    if (type.label === `struct ${canonicalName}`) {
+    if (type.label === label) {
       return type;
     }
   }

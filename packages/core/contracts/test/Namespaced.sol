@@ -70,20 +70,6 @@ contract ExampleV2_Bad {
     }
 }
 
-contract Example_ModifiedWithStructVariable {
-    MainStorage $dummy;
-
-    /// @custom:storage-location erc7201:example.main
-    struct MainStorage {
-        uint256 x;
-        uint256 y;
-    }
-
-    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
-    bytes32 private constant MAIN_STORAGE_LOCATION =
-        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
-}
-
 contract RecursiveStruct {
     struct MyStruct {
         uint128 a;

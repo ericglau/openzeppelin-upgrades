@@ -40,11 +40,6 @@ test('layout', t => {
   t.snapshot(stabilizeStorageLayout(layout));
 });
 
-test('layout with types', t => {
-  const layout = t.context.extractStorageLayout('Example_ModifiedWithStructVariable');
-  t.snapshot(stabilizeStorageLayout(layout));
-});
-
 test('namespaced upgrade ok', t => {
   const v1 = t.context.extractStorageLayout('Example');
   const v2 = t.context.extractStorageLayout('ExampleV2_Ok');

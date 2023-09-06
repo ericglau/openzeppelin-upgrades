@@ -9,7 +9,7 @@ import {
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
 import { StorageItem, StorageLayout, TypeItem } from './layout';
-import { normalizeTypeIdentifier, stabilizeTypeIdentifier } from '../utils/type-id';
+import { normalizeTypeIdentifier } from '../utils/type-id';
 import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
 import { pick } from '../utils/pick';
@@ -48,16 +48,6 @@ export function extractStorageLayout(
   });
 
   if (storageLayout !== undefined) {
-    // layout.types = mapValues(storageLayout?.types, m => {
-    //   return {
-    //     label: m.label,
-    //     members: m.members?.map(m =>
-    //       typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
-    //     ) as TypeItem['members'],
-    //     numberOfBytes: m.numberOfBytes,
-    //   };
-    // });
-
     for (const storage of storageLayout.storage) {
       const origin = getOriginContract(contractDef, storage.astId, deref);
       assert(origin, `Did not find variable declaration node for '${storage.label}'`);
@@ -91,42 +81,9 @@ export function extractStorageLayout(
     }
   }
 
-  // if (namespacedContext !== undefined) {
   loadNamespaces(decodeSrc, layout, namespacedContext ?? { deref, contractDef, storageLayout });
-  // replaceWithNamespacedTypes(layout, namespacedContext.storageLayout.types);
-  // } else {
-  //   loadNamespaces(decodeSrc, layout, { deref, contractDef, storageLayout });
-  // }
 
   return layout;
-}
-
-function replaceWithNamespacedTypes(layout: StorageLayout, namespacedTypes: Record<string, TypeItem>) {
-  // Original storage layout's types have different type ids than namespaced types due to the modified compilation.
-  // Replace the original layout's types with namespaced types of the same label, but keeping the original type ids.
-  for (const namespacedKey of Object.keys(namespacedTypes)) {
-    const namespacedType = namespacedTypes[namespacedKey];
-    const origKeys = Object.keys(layout.types);
-
-    let previousMatch = undefined;
-    for (const key of origKeys) {
-      if (
-        stabilizeTypeIdentifier(key) === stabilizeTypeIdentifier(namespacedKey) &&
-        layout.types[key].label === namespacedType.label
-      ) {
-        assert(
-          previousMatch === undefined,
-          `Found multiple type ids '${key}', '${previousMatch}' with the same label '${namespacedType.label}'`,
-        );
-        previousMatch = key;
-
-        layout.types[key] = namespacedType;
-        layout.types[key].members = namespacedType.members?.map(m =>
-          typeof m === 'string' ? m : pick(m, ['label', 'type', 'offset', 'slot']),
-        ) as TypeItem['members'];
-      }
-    }
-  }
 }
 
 function loadNamespaces(decodeSrc: SrcDecoder, layout: StorageLayout, compilationContext: CompilationContext) {

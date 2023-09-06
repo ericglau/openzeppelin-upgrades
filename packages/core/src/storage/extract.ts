@@ -22,18 +22,22 @@ export function isCurrentLayoutVersion(layout: StorageLayout): boolean {
   return layout?.layoutVersion === currentLayoutVersion;
 }
 
+interface NamespacedContext {
+  deref: ASTDereferencer;
+  contractDef: ContractDefinition;
+  storageLayout: StorageLayout;
+}
+
 export function extractStorageLayout(
   contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   deref: ASTDereferencer,
   storageLayout?: StorageLayout,
-  derefNamespaced?: ASTDereferencer,
-  contractDefNamespaced?: ContractDefinition,
-  namespacedStorageLayout?: StorageLayout, // TODO doc
+  namespacedContext?: NamespacedContext,
 ): StorageLayout {
   const layout: StorageLayout = { storage: [], types: {}, layoutVersion: currentLayoutVersion, flat: false };
 
-  layout.types = mapValues({ ...namespacedStorageLayout?.types, ...storageLayout?.types }, m => {
+  layout.types = mapValues({ ...namespacedContext?.storageLayout?.types, ...storageLayout?.types }, m => {
     return {
       label: m.label,
       members: m.members?.map(m =>
@@ -87,9 +91,10 @@ export function extractStorageLayout(
     }
   }
 
-  const namespacedTypes = { ...namespacedStorageLayout?.types };
-  loadNamespaces(contractDefNamespaced ?? contractDef, decodeSrc, layout, derefNamespaced ?? deref, namespacedTypes);
-  replaceWithNamespacedTypes(layout, namespacedTypes);
+  if (namespacedContext !== undefined) {
+    loadNamespaces(decodeSrc, layout, namespacedContext);
+    // replaceWithNamespacedTypes(layout, namespacedContext.storageLayout.types);  
+  }
 
   return layout;
 }
@@ -117,27 +122,23 @@ function replaceWithNamespacedTypes(layout: StorageLayout, namespacedTypes: Reco
 }
 
 function loadNamespaces(
-  contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
-  deref: ASTDereferencer,
-  namespaceTypes: Record<string, TypeItem>,
+  namespacedContext: NamespacedContext,
 ) {
   // TODO if there is a namespace annotation in source code, check if solidity version is >= 0.8.20
 
   const namespaces: Record<string, StorageItem[]> = {};
-  for (const node of contractDef.nodes) {
+  for (const node of namespacedContext.contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
       const doc = getDocumentation(node);
       if (hasAnnotationTag(doc, 'storage-location')) {
         const storageLocation = getStorageLocation(doc);
         namespaces[storageLocation] = getNamespacedStorageItems(
           node,
-          contractDef,
           decodeSrc,
           layout,
-          deref,
-          namespaceTypes,
+          namespacedContext,
         );
       }
     }
@@ -147,11 +148,9 @@ function loadNamespaces(
 
 function getNamespacedStorageItems(
   node: StructDefinition,
-  contractDef: ContractDefinition,
   decodeSrc: SrcDecoder,
   layout: StorageLayout,
-  deref: ASTDereferencer,
-  namespaceTypes: Record<string, TypeItem<string>>,
+  namespacedContext: NamespacedContext,
 ) {
   const typeMembers = getTypeMembers(node, true);
   assert(typeMembers !== undefined);
@@ -161,12 +160,12 @@ function getNamespacedStorageItems(
     if (typeof member !== 'string') {
       assert(member.src !== undefined);
 
-      const contract = contractDef.name;
+      const contract = namespacedContext.contractDef.name;
       const label = member.label;
       const type = member.type;
       const src = decodeSrc({ src: member.src });
 
-      const structMemberFromTypes = getStructMemberFromLayoutTypes(namespaceTypes, node.canonicalName, member.label);
+      const structMemberFromTypes = getStructMemberFromLayoutTypes(namespacedContext.storageLayout.types, node.canonicalName, member.label);
 
       if (structMemberFromTypes !== undefined) {
         const offset = structMemberFromTypes?.offset;
@@ -188,7 +187,7 @@ function getNamespacedStorageItems(
         });
       }
 
-      loadLayoutType(member.typeName, layout, deref);
+      loadLayoutType(member.typeName, layout, namespacedContext.deref);
     }
   }
   return storageItems;

@@ -176,29 +176,18 @@ export function validate(
           ...getLinkingErrors(contractDef, bytecode),
         ];
 
-        const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(node => {
-          const nodeName: string = (node as any).canonicalName;
-          return nodeName !== undefined && nodeName === contractDef.canonicalName;
-        }) as ContractDefinition | undefined;
-
-        if (namespacedOutput !== undefined) { // TODO cleanup
-          validation[key].layout = extractStorageLayout(
-            contractDef,
-            decodeSrc,
-            deref,
-            solcOutput.contracts[source][contractDef.name].storageLayout,
-            astDereferencer(namespacedOutput), // TODO just pass namespacedOutput?
-            contractDefNamespaced, // TODO combine with below
-            namespacedOutput?.contracts[source][contractDef.name].storageLayout,
-          );
-        } else {
-          validation[key].layout = extractStorageLayout(
-            contractDef,
-            decodeSrc,
-            deref,
-            solcOutput.contracts[source][contractDef.name].storageLayout,
-          );
+        let namespacedContext = undefined;
+        if (namespacedOutput !== undefined && contractDef.canonicalName !== undefined) {
+          namespacedContext = getNamespacedContext(namespacedOutput, source, contractDef, namespacedContext);
         }
+
+        validation[key].layout = extractStorageLayout(
+          contractDef,
+          decodeSrc,
+          deref,
+          solcOutput.contracts[source][contractDef.name].storageLayout,
+          namespacedContext,
+        );
 
         validation[key].methods = [...findAll('FunctionDefinition', contractDef)]
           .filter(fnDef => ['external', 'public'].includes(fnDef.visibility))
@@ -216,6 +205,29 @@ export function validate(
   }
 
   return validation;
+}
+
+function getNamespacedContext(namespacedOutput: SolcOutput, source: string, contractDef: ContractDefinition, namespacedContext: any) {
+  const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(node => {
+    const nodeName: string = (node as any).canonicalName;
+    return nodeName !== undefined && nodeName === contractDef.canonicalName;
+  }) as ContractDefinition | undefined;
+
+  if (contractDefNamespaced === undefined) {
+    throw new Error(`Contract definition with name ${contractDef.canonicalName} not found in namespaced solc output`);
+  }
+
+  const storageLayout = namespacedOutput.contracts[source][contractDef.name].storageLayout;
+  if (storageLayout === undefined) {
+    throw new Error(`Storage layout for contract ${contractDef.canonicalName} not found in namespaced solc output`);
+  }
+
+  namespacedContext = {
+    contractDef: contractDefNamespaced,
+    deref: astDereferencer(namespacedOutput),
+    storageLayout: storageLayout,
+  };
+  return namespacedContext;
 }
 
 function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDecoder): Generator<ValidationError> {

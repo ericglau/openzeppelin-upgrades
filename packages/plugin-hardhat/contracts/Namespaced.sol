@@ -111,6 +111,59 @@ contract RecursiveStructV2_Bad {
     }
 }
 
+contract TripleStruct {
+    struct Inner {
+        uint128 a;
+        uint256 b;
+    }
+
+    struct Outer {
+        Inner i;
+    }
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        Outer s;
+        uint256 y;
+    }
+}
+
+contract TripleStructV2_Ok {
+    struct Inner {
+        uint128 a;
+        uint128 a2;
+        uint256 b;
+    }
+
+    struct Outer {
+        Inner i;
+    }
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        Outer s;
+        uint256 y;
+    }
+}
+
+contract TripleStructV2_Bad {
+    struct Inner {
+        uint128 a;
+        uint256 b;
+        uint256 c;
+    }
+
+    struct Outer {
+        Inner i;
+    }
+
+    /// @custom:storage-location erc7201:example.main
+    struct MainStorage {
+        Outer s;
+        uint256 y;
+    }
+}
+
 // TODO:
 
 // mixed usage of regular variables and namespaces

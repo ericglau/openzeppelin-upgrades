@@ -9,6 +9,9 @@ test.before(async t => {
   t.context.RecursiveStruct = await ethers.getContractFactory('RecursiveStruct');
   t.context.RecursiveStructV2_Ok = await ethers.getContractFactory('RecursiveStructV2_Ok');
   t.context.RecursiveStructV2_Bad = await ethers.getContractFactory('RecursiveStructV2_Bad');
+  t.context.TripleStruct = await ethers.getContractFactory('TripleStruct');
+  t.context.TripleStructV2_Ok = await ethers.getContractFactory('TripleStructV2_Ok');
+  t.context.TripleStructV2_Bad = await ethers.getContractFactory('TripleStructV2_Bad');
 });
 
 test('validate namespace - ok', async t => {
@@ -86,6 +89,56 @@ test('validate namespace - recursive - bad', async t => {
         },
         original: { label: 's' },
         updated: { label: 's' },
+      },
+      1: {
+        kind: 'layoutchange',
+        original: {
+          label: 'y',
+          slot: '2',
+        },
+        updated: {
+          label: 'y',
+          slot: '3',
+        },
+      },
+    });
+  }
+});
+
+test('validate namespace - triple struct - ok', async t => {
+  const { TripleStruct, TripleStructV2_Ok } = t.context;
+
+  await upgrades.validateUpgrade(TripleStruct, TripleStructV2_Ok);
+});
+
+test('validate namespace - triple struct - bad', async t => {
+  const { TripleStruct, TripleStructV2_Bad } = t.context;
+
+  try {
+    await upgrades.validateUpgrade(TripleStruct, TripleStructV2_Bad);
+  } catch (e) {
+    const comparison = e.report.ops;
+
+    t.like(comparison, {
+      length: 2,
+      0: {
+        kind: 'typechange',
+        change: {
+          kind: 'struct members',
+          ops: {
+            length: 1,
+            0: {
+              kind: 'typechange',
+              change: {
+                kind: 'struct members',
+                ops: {
+                  length: 1,
+                  0: { kind: 'append' },
+                },
+              }
+            },
+          },
+        },
       },
       1: {
         kind: 'layoutchange',

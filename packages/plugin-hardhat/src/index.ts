@@ -188,8 +188,68 @@ contract RecursiveStructV2_Bad {
       uint256 y;
   }
 }
+
+contract TripleStruct {
+  MainStorage $dummy;
+
+  struct Inner {
+      uint128 a;
+      uint256 b;
+  }
+
+  struct Outer {
+      Inner i;
+  }
+
+  /// @custom:storage-location erc7201:example.main
+  struct MainStorage {
+      Outer s;
+      uint256 y;
+  }
+}
+
+contract TripleStructV2_Ok {
+  MainStorage $dummy;
+
+  struct Inner {
+      uint128 a;
+      uint128 a2;
+      uint256 b;
+  }
+
+  struct Outer {
+      Inner i;
+  }
+
+  /// @custom:storage-location erc7201:example.main
+  struct MainStorage {
+      Outer s;
+      uint256 y;
+  }
+}
+
+contract TripleStructV2_Bad {
+  MainStorage $dummy;
+
+  struct Inner {
+      uint128 a;
+      uint256 b;
+      uint256 c;
+  }
+
+  struct Outer {
+      Inner i;
+  }
+
+  /// @custom:storage-location erc7201:example.main
+  struct MainStorage {
+      Outer s;
+      uint256 y;
+  }
+}
 `;
         modifiedInput.sources[sourcePath].content = replacement;
+        console.log('Modified source code for Namespaced.sol');
       }
     }
 

@@ -22,6 +22,7 @@ import { DeployAdminFunction, makeDeployProxyAdmin } from './deploy-proxy-admin'
 import type { DeployContractFunction } from './deploy-contract';
 import type { ProposeUpgradeFunction } from './platform/propose-upgrade';
 import type { GetDefaultApprovalProcessFunction } from './platform/get-default-approval-process';
+import { isNodeType, findAll, ASTDereferencer, astDereferencer } from 'solidity-ast/utils';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -95,161 +96,60 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
     const modifiedInput: SolcInput = JSON.parse(JSON.stringify(args.input));
     for (const [sourcePath /*source*/] of Object.entries(modifiedInput.sources)) {
       // TODO this is a hack just for Namespaced.sol to be used in the testcase in namespaced.js
+
       if (sourcePath === 'contracts/Namespaced.sol') {
-        const replacement = `\
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+        console.log('looking at sourcepath', sourcePath);
+        console.log('source content', JSON.stringify(modifiedInput.sources[sourcePath].content, null, 2));
 
-contract Example {
-    MainStorage $dummy;
+        // console.log('AST: ' + JSON.stringify(output.sources[sourcePath].ast, null, 2));
 
-    /// @custom:storage-location erc7201:example.main
-    struct MainStorage {
-        uint256 x;
-        uint256 y;
-    }
+        // const astNodes = output.sources[sourcePath].ast.nodes;
+        // for (const node of astNodes) {
+        //   console.log('node', node);
+        // }
 
-    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
-    bytes32 private constant MAIN_STORAGE_LOCATION =
-        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
-}
+        // for each contract in this source file
+        const contractDefs = [];
+        for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
+          contractDefs.push(contractDef);
+        }
 
-contract ExampleV2_Ok {
-    MainStorage $dummy;
+        // look backwards
+        for (let i = contractDefs.length - 1; i >= 0; i--) {
+          const contractDef = contractDefs[i];
 
-    /// @custom:storage-location erc7201:example.main
-    struct MainStorage {
-        uint256 x;
-        uint256 y;
-        uint256 z;
-    }
+        // for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
+          // console.log('contractDef', contractDef);
 
-    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
-    bytes32 private constant MAIN_STORAGE_LOCATION =
-        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
-}
+          // for each function, starting from the end
+          for (let i = contractDef.nodes.length - 1; i >= 0; i--) {
+            const node = contractDef.nodes[i];
+            if (isNodeType('FunctionDefinition', node)) {
+              console.log('deleting function', node);
 
-contract ExampleV2_Bad {
-    MainStorage $dummy;
+              // delete function from source code, using format: <start>:<length>:<sourceId>
+              const [begin, length, sourceId] = node.src.split(':').map(Number);
+              const content = modifiedInput.sources[sourcePath].content;
 
-    /// @custom:storage-location erc7201:example.main
-    struct MainStorage {
-        uint256 y;
-    }
+              // console.log('oldContent', content);
 
-    // keccak256(abi.encode(uint256(keccak256("example.main")) - 1));
-    bytes32 private constant MAIN_STORAGE_LOCATION =
-        0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab5da;
-}
+              if (content === undefined) throw Error('content undefined'); // TODO
 
-contract RecursiveStruct {
-  MainStorage $dummy;
+              const newContent = content.slice(0, begin) + content.slice(begin + length);
+              // source.content = newContent;
+              modifiedInput.sources[sourcePath].content = newContent;
 
-  struct MyStruct {
-      uint128 a;
-      uint256 b;
-  }
+              // console.log('newContent', newContent);
+              // throw new Error('stop');
+            }
+          }
+        }
+        console.log('COMPLETED CONTENT ' + modifiedInput.sources[sourcePath].content);
+          
 
-  /// @custom:storage-location erc7201:example.main
-  struct MainStorage {
-      MyStruct s;
-      uint256 y;
-  }
-}
 
-contract RecursiveStructV2_Ok {
-  MainStorage $dummy;
-
-  struct MyStruct {
-      uint128 a;
-      uint128 a2;
-      uint256 b;
-  }
-
-  /// @custom:storage-location erc7201:example.main
-  struct MainStorage {
-      MyStruct s;
-      uint256 y;
-  }
-}
-
-contract RecursiveStructV2_Bad {
-  MainStorage $dummy;
-
-  struct MyStruct {
-      uint128 a;
-      uint256 b;
-      uint256 c;
-  }
-
-  /// @custom:storage-location erc7201:example.main
-  struct MainStorage {
-      MyStruct s;
-      uint256 y;
-  }
-}
-
-contract TripleStruct {
-  MainStorage $dummy;
-
-  struct Inner {
-      uint128 a;
-      uint256 b;
-  }
-
-  struct Outer {
-      Inner i;
-  }
-
-  /// @custom:storage-location erc7201:example.main
-  struct MainStorage {
-      Outer s;
-      uint256 y;
-  }
-}
-
-contract TripleStructV2_Ok {
-  MainStorage $dummy;
-
-  struct Inner {
-      uint128 a;
-      uint128 a2;
-      uint256 b;
-  }
-
-  struct Outer {
-      Inner i;
-  }
-
-  /// @custom:storage-location erc7201:example.main
-  struct MainStorage {
-      Outer s;
-      uint256 y;
-  }
-}
-
-contract TripleStructV2_Bad {
-  MainStorage $dummy;
-
-  struct Inner {
-      uint128 a;
-      uint256 b;
-      uint256 c;
-  }
-
-  struct Outer {
-      Inner i;
-  }
-
-  /// @custom:storage-location erc7201:example.main
-  struct MainStorage {
-      Outer s;
-      uint256 y;
-  }
-}
-`;
-        modifiedInput.sources[sourcePath].content = replacement;
-        console.log('Modified source code for Namespaced.sol');
+        // modifiedInput.sources[sourcePath].content = replacement;
+        // console.log('Modified source code for Namespaced.sol');
       }
     }
 

@@ -101,7 +101,32 @@ export function extractStorageLayout(
 
   loadLayoutNamespaces(namespacedContractDef ?? contractDef, decodeSrc, layout, deref, { ...namespacedStorageLayout?.types });
 
+  rectifyNamespacedTypes(layout, { ...namespacedStorageLayout?.types });
+
   return layout;
+}
+
+function rectifyNamespacedTypes(layout: StorageLayout, namespacedTypes: Record<string, TypeItem>) {
+  // const types = layout.types;
+  // // get all types that have the same label
+  // const labels = Object.values(types).map(t => t.label);
+  // const uniqueLabels = [...new Set(labels)];
+  // for (const label of uniqueLabels) {
+  //   const typesWithLabel = Object.values(types).filter(t => t.label === label);
+  //   if (typesWithLabel.length > 1) {
+  //     // get the type that has slot and offset
+  //     const typeWithSlotAndOffset = typesWithLabel.find(t => t.slot !== undefined && t.offset !== undefined);
+
+  // for each namespaced type, if it has the same label as a type in layout.types, overwrite the type in layout.types with the namespaced type
+  for (const namespacedType of Object.values(namespacedTypes)) {
+    const origKeys = Object.keys(layout.types);
+
+    for (const key of origKeys) {      
+      if (layout.types[key].label === namespacedType.label) {
+        layout.types[key] = namespacedType;
+      }
+    }
+  }
 }
 
 // /**

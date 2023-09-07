@@ -101,13 +101,13 @@ function loadNamespaces(
       const storageLocation = getNamespacedStorageLocation(node);
       if (storageLocation !== undefined) {
         namespaces[storageLocation] = getNamespacedStorageItems(
-            storageLocation,
-            node,
-            decodeSrc,
-            layout,
-            compilationContext,
-            origContractDef,
-          );
+          storageLocation,
+          node,
+          decodeSrc,
+          layout,
+          compilationContext,
+          origContractDef,
+        );
       }
     }
   }

@@ -1,8 +1,5 @@
 import assert from 'assert';
-import {
-  ContractDefinition,
-  StructDefinition,
-} from 'solidity-ast';
+import { ContractDefinition, StructDefinition } from 'solidity-ast';
 import { isNodeType } from 'solidity-ast/utils';
 import { StorageItem, StorageLayout, TypeItem } from './layout';
 import { SrcDecoder } from '../src-decoder';
@@ -23,13 +20,7 @@ export function loadNamespaces(
     if (isNodeType('StructDefinition', node)) {
       const storageLocation = getNamespacedStorageLocation(node);
       if (storageLocation !== undefined) {
-        namespaces[storageLocation] = getNamespacedStorageItems(
-          node,
-          decodeSrc,
-          layout,
-          context,
-          origContractDef,
-        );
+        namespaces[storageLocation] = getNamespacedStorageItems(node, decodeSrc, layout, context, origContractDef);
       }
     }
   }
@@ -77,25 +68,20 @@ function getNamespacedStorageItems(
         member.label,
       );
 
-      if (structMemberFromTypes !== undefined) {
-        const offset = structMemberFromTypes?.offset;
-        const slot = structMemberFromTypes?.slot;
-        storageItems.push({
-          contract,
-          label,
-          type,
-          src,
-          offset,
-          slot,
-        });
-      } else {
-        storageItems.push({
-          contract,
-          label,
-          type,
-          src,
-        });
+      let item: StorageItem = {
+        contract,
+        label,
+        type,
+        src,
+      };
+      if (structMemberFromTypes?.offset !== undefined && structMemberFromTypes?.slot !== undefined) {
+        item = {
+          ...item,
+          offset: structMemberFromTypes.offset,
+          slot: structMemberFromTypes.slot,
+        };
       }
+      storageItems.push(item);
 
       loadLayoutType(member.typeName, layout, context.deref);
     }
@@ -103,12 +89,10 @@ function getNamespacedStorageItems(
   return storageItems;
 }
 
-function getOriginalSrc(
-  canonicalName: string,
-  memberLabel: string,
-  origContractDef: ContractDefinition,
-) {
-  // get the same namespace struct's ast node from original source
+/**
+ * Lookup the original source location of a struct member.
+ */
+function getOriginalSrc(canonicalName: string, memberLabel: string, origContractDef: ContractDefinition) {
   for (const node of origContractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
       if (node.canonicalName === canonicalName) {

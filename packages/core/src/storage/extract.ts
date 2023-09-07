@@ -8,7 +8,7 @@ import {
   TypeName,
 } from 'solidity-ast';
 import { isNodeType, findAll, ASTDereferencer } from 'solidity-ast/utils';
-import { StorageLayout, TypeItem } from './layout';
+import { StorageLayout, StructMember, TypeItem } from './layout';
 import { normalizeTypeIdentifier } from '../utils/type-id';
 import { SrcDecoder } from '../src-decoder';
 import { mapValues } from '../utils/map-values';
@@ -106,27 +106,22 @@ function typeDescriptions(x: { typeDescriptions: TypeDescriptions }): RequiredTy
   return x.typeDescriptions as RequiredTypeDescriptions;
 }
 
-export function getTypeMembers(typeDef: StructDefinition | EnumDefinition, includeTypeName?: boolean): TypeItem['members'] {
+export function getTypeMembers(
+  typeDef: StructDefinition | EnumDefinition,
+  includeTypeName?: boolean,
+): TypeItem['members'] {
   if (typeDef.nodeType === 'StructDefinition') {
     return typeDef.members.map(m => {
       assert(typeof m.typeDescriptions.typeIdentifier === 'string');
-
-      if (includeTypeName) {
-        // TODO remove this duplicate
-        return {
-          label: m.name,
-          type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
-          src: m.src,
-          typeName: m.typeName, // TODO remove this from here, but get typeName in getNamespacedStorageItems
-          // TODO check if we need numberOfBytes from the storage layout's types
-        };
-      } else {
-        return {
-          label: m.name,
-          type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
-          src: m.src,
-        };
+      let fields: StructMember = {
+        label: m.name,
+        type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
+        src: m.src,
+      };
+      if (includeTypeName && m.typeName) {
+        fields = { ...fields, typeName: m.typeName };
       }
+      return fields;
     });
   } else {
     return typeDef.members.map(m => m.name);

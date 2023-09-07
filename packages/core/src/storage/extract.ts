@@ -113,15 +113,15 @@ export function getTypeMembers(
   if (typeDef.nodeType === 'StructDefinition') {
     return typeDef.members.map(m => {
       assert(typeof m.typeDescriptions.typeIdentifier === 'string');
-      let fields: StructMember = {
+      let member: StructMember = {
         label: m.name,
         type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
         src: m.src,
       };
       if (includeTypeName && m.typeName) {
-        fields = { ...fields, typeName: m.typeName };
+        member = { ...member, typeName: m.typeName };
       }
-      return fields;
+      return member;
     });
   } else {
     return typeDef.members.map(m => m.name);

@@ -108,28 +108,6 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
   return { output, solcBuild };
 });
 
-function checkNamespacedCompileErrors(namespacedInput: SolcInput, namespacedOutput: SolcOutput) {
-  const errors = [];
-  if (namespacedOutput.errors !== undefined) {
-    for (const error of namespacedOutput.errors) {
-      if (error.severity === 'error') {
-        const msg = error.formattedMessage;
-
-        debug('Compile error in modified contract for namespaced storage.');
-        debug('Error:', msg);
-        if (error.sourceLocation !== undefined && error.sourceLocation.file in namespacedInput.sources) {
-          debug('Modified contract source:', namespacedInput.sources[error.sourceLocation.file].content);
-        }
-
-        errors.push(msg);
-      }
-    }
-  }
-  if (errors.length > 0) {
-    throw new Error(`Failed to compile modified contracts for namespaced storage:\n\n${errors.join('\n')}`);
-  }
-}
-
 /**
  * Makes a copy of the contracts to add state variables for each namespaced struct definition,
  * so that the compiler will generate their types in the storage layout.
@@ -200,6 +178,33 @@ function makeNamespacedInputCopy(input: SolcInput, output: SolcOutput) {
     }
   }
   return modifiedInput;
+}
+
+/**
+ * Checks for compile errors in the modified contracts for namespaced storage.
+ * If errors are found, throws an error with the compile error messages, and logs
+ * the modified contract source code as debug.
+ */
+function checkNamespacedCompileErrors(namespacedInput: SolcInput, namespacedOutput: SolcOutput) {
+  const errors = [];
+  if (namespacedOutput.errors !== undefined) {
+    for (const error of namespacedOutput.errors) {
+      if (error.severity === 'error') {
+        const msg = error.formattedMessage;
+
+        debug('Compile error in modified contract for namespaced storage.');
+        debug('Error:', msg);
+        if (error.sourceLocation !== undefined && error.sourceLocation.file in namespacedInput.sources) {
+          debug('Modified contract source:', namespacedInput.sources[error.sourceLocation.file].content);
+        }
+
+        errors.push(msg);
+      }
+    }
+  }
+  if (errors.length > 0) {
+    throw new Error(`Failed to compile modified contracts for namespaced storage:\n\n${errors.join('\n')}`);
+  }
 }
 
 extendEnvironment(hre => {

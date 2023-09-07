@@ -41,14 +41,12 @@ function getNamespacedStorageItems(
   context: CompilationContext,
   origContractDef: ContractDefinition,
 ) {
-  const typeMembers = getTypeMembers(node, true);
+  const typeMembers = getTypeMembers(node, { typeName: true });
   assert(typeMembers !== undefined);
 
   const storageItems: StorageItem[] = [];
   for (const member of typeMembers) {
     if (typeof member !== 'string') {
-      assert(member.src !== undefined);
-
       const contract = context.contractDef.name;
       const label = member.label;
       const type = member.type;
@@ -96,7 +94,7 @@ function getOriginalSrc(canonicalName: string, memberLabel: string, origContract
   for (const node of origContractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
       if (node.canonicalName === canonicalName) {
-        const typeMembers = getTypeMembers(node, true);
+        const typeMembers = getTypeMembers(node, { src: true });
         assert(typeMembers !== undefined);
 
         for (const member of typeMembers) {

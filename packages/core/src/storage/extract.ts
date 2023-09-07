@@ -108,7 +108,7 @@ function typeDescriptions(x: { typeDescriptions: TypeDescriptions }): RequiredTy
 
 export function getTypeMembers(
   typeDef: StructDefinition | EnumDefinition,
-  includeTypeName?: boolean,
+  includeFields: { src?: boolean; typeName?: boolean } = {},
 ): TypeItem['members'] {
   if (typeDef.nodeType === 'StructDefinition') {
     return typeDef.members.map(m => {
@@ -116,9 +116,11 @@ export function getTypeMembers(
       let member: StructMember = {
         label: m.name,
         type: normalizeTypeIdentifier(m.typeDescriptions.typeIdentifier),
-        src: m.src,
       };
-      if (includeTypeName && m.typeName) {
+      if (includeFields.src && m.src) {
+        member = { ...member, src: m.src };
+      }
+      if (includeFields.typeName && m.typeName) {
         member = { ...member, typeName: m.typeName };
       }
       return member;

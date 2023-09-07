@@ -22,7 +22,7 @@ import { DeployAdminFunction, makeDeployProxyAdmin } from './deploy-proxy-admin'
 import type { DeployContractFunction } from './deploy-contract';
 import type { ProposeUpgradeFunction } from './platform/propose-upgrade';
 import type { GetDefaultApprovalProcessFunction } from './platform/get-default-approval-process';
-import { isNodeType, findAll, ASTDereferencer, astDereferencer } from 'solidity-ast/utils';
+import { isNodeType, findAll } from 'solidity-ast/utils';
 
 export interface HardhatUpgrades {
   deployProxy: DeployFunction;
@@ -118,7 +118,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
         for (let i = contractDefs.length - 1; i >= 0; i--) {
           const contractDef = contractDefs[i];
 
-        // for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
+          // for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
           // console.log('contractDef', contractDef);
 
           // for each function, starting from the end
@@ -128,25 +128,23 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
               console.log('deleting function', node);
 
               // delete function from source code, using format: <start>:<length>:<sourceId>
-              const [begin, length, sourceId] = node.src.split(':').map(Number);
+              const [begin, length] = node.src.split(':').map(Number);
               const content = modifiedInput.sources[sourcePath].content;
 
               // console.log('oldContent', content);
 
-              if (content === undefined) throw Error('content undefined'); // TODO
+              if (content === undefined) {
+                throw Error('content undefined');
+              } // TODO
 
-              const newContent = content.slice(0, begin) + content.slice(begin + length);
-              // source.content = newContent;
-              modifiedInput.sources[sourcePath].content = newContent;
+              const buf = Buffer.from(content);
+              const replacementBuf = Buffer.concat([buf.subarray(0, begin), buf.subarray(begin + length)]);
 
-              // console.log('newContent', newContent);
-              // throw new Error('stop');
+              modifiedInput.sources[sourcePath].content = replacementBuf.toString();
             }
           }
         }
         console.log('COMPLETED CONTENT ' + modifiedInput.sources[sourcePath].content);
-          
-
 
         // modifiedInput.sources[sourcePath].content = replacement;
         // console.log('Modified source code for Namespaced.sol');

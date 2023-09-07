@@ -151,6 +151,7 @@ function makeNamespacedInputCopy(input: SolcInput, output: SolcOutput) {
             end += 1;
           }
 
+          // Delete the source code segment
           const buf = Buffer.concat([orig.subarray(0, start), orig.subarray(end)]);
 
           source.content = buf.toString();
@@ -165,6 +166,7 @@ function makeNamespacedInputCopy(input: SolcInput, output: SolcOutput) {
             const structName = node.name;
             const variableName = `$${structName}`;
 
+            // Insert the variable declaration for the namespaced struct
             const buf = Buffer.concat([
               orig.subarray(0, end),
               Buffer.from(` ${structName} ${variableName};`),

@@ -15,6 +15,7 @@ import { mapValues } from '../utils/map-values';
 import { pick } from '../utils/pick';
 import { execall } from '../utils/execall';
 import { getAnnotationArgs, getDocumentation, hasAnnotationTag } from '../utils/annotations';
+import { Node } from 'solidity-ast/node';
 
 const currentLayoutVersion = '1.2';
 
@@ -97,21 +98,27 @@ function loadNamespaces(
   const namespaces: Record<string, StorageItem[]> = {};
   for (const node of compilationContext.contractDef.nodes) {
     if (isNodeType('StructDefinition', node)) {
-      const doc = getDocumentation(node);
-      if (hasAnnotationTag(doc, 'storage-location')) {
-        const storageLocation = getStorageLocation(doc);
+      const storageLocation = getNamespacedStorageLocation(node);
+      if (storageLocation !== undefined) {
         namespaces[storageLocation] = getNamespacedStorageItems(
-          storageLocation,
-          node,
-          decodeSrc,
-          layout,
-          compilationContext,
-          origContractDef,
-        );
+            storageLocation,
+            node,
+            decodeSrc,
+            layout,
+            compilationContext,
+            origContractDef,
+          );
       }
     }
   }
   layout.namespaces = namespaces;
+}
+
+export function getNamespacedStorageLocation(node: Node) {
+  const doc = getDocumentation(node);
+  if (hasAnnotationTag(doc, 'storage-location')) {
+    return getStorageLocation(doc);
+  }
 }
 
 function getNamespacedStorageItems(

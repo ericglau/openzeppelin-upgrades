@@ -57,5 +57,3 @@ export {
 } from './usage-error';
 
 export { ValidateUpgradeSafetyOptions, validateUpgradeSafety, ProjectReport, ReferenceContractNotFound } from './cli';
-
-export { getNamespacedStorageLocation } from './storage/extract'; // TODO put this in ./storage/index?

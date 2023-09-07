@@ -46,7 +46,7 @@ export function getStorageUpgradeReport(
   const updatedDetailed = getDetailedLayout(updated);
   const comparator = new StorageLayoutComparator(opts.unsafeAllowCustomTypes, opts.unsafeAllowRenames);
   const ops = comparator.getStorageOperations(originalDetailed, updatedDetailed);
-  pushNamespacedStorageOperations(ops, comparator, original, updated);
+  ops.push(...getNamespacedStorageOperations(comparator, original, updated));
 
   const report = new LayoutCompatibilityReport(ops);
 
@@ -62,12 +62,12 @@ export function getStorageUpgradeReport(
   return report;
 }
 
-function pushNamespacedStorageOperations(
-  ops: StorageOperation<StorageItem>[],
+function getNamespacedStorageOperations(
   comparator: StorageLayoutComparator,
   original: StorageLayout,
   updated: StorageLayout,
 ) {
+  const results: StorageOperation<StorageItem>[] = [];
   if (original.namespaces !== undefined) {
     for (const [namespace, origNamespaceLayout] of Object.entries(original.namespaces)) {
       const origNamespaceDetailed = getDetailedLayout({ storage: origNamespaceLayout, types: original.types });
@@ -79,9 +79,10 @@ function pushNamespacedStorageOperations(
       const updatedNamespaceDetailed = getDetailedLayout({ storage: updatedNamespaceLayout, types: updated.types });
       const namespaceOps = comparator.getStorageOperations(origNamespaceDetailed, updatedNamespaceDetailed);
 
-      ops.push(...namespaceOps);
+      results.push(...namespaceOps);
     }
   }
+  return results;
 }
 
 export class StorageUpgradeErrors extends UpgradesError {

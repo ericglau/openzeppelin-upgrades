@@ -25,6 +25,9 @@ export interface SolcOutput {
   errors?: {
     severity: 'error' | 'warning';
     formattedMessage: string;
+    sourceLocation?: {
+      file: string;
+    };
   }[];
 }
 

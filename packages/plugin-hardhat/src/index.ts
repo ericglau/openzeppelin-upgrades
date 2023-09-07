@@ -99,7 +99,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
 
     const namespacedInput = makeNamespacedInputCopy(args.input, output);
     const { output: namespacedOutput } = await runSuper({ ...args, input: namespacedInput });
-    checkNamespacedCompileErrors(namespacedOutput);
+    checkNamespacedCompileErrors(namespacedInput, namespacedOutput);
 
     const validations = validate(output, decodeSrc, args.solcVersion, namespacedOutput);
     await writeValidations(hre, validations);
@@ -108,12 +108,20 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
   return { output, solcBuild };
 });
 
-function checkNamespacedCompileErrors(modifiedOutput: SolcOutput) {
+function checkNamespacedCompileErrors(namespacedInput: SolcInput, namespacedOutput: SolcOutput) {
   const errors = [];
-  if (modifiedOutput.errors !== undefined) {
-    for (const error of modifiedOutput.errors) {
+  if (namespacedOutput.errors !== undefined) {
+    for (const error of namespacedOutput.errors) {
       if (error.severity === 'error') {
-        errors.push(error.formattedMessage);
+        const msg = error.formattedMessage;
+
+        debug('Compile error in modified contract for namespaced storage.');
+        debug('Error:', msg);
+        if (error.sourceLocation !== undefined && error.sourceLocation.file in namespacedInput.sources) {
+          debug('Modified contract source:', namespacedInput.sources[error.sourceLocation.file].content);
+        }
+
+        errors.push(msg);
       }
     }
   }
@@ -133,6 +141,11 @@ function checkNamespacedCompileErrors(modifiedOutput: SolcOutput) {
 function makeNamespacedInputCopy(input: SolcInput, output: SolcOutput) {
   const modifiedInput: SolcInput = JSON.parse(JSON.stringify(input));
   for (const [sourcePath] of Object.entries(modifiedInput.sources)) {
+    const source = modifiedInput.sources[sourcePath];
+    if (source.content === undefined) {
+      continue;
+    }
+
     // Collect all contract definitions
     const contractDefs = [];
     for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
@@ -150,52 +163,41 @@ function makeNamespacedInputCopy(input: SolcInput, output: SolcOutput) {
           isNodeType('ModifierDefinition', node) ||
           (isNodeType('VariableDeclaration', node) && node.mutability === 'immutable')
         ) {
-          let [begin, length] = node.src.split(':').map(Number);
-          const content = modifiedInput.sources[sourcePath].content;
+          const orig = Buffer.from(source.content);
 
-          if (content === undefined) {
-            throw Error('content undefined');
-          } // TODO
-
-          const orig = Buffer.from(content);
+          const [start, length] = node.src.split(':').map(Number);
+          let end = start + length;
 
           // If the next character is a semicolon (e.g. for immutable variables), delete it too
-          if (
-            begin + length + 1 < orig.length &&
-            orig.subarray(begin + length, begin + length + 1).toString() === ';'
-          ) {
-            length += 1;
+          if (end + 1 < orig.length && orig.subarray(end, end + 1).toString() === ';') {
+            end += 1;
           }
-          const buf = Buffer.concat([orig.subarray(0, begin), orig.subarray(begin + length)]);
 
-          modifiedInput.sources[sourcePath].content = buf.toString();
+          const buf = Buffer.concat([orig.subarray(0, start), orig.subarray(end)]);
+
+          source.content = buf.toString();
         } else if (isNodeType('StructDefinition', node)) {
           const storageLocation = getNamespacedStorageLocation(node);
           if (storageLocation !== undefined) {
-            const [begin, length] = node.src.split(':').map(Number);
+            const orig = Buffer.from(source.content);
 
-            const content = modifiedInput.sources[sourcePath].content;
-            if (content === undefined) {
-              throw Error('content undefined');
-            } // TODO
+            const [start, length] = node.src.split(':').map(Number);
+            const end = start + length;
 
             const structName = node.name;
             const variableName = `$${structName}`;
 
-            const orig = Buffer.from(content);
             const buf = Buffer.concat([
-              orig.subarray(0, begin + length),
+              orig.subarray(0, end),
               Buffer.from(` ${structName} ${variableName};`),
-              orig.subarray(begin + length),
+              orig.subarray(end),
             ]);
 
-            modifiedInput.sources[sourcePath].content = buf.toString();
+            source.content = buf.toString();
           }
         }
       }
     }
-
-    // console.log('modified source ', modifiedInput.sources[sourcePath].content);
   }
   return modifiedInput;
 }

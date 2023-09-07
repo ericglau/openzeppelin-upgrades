@@ -176,17 +176,12 @@ export function validate(
           ...getLinkingErrors(contractDef, bytecode),
         ];
 
-        let namespacedContext = undefined;
-        if (namespacedOutput !== undefined && contractDef.canonicalName !== undefined) {
-          namespacedContext = getNamespacedContext(namespacedOutput, source, contractDef, namespacedContext);
-        }
-
         validation[key].layout = extractStorageLayout(
           contractDef,
           decodeSrc,
           deref,
           solcOutput.contracts[source][contractDef.name].storageLayout,
-          namespacedContext,
+          getNamespacedCompilationContext(source, contractDef, namespacedOutput),
         );
 
         validation[key].methods = [...findAll('FunctionDefinition', contractDef)]
@@ -207,18 +202,21 @@ export function validate(
   return validation;
 }
 
-function getNamespacedContext(
-  namespacedOutput: SolcOutput,
+function getNamespacedCompilationContext(
   source: string,
   contractDef: ContractDefinition,
-  namespacedContext: any,
+  namespacedOutput: SolcOutput | undefined,
 ) {
-  const contractDefNamespaced = namespacedOutput?.sources[source].ast.nodes.find(node => {
+  if (namespacedOutput === undefined || contractDef.canonicalName === undefined) {
+    return undefined;
+  }
+
+  const namespacedContractDef = namespacedOutput?.sources[source].ast.nodes.find(node => {
     const nodeName: string = (node as any).canonicalName;
     return nodeName !== undefined && nodeName === contractDef.canonicalName;
   }) as ContractDefinition | undefined;
 
-  if (contractDefNamespaced === undefined) {
+  if (namespacedContractDef === undefined) {
     throw new Error(`Contract definition with name ${contractDef.canonicalName} not found in namespaced solc output`);
   }
 
@@ -227,12 +225,11 @@ function getNamespacedContext(
     throw new Error(`Storage layout for contract ${contractDef.canonicalName} not found in namespaced solc output`);
   }
 
-  namespacedContext = {
-    contractDef: contractDefNamespaced,
+  return {
+    contractDef: namespacedContractDef,
     deref: astDereferencer(namespacedOutput),
     storageLayout: storageLayout,
   };
-  return namespacedContext;
 }
 
 function* getConstructorErrors(contractDef: ContractDefinition, decodeSrc: SrcDecoder): Generator<ValidationError> {

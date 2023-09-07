@@ -143,8 +143,8 @@ function makeNamespacedInputCopy(input: SolcInput, output: SolcOutput) {
     for (let i = contractDefs.length - 1; i >= 0; i--) {
       const contractDef = contractDefs[i];
       const nodes = contractDef.nodes;
-      for (let i = nodes.length - 1; i >= 0; i--) {
-        const node = nodes[i];
+      for (let j = nodes.length - 1; j >= 0; j--) {
+        const node = nodes[j];
         if (
           isNodeType('FunctionDefinition', node) ||
           isNodeType('ModifierDefinition', node) ||

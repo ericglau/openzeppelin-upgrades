@@ -6,7 +6,12 @@ import { subtask, extendEnvironment, extendConfig } from 'hardhat/config';
 import { TASK_COMPILE_SOLIDITY, TASK_COMPILE_SOLIDITY_COMPILE } from 'hardhat/builtin-tasks/task-names';
 import { lazyObject } from 'hardhat/plugins';
 import { HardhatConfig, HardhatRuntimeEnvironment } from 'hardhat/types';
-import { getImplementationAddressFromBeacon, getNamespacedStorageLocation, silenceWarnings, SolcInput } from '@openzeppelin/upgrades-core';
+import {
+  getImplementationAddressFromBeacon,
+  getNamespacedStorageLocation,
+  silenceWarnings,
+  SolcInput,
+} from '@openzeppelin/upgrades-core';
 import type { DeployFunction } from './deploy-proxy';
 import type { PrepareUpgradeFunction } from './prepare-upgrade';
 import type { UpgradeFunction } from './upgrade-proxy';
@@ -91,49 +96,27 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
     const decodeSrc = solcInputOutputDecoder(args.input, output);
 
     // We iterate through each source from the original solc input.
-    // For each source, delete all functions.
-    // If a source has namespaces, we also modify the source to inject variables that reference the namespace structs.
+    // For each source, delete all functions and append a state variable for each namespaced struct.
     const modifiedInput: SolcInput = JSON.parse(JSON.stringify(args.input));
-    for (const [sourcePath /*source*/] of Object.entries(modifiedInput.sources)) {
-      // TODO this is a hack just for Namespaced.sol to be used in the testcase in namespaced.js
-
+    for (const [sourcePath] of Object.entries(modifiedInput.sources)) {
       if (sourcePath === 'contracts/Namespaced.sol') {
-        // let shift = 0;
-
         console.log('looking at sourcepath', sourcePath);
         console.log('Original content:', JSON.stringify(modifiedInput.sources[sourcePath].content, null, 2));
 
-        // console.log('AST: ' + JSON.stringify(output.sources[sourcePath].ast, null, 2));
-
-        // const astNodes = output.sources[sourcePath].ast.nodes;
-        // for (const node of astNodes) {
-        //   console.log('node', node);
-        // }
-
-        // for each contract in this source file
         const contractDefs = [];
         for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
           contractDefs.push(contractDef);
         }
 
-        // look backwards
         for (let i = contractDefs.length - 1; i >= 0; i--) {
           const contractDef = contractDefs[i];
-
-          // for (const contractDef of findAll('ContractDefinition', output.sources[sourcePath].ast)) {
-          // console.log('contractDef', contractDef);
 
           // for each node, starting from the end
           for (let i = contractDef.nodes.length - 1; i >= 0; i--) {
             const node = contractDef.nodes[i];
             if (isNodeType('FunctionDefinition', node)) {
-              console.log('deleting function', node);
-
-              // delete function from source code, using format: <start>:<length>:<sourceId>
               const [begin, length] = node.src.split(':').map(Number);
               const content = modifiedInput.sources[sourcePath].content;
-
-              // console.log('oldContent', content);
 
               if (content === undefined) {
                 throw Error('content undefined');
@@ -143,113 +126,33 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
               const buf = Buffer.concat([orig.subarray(0, begin), orig.subarray(begin + length)]);
 
               modifiedInput.sources[sourcePath].content = buf.toString();
-
-              // shift += length;
             } else if (isNodeType('StructDefinition', node)) {
               const storageLocation = getNamespacedStorageLocation(node);
               if (storageLocation !== undefined) {
-                console.log('storageLocation', storageLocation);
-                console.log('for node', node, ' with src ', node.src);
-                
-                const structName = node.name;
-
-                let [begin, length] = node.src.split(':').map(Number);
-
-                console.log('begin', begin);
-                console.log('length', length);
-                // console.log('shift', shift);
-
-                // begin -= shift; // shift the begin position backwards due to deleted functions
-
-                // TODO
-                // if (begin < 0) throw new Error('begin position is negative');
+                const [begin, length] = node.src.split(':').map(Number);
 
                 const content = modifiedInput.sources[sourcePath].content;
                 if (content === undefined) {
                   throw Error('content undefined');
                 } // TODO
 
-                // console.log('node source content ' + Buffer.from(content).subarray(begin - shift, begin - shift + length).toString());
+                const structName = node.name;
+                const variableName = `$${structName}`;
 
-                // insert 'abc' after struct
                 const orig = Buffer.from(content);
-                const buf = Buffer.concat([orig.subarray(0, begin + length), Buffer.from(` ${structName} $${structName};`), orig.subarray(begin + length)]);
+                const buf = Buffer.concat([
+                  orig.subarray(0, begin + length),
+                  Buffer.from(` ${structName} ${variableName};`),
+                  orig.subarray(begin + length),
+                ]);
 
                 modifiedInput.sources[sourcePath].content = buf.toString();
               }
             }
           }
         }
-        
-        console.log('Content with deleted functions: ' + modifiedInput.sources[sourcePath].content);
-
-        // loop again from the beginning, and insert struct state variable after each namespace struct
-        // for (let i = 0; i < contractDefs.length; i++) {
-        //   const contractDef = contractDefs[i];
-        //   // console.log('contractDef', contractDef);
-
-        //   // for each function, starting from the end
-        //   for (let i = contractDef.nodes.length - 1; i >= 0; i--) {
-        //     const node = contractDef.nodes[i];
-        //     if (isNodeType('StructDefinition', node)) {
-        //       const storageLocation = getNamespacedStorageLocation(node);
-        //       if (storageLocation !== undefined) {
-        //         console.log('storageLocation', storageLocation);
-        //         console.log('for node', node, ' with src ', node.src);
-                
-        //         const structName = node.name;
-
-        //         let [begin, length] = node.src.split(':').map(Number);
-
-        //         console.log('begin', begin);
-        //         console.log('length', length);
-        //         console.log('shift', shift);
-
-        //         begin -= shift; // shift the begin position backwards due to deleted functions
-
-        //         // TODO
-        //         if (begin < 0) throw new Error('begin position is negative');
-
-        //         const content = modifiedInput.sources[sourcePath].content;
-        //         if (content === undefined) {
-        //           throw Error('content undefined');
-        //         } // TODO
-
-        //         // console.log('node source content ' + Buffer.from(content).subarray(begin - shift, begin - shift + length).toString());
-
-        //         // insert 'abc' after struct
-        //         const orig = Buffer.from(content);
-        //         const buf = Buffer.concat([orig.subarray(0, begin + length), Buffer.from(`\n${structName} $dummy;\n`), orig.subarray(begin + length)]);
-
-        //         modifiedInput.sources[sourcePath].content = buf.toString();
-        //       }
-
-              
-
-        //       // console.log('inserting function after struct', node);
-
-        //       // // insert function after struct
-        //       // const [begin, length] = node.src.split(':').map(Number);
-        //       // const content = modifiedInput.sources[sourcePath].content;
-
-        //       // // console.log('oldContent', content);
-
-        //       // if (content === undefined) {
-        //       //   throw Error('content undefined');
-        //       // } // TODO
-
-        //       // const orig = Buffer.from(content);
-        //       // const buf = Buffer.concat([orig.subarray(0, begin), orig.subarray(begin + length)]);
-
-        //       // modifiedInput.sources[sourcePath].content = buf.toString();
-        //     }
-        //   }
-        // }
 
         console.log('Completed content: ' + modifiedInput.sources[sourcePath].content);
-
-        // modifiedInput.sources[sourcePath].content = replacement;
-        // console.log('Modified source code for Namespaced.sol');
       }
     }
 

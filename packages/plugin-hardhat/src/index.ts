@@ -137,10 +137,10 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
                 throw Error('content undefined');
               } // TODO
 
-              const buf = Buffer.from(content);
-              const replacementBuf = Buffer.concat([buf.subarray(0, begin), buf.subarray(begin + length)]);
+              const orig = Buffer.from(content);
+              const buf = Buffer.concat([orig.subarray(0, begin), orig.subarray(begin + length)]);
 
-              modifiedInput.sources[sourcePath].content = replacementBuf.toString();
+              modifiedInput.sources[sourcePath].content = buf.toString();
             }
           }
         }

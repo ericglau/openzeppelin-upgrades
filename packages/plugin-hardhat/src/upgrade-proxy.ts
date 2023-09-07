@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ethers, ContractFactory, Contract, Signer } from 'ethers';
 
-import { Manifest, getAdminAddress, getCode, isEmptySlot } from '@openzeppelin/upgrades-core';
+import { getAdminAddress, getCode, isEmptySlot } from '@openzeppelin/upgrades-core';
 
 import {
   UpgradeProxyOptions,
@@ -12,7 +12,7 @@ import {
   ContractAddressOrInstance,
   getSigner,
 } from './utils';
-import { disablePlatform } from './platform/utils';
+import { disableDefender } from './defender/utils';
 import { attach } from './utils/ethers';
 
 export type UpgradeFunction = (
@@ -21,9 +21,9 @@ export type UpgradeFunction = (
   opts?: UpgradeProxyOptions,
 ) => Promise<Contract>;
 
-export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, platformModule: boolean): UpgradeFunction {
+export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule: boolean): UpgradeFunction {
   return async function upgradeProxy(proxy, ImplFactory, opts: UpgradeProxyOptions = {}) {
-    disablePlatform(hre, platformModule, opts, upgradeProxy.name);
+    disableDefender(hre, defenderModule, opts, upgradeProxy.name);
 
     const proxyAddress = await getContractAddress(proxy);
 
@@ -58,14 +58,8 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, platformModule:
         call ? proxy.upgradeToAndCall(nextImpl, call, ...overrides) : proxy.upgradeTo(nextImpl, ...overrides);
     } else {
       // Admin contract: redirect upgrade call through it
-      const manifest = await Manifest.forNetwork(provider);
       const AdminFactory = await getProxyAdminFactory(hre, signer);
       const admin = attach(AdminFactory, adminAddress);
-      const manifestAdmin = await manifest.getAdmin();
-
-      if ((await admin.getAddress()) !== manifestAdmin?.address) {
-        throw new Error('Proxy admin is not the one registered in the network manifest');
-      }
 
       return (nextImpl, call) =>
         call

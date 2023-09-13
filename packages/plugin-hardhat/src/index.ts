@@ -105,7 +105,7 @@ subtask(TASK_COMPILE_SOLIDITY, async (args: { force: boolean }, hre, runSuper) =
 });
 
 subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSuper) => {
-  const { validate, solcInputOutputDecoder } = await import('@openzeppelin/upgrades-core');
+  const { validate, SolcInputOutputDecoder } = await import('@openzeppelin/upgrades-core');
   const { writeValidations } = await import('./utils/validations');
 
   // TODO: patch input
@@ -113,7 +113,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
 
   const { isFullSolcOutput } = await import('./utils/is-full-solc-output');
   if (isFullSolcOutput(output)) {
-    const decodeSrc = solcInputOutputDecoder(args.input, output);
+    const decodeSrc = new SolcInputOutputDecoder(args.input, output);
 
     const namespacedInput = makeNamespacedInputCopy(args.input, output);
     const { output: namespacedOutput } = await runSuper({ ...args, input: namespacedInput });

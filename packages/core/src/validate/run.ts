@@ -3,7 +3,7 @@ import { isNodeType, findAll, ASTDereferencer, astDereferencer } from 'solidity-
 import type { ContractDefinition, FunctionDefinition } from 'solidity-ast';
 
 import { SolcOutput, SolcBytecode } from '../solc-api';
-import { SrcDecoder } from '../src-decoder';
+import { SolcInputOutputDecoder, SrcDecoder } from '../src-decoder';
 import { isNullish } from '../utils/is-nullish';
 import { getFunctionSignature } from '../utils/function';
 import { Version, getVersion } from '../version';
@@ -14,6 +14,7 @@ import { getFullyQualifiedName } from '../utils/contract-name';
 import { getAnnotationArgs as getSupportedAnnotationArgs, getDocumentation } from '../utils/annotations';
 import { getStorageLocationArg } from '../storage';
 import { UpgradesError } from '../error';
+import { type } from 'os';
 
 export type ValidationRunData = Record<string, ContractValidation>;
 
@@ -133,7 +134,7 @@ function skipCheck(error: string, node: Node): boolean {
  */
 export function validate(
   solcOutput: SolcOutput,
-  decodeSrc: SrcDecoder,
+  decoder: SrcDecoder | SolcInputOutputDecoder,
   solcVersion?: string,
   namespacedOutput?: SolcOutput,
 ): ValidationRunData {
@@ -148,8 +149,9 @@ export function validate(
   const selfDestructCache = initOpcodeCache();
 
   for (const source in solcOutput.contracts) {
-    // TODO: for each source, check if there are namespaces outside of a contract or if namespace is used with solidity < 0.8.20
+    const decodeSrc = typeof decoder === 'function' ? decoder : decoder.decode;
 
+    // checkNamespacesWithSolidityVersion(solcOutput, source, solcVersion);
     checkNamespacesOutsideContract(solcOutput, source, decodeSrc);
 
     for (const contractName in solcOutput.contracts[source]) {

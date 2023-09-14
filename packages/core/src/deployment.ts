@@ -220,6 +220,12 @@ export async function waitAndValidateDeployment(
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
+      if (await hasCode(provider, address)) {
+        debug('code in target address found', address);
+        foundCode = true;
+        break;
+      }
+
       debug('verifying deployment tx mined', txHash);
       const receipt = await getTransactionReceipt(provider, txHash);
       if (receipt && isReceiptSuccessful(receipt)) {

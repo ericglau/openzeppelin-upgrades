@@ -57,11 +57,12 @@ test('redeploys if tx is not found on dev network', async t => {
   t.is(provider.deployCount, 1);
 });
 
-test('validates a mined deployment with txHash', async t => {
+test('validates a mined deployment', async t => {
   const provider = stubProvider();
   const deployment = await resumeOrDeploy(provider, undefined, provider.deploy);
   await waitAndValidateDeployment(provider, deployment);
-  t.is(provider.getMethodCount('eth_getTransactionReceipt'), 1);
+  // Tx receipt should be skipped since code exists at the address
+  t.is(provider.getMethodCount('eth_getTransactionReceipt'), 0);
   t.is(provider.getMethodCount('eth_getCode'), 1);
 });
 

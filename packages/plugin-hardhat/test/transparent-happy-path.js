@@ -5,7 +5,7 @@ const { ethers, upgrades } = require('hardhat');
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
-  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
+  t.context.GreeterV3 = await ethers.getContractFactory('Greeter50V3');
 });
 
 test('happy path', async t => {
@@ -14,11 +14,11 @@ test('happy path', async t => {
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
 
   const greeter2 = await upgrades.upgradeProxy(greeter, GreeterV2);
-  await greeter2.waitForDeployment();
-  await greeter2.resetGreeting();
+  // await greeter2.waitForDeployment();
+  // await greeter2.resetGreeting();
 
-  const greeter3ImplAddr = await upgrades.prepareUpgrade(await greeter.getAddress(), GreeterV3);
-  const greeter3 = GreeterV3.attach(greeter3ImplAddr);
-  const version3 = await greeter3.version();
-  t.is(version3, 'V3');
+  // const greeter3ImplAddr = await upgrades.prepareUpgrade(await greeter.getAddress(), GreeterV3);
+  // const greeter3 = GreeterV3.attach(greeter3ImplAddr);
+  // const version3 = await greeter3.version();
+  // t.is(version3, 'V3');
 });

@@ -74,6 +74,8 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule:
 
       const upgradeInterfaceVersion = await getUpgradeInterfaceVersion(provider, adminAddress);
 
+      console.log('upgradeInterfaceVersion', upgradeInterfaceVersion);
+
       return (nextImpl, call) => {
         if (upgradeInterfaceVersion === undefined) {
           return call

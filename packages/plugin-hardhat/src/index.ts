@@ -88,7 +88,7 @@ subtask(TASK_COMPILE_SOLIDITY_COMPILE, async (args: RunCompilerArgs, hre, runSup
   const { isFullSolcOutput } = await import('./utils/is-full-solc-output');
   if (isFullSolcOutput(output)) {
     const decodeSrc = solcInputOutputDecoder(args.input, output);
-    const validations = validate(output, decodeSrc, args.solcVersion);
+    const validations = validate(output, decodeSrc, args.solcVersion, args.input);
     await writeValidations(hre, validations);
   }
 

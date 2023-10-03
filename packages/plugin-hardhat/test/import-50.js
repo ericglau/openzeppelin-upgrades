@@ -72,7 +72,7 @@ test('transparent happy path', async t => {
 
   const impl = await Greeter.deploy();
   await impl.deployed();
-  const admin = await ProxyAdmin.deploy(owner);
+  const admin = await ProxyAdmin.deploy(owner, { gasLimit: 1000000 });
   // await admin.deployed();
   // const proxy = await TransparentUpgradableProxy.deploy(
   //   impl.address,

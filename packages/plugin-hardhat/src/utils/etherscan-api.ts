@@ -34,7 +34,7 @@ export async function callEtherscanApi(etherscanApi: EtherscanAPIConfig, params:
   const responseBodyJson = await response.body.json();
   debug('Etherscan response', JSON.stringify(responseBodyJson));
 
-  return responseBodyJson;
+  return responseBodyJson as EtherscanResponseBody;
 }
 
 /**

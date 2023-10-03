@@ -2182,6 +2182,11 @@
   dependencies:
     "@octokit/openapi-types" "^14.0.0"
 
+"@openzeppelin/contracts-5.0@npm:@openzeppelin/contracts@^5.0.0-rc.2":
+  version "5.0.0-rc.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-5.0.0-rc.2.tgz#d67790a519cc65c3bab0cd05777418466646cd01"
+  integrity sha512-nUwKYTVsaLQ0C1DlPKtpSEDcg0rDoY5UNrll0nfCBUrzGgcpS6LiIbRV7wgYq+lRhcH1z+MGUcaQEj4gIb1Ung==
+
 "@openzeppelin/contracts-upgradeable@4.8.3":
   version "4.8.3"
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.3.tgz#6b076a7b751811b90fe3a172a7faeaa603e13a3f"

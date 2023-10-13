@@ -17,6 +17,10 @@ export function makeDeployProxyAdmin(hre: HardhatRuntimeEnvironment, defenderMod
     const { provider } = hre.network;
 
     const AdminFactory = await getProxyAdminFactory(hre, signer);
-    return await fetchOrDeployAdmin(provider, () => deploy(hre, opts, AdminFactory), opts);
+
+    const initialOwner = opts.initialOwner ?? (await signer?.getAddress()) ?? undefined;
+    // TODO give an error if initialOwner is undefined
+    
+    return await fetchOrDeployAdmin(provider, () => deploy(hre, opts, AdminFactory, initialOwner), opts);
   };
 }

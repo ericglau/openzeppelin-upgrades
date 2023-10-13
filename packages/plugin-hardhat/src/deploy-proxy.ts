@@ -72,11 +72,14 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, defenderModule: 
       }
 
       case 'transparent': {
-        const adminAddress = await hre.upgrades.deployProxyAdmin(signer, opts);
+        // const adminAddress = await hre.upgrades.deployProxyAdmin(signer, opts);
+        const initialOwner = opts.initialOwner ?? (await signer?.getAddress()) ?? undefined;
+        // TODO give an error if initialOwner is undefined
+
         const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, signer);
         proxyDeployment = Object.assign(
           { kind },
-          await deploy(hre, opts, TransparentUpgradeableProxyFactory, impl, adminAddress, data),
+          await deploy(hre, opts, TransparentUpgradeableProxyFactory, impl, initialOwner, data),
         );
         break;
       }

@@ -61,7 +61,7 @@ module.exports = {
       { version: '0.7.6', settings },
       { version: '0.8.8', settings },
       { version: '0.8.9', settings },
-      { version: SOLIDITY_VERSION, settings },
+      { version: SOLIDITY_VERSION, settings: { ...settings, evmVersion: 'paris' }},
     ],
     overrides: getNamespacedOverrides(),
   },

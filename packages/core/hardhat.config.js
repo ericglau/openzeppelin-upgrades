@@ -5,8 +5,6 @@ require('dotenv/config');
 
 require('@nomicfoundation/hardhat-ethers');
 
-const SOLIDITY_VERSION = require('./src/solidity-version.json');
-
 for (const f of fs.readdirSync(path.join(__dirname, 'hardhat'))) {
   require(path.join(__dirname, 'hardhat', f));
 }
@@ -21,6 +19,13 @@ const settings = {
       '*': ['storageLayout'],
     },
   },
+};
+
+const proxySolidityVersion = require('./src/solidity-version.json');
+
+const proxyCompileSettings = {
+  ...settings,
+  evmVersion: 'paris',
 };
 
 const namespacedTestSettings = {
@@ -61,7 +66,7 @@ module.exports = {
       { version: '0.7.6', settings },
       { version: '0.8.8', settings },
       { version: '0.8.9', settings },
-      { version: SOLIDITY_VERSION, settings: { ...settings, evmVersion: 'paris' }},
+      { version: proxySolidityVersion, settings: proxyCompileSettings},
     ],
     overrides: getNamespacedOverrides(),
   },

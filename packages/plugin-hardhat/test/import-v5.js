@@ -2,13 +2,13 @@ const test = require('ava');
 
 const { ethers, upgrades } = require('hardhat');
 
-const ProxyAdmin = require('../artifacts/@openzeppelin/contracts-5.0/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json');
-const TransparentUpgradableProxy = require('../artifacts/@openzeppelin/contracts-5.0/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json');
+const ProxyAdmin = require('../artifacts/@openzeppelin/contracts-v5/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json');
+const TransparentUpgradableProxy = require('../artifacts/@openzeppelin/contracts-v5/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json');
 
-const ERC1967Proxy = require('../artifacts/@openzeppelin/contracts-5.0/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json');
+const ERC1967Proxy = require('../artifacts/@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.json');
 
-const BeaconProxy = require('../artifacts/@openzeppelin/contracts-5.0/proxy/beacon/BeaconProxy.sol/BeaconProxy.json');
-const UpgradableBeacon = require('../artifacts/@openzeppelin/contracts-5.0/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json');
+const BeaconProxy = require('../artifacts/@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy.sol/BeaconProxy.json');
+const UpgradableBeacon = require('../artifacts/@openzeppelin/contracts-v5/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json');
 
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');

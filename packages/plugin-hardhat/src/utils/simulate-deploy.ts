@@ -16,7 +16,9 @@ export async function simulateDeployAdmin(
   adminAddress: string,
 ) {
   const { deployData, simulateDeploy } = await getSimulatedData(hre, ProxyAdminFactory, opts, adminAddress);
+
   const manifestAdminAddress = await fetchOrDeployAdmin(deployData.provider, simulateDeploy, opts);
+  // TODO update this warning since new proxy deployments with 5.0 would never use the admin from the manifest
   if (adminAddress !== manifestAdminAddress) {
     logWarning(
       `Imported proxy with admin at '${adminAddress}' which differs from previously deployed admin '${manifestAdminAddress}'`,
@@ -26,6 +28,7 @@ export async function simulateDeployAdmin(
       ],
     );
   }
+  // TODO else if there was no admin in the manifest, also give a warning that the imported admin will not be used for new deployments
 }
 
 export async function simulateDeployImpl(

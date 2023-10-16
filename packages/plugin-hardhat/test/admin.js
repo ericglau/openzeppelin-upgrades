@@ -13,16 +13,16 @@ test('deployProxyAdmin', async t => {
 
   const deployedAdminAddress = await upgrades.deployProxyAdmin();
 
+  // deploys new admin
   const signer = (await ethers.getSigners())[1];
   const deployedAdminAddress2 = await upgrades.deployProxyAdmin(signer);
 
-  t.is(deployedAdminAddress2, deployedAdminAddress);
+  t.not(deployedAdminAddress2, deployedAdminAddress);
 
-  const adminInstance = await upgrades.admin.getInstance();
-
+  // deploys new admin
   const greeter = await upgrades.deployProxy(Greeter, ['Hola admin!'], { kind: 'transparent' });
-  const adminAddress = await adminInstance.getProxyAdmin(await greeter.getAddress());
+  const adminAddress = await upgrades.erc1967.getAdminAddress(await greeter.getAddress());
 
-  t.is(await adminInstance.getAddress(), deployedAdminAddress);
-  t.is(await adminInstance.getAddress(), adminAddress);
+  t.not(adminAddress, deployedAdminAddress);
+  t.not(adminAddress, deployedAdminAddress2);
 });

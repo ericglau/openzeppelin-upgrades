@@ -23,6 +23,7 @@ export type TransferProxyAdminOwnershipFunction = (
 export type GetInstanceFunction = (signer?: Signer) => Promise<Contract>;
 
 export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, defenderModule: boolean): ChangeAdminFunction {
+  // TODO mark this as deprecated
   return async function changeProxyAdmin(
     proxyAddress: string,
     newAdmin: string,
@@ -69,6 +70,7 @@ export function makeTransferProxyAdminOwnership(
 }
 
 export function makeGetInstanceFunction(hre: HardhatRuntimeEnvironment): GetInstanceFunction {
+  // TODO mark this as deprecated since it is not used with 5.0 proxies
   return async function getInstance(signer?: Signer) {
     return await getManifestAdmin(hre, signer);
   };

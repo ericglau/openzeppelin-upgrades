@@ -48,7 +48,7 @@ function parseArgs(args: string[]) {
       'unsafeAllowLinkedLibraries',
       'requireReference',
     ],
-    string: ['unsafeAllow', 'contract', 'reference'],
+    string: ['unsafeAllow', 'contract', 'reference', 'assertKind'],
     alias: { h: 'help' },
   });
   const extraArgs = parsedArgs._;
@@ -70,7 +70,7 @@ interface FunctionArgs {
   buildInfoDir?: string;
   contract?: string;
   reference?: string;
-  opts: Required<ValidateUpgradeSafetyOptions>;
+  opts: ValidateUpgradeSafetyOptions;
 }
 
 /**
@@ -96,6 +96,8 @@ export function getFunctionArgs(parsedArgs: minimist.ParsedArgs, extraArgs: stri
         throw new Error('The --reference option can only be used along with the --contract option.');
       } else if (opts.requireReference) {
         throw new Error('The --requireReference option can only be used along with the --contract option.');
+      } else if (opts.assertKind !== undefined) {
+        throw new Error('The --assertKind option can only be used along with the --contract option.');
       }
     }
     return { buildInfoDir, contract, reference, opts };
@@ -125,6 +127,7 @@ function validateOptions(parsedArgs: minimist.ParsedArgs) {
         'contract',
         'reference',
         'requireReference',
+        'assertKind',
       ].includes(key),
   );
   if (invalidArgs.length > 0) {
@@ -151,7 +154,7 @@ function getUnsafeAllowKinds(unsafeAllow: string | undefined): ValidationError['
   return unsafeAllowTokens as errorKindsType[];
 }
 
-export function withDefaults(parsedArgs: minimist.ParsedArgs): Required<ValidateUpgradeSafetyOptions> {
+export function withDefaults(parsedArgs: minimist.ParsedArgs): ValidateUpgradeSafetyOptions {
   validateOptions(parsedArgs);
 
   const allOpts: Required<ValidateUpgradeSafetyOptions> = {
@@ -161,6 +164,7 @@ export function withDefaults(parsedArgs: minimist.ParsedArgs): Required<Validate
     unsafeAllowLinkedLibraries: parsedArgs['unsafeAllowLinkedLibraries'],
     unsafeAllow: getUnsafeAllowKinds(parsedArgs['unsafeAllow']),
     requireReference: parsedArgs['requireReference'],
+    assertKind: parsedArgs['assertKind'],
   };
 
   return withCliDefaults(allOpts);

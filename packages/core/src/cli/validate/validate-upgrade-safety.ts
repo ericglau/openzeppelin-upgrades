@@ -11,6 +11,7 @@ import { SourceContract, validateBuildInfoContracts } from './validations';
  */
 export type ValidateUpgradeSafetyOptions = Omit<ValidationOptions, 'kind'> & {
   requireReference?: boolean;
+  assertKind?: ValidationOptions['kind'];
 };
 
 export type SpecifiedContracts = {
@@ -47,7 +48,7 @@ export async function validateUpgradeSafety(
 
 export function findSpecifiedContracts(
   sourceContracts: SourceContract[],
-  opts: Required<ValidateUpgradeSafetyOptions>,
+  opts: ValidateUpgradeSafetyOptions,
   contractName?: string,
   referenceName?: string,
 ): SpecifiedContracts | undefined {
@@ -65,7 +66,7 @@ export function findSpecifiedContracts(
   }
 }
 
-export function withCliDefaults(opts: ValidateUpgradeSafetyOptions): Required<ValidateUpgradeSafetyOptions> {
+export function withCliDefaults(opts: ValidateUpgradeSafetyOptions): Omit<Required<ValidateUpgradeSafetyOptions>, 'assertKind'> & Pick<ValidateUpgradeSafetyOptions, 'assertKind'> {
   if (opts.requireReference && opts.unsafeSkipStorageCheck) {
     throw new Error(`The requireReference and unsafeSkipStorageCheck options cannot be used at the same time.`);
   }

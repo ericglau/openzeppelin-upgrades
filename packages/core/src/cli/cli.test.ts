@@ -274,3 +274,15 @@ test('validate - single contract - ok', async t => {
   const output = (await execAsync(`${CLI} validate ${temp} --contract Annotation`)).stdout;
   t.snapshot(output);
 });
+
+test('validate - single contract transparent, reference uups, assertKind = uups', async t => {
+  const temp = await getTempDir(t);
+  const buildInfo = await artifacts.getBuildInfo(`contracts/test/cli/Validate.sol:Safe`);
+  await fs.writeFile(path.join(temp, 'validate.json'), JSON.stringify(buildInfo));
+
+  const error = await t.throwsAsync(
+    execAsync(`${CLI} validate ${temp} --contract Safe --reference HasUpgradeTo`),
+  );
+  const expectation: string[] = [`Stdout: ${(error as any).stdout}`, `Stderr: ${(error as any).stderr}`];
+  t.snapshot(expectation.join('\n'));
+});

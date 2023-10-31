@@ -61,6 +61,8 @@ export function findSpecifiedContracts(
     throw new Error(`The reference option can only be specified when the contract option is also specified.`);
   } else if (opts.requireReference) {
     throw new Error(`The requireReference option can only be specified when the contract option is also specified.`);
+  } else if (opts.assertKind !== undefined) {
+    throw new Error(`The assertKind option can only be specified when the contract option is also specified.`);
   } else {
     return undefined;
   }

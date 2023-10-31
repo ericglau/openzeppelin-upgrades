@@ -18,6 +18,7 @@ import { SourceContract } from './validations';
 import { LayoutCompatibilityReport } from '../../storage/report';
 import { indent } from '../../utils/indent';
 import { SpecifiedContracts } from './validate-upgrade-safety';
+import { ValidateCommandError } from './error';
 
 /**
  * Report for an upgradeable contract.
@@ -90,6 +91,12 @@ export function getContractReports(
     } else if (specifiedContracts !== undefined || upgradeabilityAssessment.upgradeable) {
       const reference = upgradeabilityAssessment.referenceContract;
       const kind = upgradeabilityAssessment.uups ? 'uups' : 'transparent';
+      if (opts.assertKind !== undefined && !getCompatibleProxyKinds(kind).includes(opts.assertKind)) {
+        throw new ValidateCommandError(
+          `The contract ${sourceContract.fullyQualifiedName} is not compatible with the ${opts.assertKind} proxy kind.`,
+          () => `It can only be used with ${getCompatibleProxyKinds(kind).join(' or ')}.`
+        );
+      }
       const report = getUpgradeableContractReport(sourceContract, reference, { ...opts, kind: kind });
       if (report !== undefined) {
         upgradeableContractReports.push(report);
@@ -97,6 +104,14 @@ export function getContractReports(
     }
   }
   return upgradeableContractReports;
+}
+
+function getCompatibleProxyKinds(kind: Required<ValidationOptions['kind']>): Required<ValidationOptions['kind']>[] {
+  if (kind === 'transparent' || kind === 'beacon') {
+    return ['transparent', 'beacon'];
+  } else {
+    return ['uups'];
+  }
 }
 
 function getUpgradeableContractReport(

@@ -35,8 +35,9 @@ export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, defenderMod
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
 
     if (proxyAdminAddress !== newAdmin) {
-      const AdminFactory = await getProxyAdminFactory(hre, signer);
-      const admin = attach(AdminFactory, proxyAdminAddress);
+      const admin = new Contract(proxyAdminAddress, [
+        "function changeProxyAdmin(address,address)",
+      ], signer);
 
       const overrides = opts.txOverrides ? [opts.txOverrides] : [];
       await admin.changeProxyAdmin(proxyAddress, newAdmin, ...overrides);

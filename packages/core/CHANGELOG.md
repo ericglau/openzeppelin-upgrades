@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.31.1 (2023-11-01)
+
+- CLI: Throw error if `--requireReference` and `--unsafeSkipStorageCheck` are both enabled. ([#913](https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/913))
+
+## 1.31.0 (2023-10-23)
+
+- CLI: Add `--requireReference` option. ([#900](https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/900))
+- CLI: Simplify summary message when using `--contract`. ([#905](https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/905))
+
 ## 1.30.1 (2023-10-11)
 
 - Fix Hardhat compile error when using Solidity 0.5.x. ([#892](https://github.com/OpenZeppelin/openzeppelin-upgrades/pull/892))

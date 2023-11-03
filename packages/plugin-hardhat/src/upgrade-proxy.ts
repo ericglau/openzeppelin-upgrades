@@ -1,7 +1,8 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { ethers, ContractFactory, Contract, Signer } from 'ethers';
+import type { ethers, ContractFactory, Signer } from 'ethers';
+import { Contract } from 'ethers';
 
-import { getAdminAddress, getCode, getUpgradeInterfaceVersion, isEmptySlot } from '@openzeppelin/upgrades-core';
+import { getAdminAddress, getCode, getUpgradeInterfaceVersion, isEmptySlot, call as ethCall } from '@openzeppelin/upgrades-core';
 
 import {
   UpgradeProxyOptions,
@@ -58,7 +59,11 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule:
 
       return (nextImpl, call) => {
         if (upgradeInterfaceVersion === undefined) {
-          return call ? proxy.upgradeToAndCall(nextImpl, call, ...overrides) : proxy.upgradeTo(nextImpl, ...overrides);
+          const proxyV4 = new Contract(proxyAddress, [
+            "function upgradeToAndCall(address,bytes)",
+            "function upgradeTo(address)"
+          ], signer);
+          return call ? proxyV4.upgradeToAndCall(nextImpl, call, ...overrides) : proxyV4.upgradeTo(nextImpl, ...overrides);
         } else if (upgradeInterfaceVersion === '5.0.0') {
           return proxy.upgradeToAndCall(nextImpl, call ?? '0x', ...overrides);
         } else {
@@ -76,9 +81,13 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule:
 
       return (nextImpl, call) => {
         if (upgradeInterfaceVersion === undefined) {
+          const adminV4 = new Contract(proxyAddress, [
+            "function upgradeAndCall(address,address,bytes)",
+            "function upgrade(address,address)"
+          ], signer);
           return call
-            ? admin.upgradeAndCall(proxyAddress, nextImpl, call, ...overrides)
-            : admin.upgrade(proxyAddress, nextImpl, ...overrides);
+            ? adminV4.upgradeAndCall(proxyAddress, nextImpl, call, ...overrides)
+            : adminV4.upgrade(proxyAddress, nextImpl, ...overrides);
         } else if (upgradeInterfaceVersion === '5.0.0') {
           return admin.upgradeAndCall(proxyAddress, nextImpl, call ?? '0x', ...overrides);
         } else {

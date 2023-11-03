@@ -49,6 +49,7 @@ export function makeTransferProxyAdminOwnership(
   hre: HardhatRuntimeEnvironment,
   defenderModule: boolean,
 ): TransferProxyAdminOwnershipFunction {
+  // TODO mark as deprecated say it only works with v4 admins, which are not used by any new transparent proxy deployments
   return async function transferProxyAdminOwnership(newOwner: string, signer?: Signer, opts: EthersDeployOptions = {}) {
     disableDefender(hre, defenderModule, {}, transferProxyAdminOwnership.name);
 

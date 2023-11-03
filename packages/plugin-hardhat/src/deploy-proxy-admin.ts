@@ -15,6 +15,8 @@ export function makeDeployProxyAdmin(hre: HardhatRuntimeEnvironment, defenderMod
 
     const AdminFactory = await getProxyAdminFactory(hre, signer);
 
+    // TODO should only deployProxyAdmin use V4 admin contract? so that it can be transferred etc 
+
     const initialOwner = opts.initialOwner ?? (await (signer ?? getSigner(AdminFactory.runner))?.getAddress());
     // TODO give an error if initialOwner is undefined
 

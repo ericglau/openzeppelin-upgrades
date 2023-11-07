@@ -13,16 +13,14 @@ test('transferProxyAdminOwnership', async t => {
   const { Greeter } = t.context;
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
 
+  const signer = (await ethers.getSigners())[0];
+
+  await upgrades.admin.transferProxyAdminOwnership(await greeter.getAddress(), testAddress, signer);
+
   const adminAddress = await upgrades.erc1967.getAdminAddress(await greeter.getAddress());
-
-  const signer = await ethers.getSigners()[0];
-
   const admin = new ethers.Contract(adminAddress, [
-      'function transferOwnership(address)',
-      'function owner()',
+    'function owner() view returns (address)',
   ], signer);
-
-  await admin.transferOwnership(testAddress);
   const newOwner = await admin.owner();
 
   t.is(newOwner, testAddress);

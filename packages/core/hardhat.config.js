@@ -28,23 +28,15 @@ const proxyCompileSettings = {
   evmVersion: 'paris',
 };
 
-const namespacedTestSettings = {
-  ...settings,
-  optimizer: {
-    ...settings.optimizer,
-    runs: settings.optimizer.runs + 1, // hack to force namespaced contracts to be compiled separately
-  },
-};
-
 function getNamespacedOverrides() {
   const contracts = fs.readdirSync(path.join(__dirname, 'contracts', 'test'));
   const namespacedContracts = contracts.filter(c => c.startsWith('Namespaced'));
   const overrides = {};
   for (const c of namespacedContracts) {
     if (c === 'NamespacedToModify07.sol') {
-      overrides[`contracts/test/${c}`] = { version: '0.7.6', settings: namespacedTestSettings };
+      overrides[`contracts/test/${c}`] = { version: '0.7.6', settings };
     } else {
-      overrides[`contracts/test/${c}`] = { version: '0.8.20', settings: namespacedTestSettings };
+      overrides[`contracts/test/${c}`] = { version: '0.8.20', settings };
     }
   }
   return overrides;

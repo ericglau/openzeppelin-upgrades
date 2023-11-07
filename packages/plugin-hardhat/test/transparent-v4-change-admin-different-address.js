@@ -23,7 +23,7 @@ function getInitializerData(contractInterface, args) {
   return contractInterface.encodeFunctionData(fragment, args);
 }
 
-test('use different admin address than manifest', async t => {
+test('use different admin addresses', async t => {
   const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy } = t.context;
 
   // Deploy a v4 proxy and admin, and import them

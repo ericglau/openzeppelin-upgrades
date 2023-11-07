@@ -39,21 +39,21 @@ test('use different admin address than manifest', async t => {
   const greeter = await upgrades.forceImport(await proxy.getAddress(), Greeter);
 
   // Change to new admin owned by signer 2
-  const [, signer] = await ethers.getSigners();
-  const ProxyAdminSigner2 = ProxyAdmin.connect(signer);
+  const [signer1, signer2] = await ethers.getSigners();
+  const ProxyAdminSigner2 = ProxyAdmin.connect(signer2);
   const newAdmin = await ProxyAdminSigner2.deploy();
  
-  await admin.changeProxyAdmin(await greeter.getAddress(), await newAdmin.getAddress());
+  await upgrades.admin.changeProxyAdmin(await greeter.getAddress(), await newAdmin.getAddress(), signer1);
 
   // Signer 1 cannot upgrade since it doesn't own the new admin
   await t.throwsAsync(() => upgrades.upgradeProxy(greeter, GreeterV2));
 
   // Upgrade using signer 2
-  const GreeterV3 = Greeter.connect(signer);
+  const GreeterV3 = Greeter.connect(signer2);
   await upgrades.upgradeProxy(greeter, GreeterV3);
 
   // Use the new admin to change the admin again, even though new admin is not the one in the manifest
   const deployedAdmin2 = await ProxyAdmin.deploy();
 
-  await newAdmin.changeProxyAdmin(await greeter.getAddress(), await deployedAdmin2.getAddress());
+  await upgrades.admin.changeProxyAdmin(await greeter.getAddress(), await deployedAdmin2.getAddress(), signer2);
 });

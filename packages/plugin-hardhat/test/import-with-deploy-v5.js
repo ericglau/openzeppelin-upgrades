@@ -121,16 +121,16 @@ test('import previous import', async t => {
   );
 });
 
-test('import then deploy transparent with same admin', async t => {
-  const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy } = t.context;
+test('import then deploy transparent (with deployProxy) with different admin', async t => {
+  const { Greeter, GreeterV2, TransparentUpgradableProxy } = t.context;
+
+  const owner = (await ethers.getSigners())[0];
 
   const impl = await Greeter.deploy();
   await impl.waitForDeployment();
-  const admin = await ProxyAdmin.deploy();
-  await admin.waitForDeployment();
   const proxy = await TransparentUpgradableProxy.deploy(
     await impl.getAddress(),
-    await admin.getAddress(),
+    owner,
     getInitializerData(Greeter.interface, ['Hello, Hardhat!']),
   );
   await proxy.waitForDeployment();
@@ -139,7 +139,7 @@ test('import then deploy transparent with same admin', async t => {
   const greeter2 = await upgrades.deployProxy(Greeter, ['Hello, Hardhat 2!']);
   await greeter2.waitForDeployment();
 
-  t.is(
+  t.not(
     await upgrades.erc1967.getAdminAddress(await greeter2.getAddress()),
     await upgrades.erc1967.getAdminAddress(await greeter.getAddress()),
   );

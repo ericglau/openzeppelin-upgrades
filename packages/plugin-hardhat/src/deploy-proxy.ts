@@ -72,7 +72,6 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, defenderModule: 
       }
 
       case 'transparent': {
-        // const adminAddress = await hre.upgrades.deployProxyAdmin(signer, opts);
         const initialOwner = opts.initialOwner ?? (await signer?.getAddress()) ?? undefined;
         // TODO give an error if initialOwner is undefined
 

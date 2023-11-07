@@ -24,9 +24,9 @@ function getInitializerData(contractInterface, args) {
 }
 
 test('use different admin address than manifest', async t => {
-  // Deploy a proxy
   const { Greeter, GreeterV2, ProxyAdmin, TransparentUpgradableProxy } = t.context;
 
+  // Deploy a v4 proxy and admin, and import them
   const impl = await Greeter.deploy();
   await impl.waitForDeployment();
   const admin = await ProxyAdmin.deploy();
@@ -40,7 +40,8 @@ test('use different admin address than manifest', async t => {
 
   // Change to new admin owned by signer 2
   const [, signer] = await ethers.getSigners();
-  const newAdmin = await ProxyAdmin.deploy();
+  const ProxyAdminSigner2 = ProxyAdmin.connect(signer);
+  const newAdmin = await ProxyAdminSigner2.deploy();
  
   await admin.changeProxyAdmin(await greeter.getAddress(), await newAdmin.getAddress());
 
@@ -51,7 +52,8 @@ test('use different admin address than manifest', async t => {
   const GreeterV3 = Greeter.connect(signer);
   await upgrades.upgradeProxy(greeter, GreeterV3);
 
-  // Change the admin again, even though current admin is not the one in the manifest
+  // Use the new admin to change the admin again, even though new admin is not the one in the manifest
   const deployedAdmin2 = await ProxyAdmin.deploy();
-  await admin.changeProxyAdmin(await greeter.getAddress(), await deployedAdmin2.getAddress(), signer);
+
+  await newAdmin.changeProxyAdmin(await greeter.getAddress(), await deployedAdmin2.getAddress());
 });

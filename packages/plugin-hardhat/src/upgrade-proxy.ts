@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { ethers, ContractFactory, Signer } from 'ethers';
 import { Contract } from 'ethers';
 
-import { getAdminAddress, getCode, getUpgradeInterfaceVersion, isEmptySlot, call as ethCall } from '@openzeppelin/upgrades-core';
+import { getAdminAddress, getCode, getUpgradeInterfaceVersion, isEmptySlot } from '@openzeppelin/upgrades-core';
 
 import {
   UpgradeProxyOptions,
@@ -81,7 +81,7 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule:
 
       return (nextImpl, call) => {
         if (upgradeInterfaceVersion === undefined) {
-          const adminV4 = new Contract(proxyAddress, [
+          const adminV4 = new Contract(adminAddress, [
             "function upgradeAndCall(address,address,bytes)",
             "function upgrade(address,address)"
           ], signer);

@@ -10,7 +10,7 @@ task(TASK_COMPILE_SOLIDITY_GET_COMPILATION_JOB_FOR_FILE, async (params, _, runSu
   // If the file is not a proxy contract, we make a copy of the config and mark it, which will cause it to get
   // compiled separately (along with the other marked files).
   // Dependencies of proxy contracts would be automatically included in the proxy contracts compilation.
-  if (!params.file.sourceName.startsWith('@openzeppelin/contracts/proxy/')) {
+  if (!params.file.sourceName.startsWith('@openzeppelin/contracts/proxy/') && !params.file.sourceName.startsWith('@openzeppelin/contracts-v5/proxy/')) {
     // Mark each CLI Solidity file differently from regular tests, so that they can be compiled separately.
     // This is needed because CLI tests validate the entire build-info file, so each build-info should include only relevant contracts.
     if (params.file.sourceName.startsWith('contracts/test/cli/')) {

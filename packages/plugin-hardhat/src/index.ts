@@ -14,7 +14,6 @@ import type { DeployBeaconFunction } from './deploy-beacon';
 import type { DeployBeaconProxyFunction } from './deploy-beacon-proxy';
 import type { UpgradeBeaconFunction } from './upgrade-beacon';
 import type { ForceImportFunction } from './force-import';
-import type { GetInstanceFunction } from './admin';
 import type { ValidateImplementationFunction } from './validate-implementation';
 import type { ValidateUpgradeFunction } from './validate-upgrade';
 import type { DeployImplementationFunction } from './deploy-implementation';
@@ -42,9 +41,6 @@ export interface HardhatUpgrades {
   upgradeBeacon: UpgradeBeaconFunction;
   forceImport: ForceImportFunction;
   silenceWarnings: typeof silenceWarnings;
-  admin: {
-    getInstance: GetInstanceFunction;
-  };
   erc1967: {
     getAdminAddress: (proxyAdress: string) => Promise<string>;
     getImplementationAddress: (proxyAdress: string) => Promise<string>;
@@ -213,7 +209,6 @@ function makeFunctions(hre: HardhatRuntimeEnvironment, defender: boolean) {
   const { makeDeployBeaconProxy } = require('./deploy-beacon-proxy');
   const { makeUpgradeBeacon } = require('./upgrade-beacon');
   const { makeForceImport } = require('./force-import');
-  const { makeGetInstanceFunction } = require('./admin');
 
   return {
     silenceWarnings,
@@ -227,9 +222,6 @@ function makeFunctions(hre: HardhatRuntimeEnvironment, defender: boolean) {
     deployBeaconProxy: makeDeployBeaconProxy(hre, defender),
     upgradeBeacon: makeUpgradeBeacon(hre, defender), // block on defender
     forceImport: makeForceImport(hre),
-    admin: {
-      getInstance: makeGetInstanceFunction(hre),
-    },
     erc1967: {
       getAdminAddress: (proxyAddress: string) => getAdminAddress(hre.network.provider, proxyAddress),
       getImplementationAddress: (proxyAddress: string) => getImplementationAddress(hre.network.provider, proxyAddress),

@@ -10,8 +10,8 @@ const ERC1967Proxy = require('@openzeppelin/upgrades-core/artifacts/@openzeppeli
 test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
-  t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable4x');
-  t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable4x');
+  t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable40');
+  t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable40');
 
   t.context.ProxyAdmin = await ethers.getContractFactory(ProxyAdmin.abi, ProxyAdmin.bytecode);
   t.context.TransparentUpgradableProxy = await ethers.getContractFactory(

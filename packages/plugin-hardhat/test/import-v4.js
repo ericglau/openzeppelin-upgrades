@@ -14,9 +14,9 @@ test.before(async t => {
   t.context.Greeter = await ethers.getContractFactory('Greeter');
   t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2');
   t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3');
-  t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable4x');
-  t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable4x');
-  t.context.GreeterV3Proxiable = await ethers.getContractFactory('GreeterV3Proxiable4x');
+  t.context.GreeterProxiable = await ethers.getContractFactory('GreeterProxiable40');
+  t.context.GreeterV2Proxiable = await ethers.getContractFactory('GreeterV2Proxiable40');
+  t.context.GreeterV3Proxiable = await ethers.getContractFactory('GreeterV3Proxiable40');
   t.context.CustomProxy = await ethers.getContractFactory('CustomProxy');
   t.context.CustomProxyWithAdmin = await ethers.getContractFactory('CustomProxyWithAdmin');
 

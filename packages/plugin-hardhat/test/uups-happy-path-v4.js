@@ -3,9 +3,9 @@ const test = require('ava');
 const { ethers, upgrades } = require('hardhat');
 
 test.before(async t => {
-  t.context.Greeter = await ethers.getContractFactory('GreeterProxiable4x');
-  t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable4x');
-  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3Proxiable4x');
+  t.context.Greeter = await ethers.getContractFactory('GreeterProxiable40');
+  t.context.GreeterV2 = await ethers.getContractFactory('GreeterV2Proxiable40');
+  t.context.GreeterV3 = await ethers.getContractFactory('GreeterV3Proxiable40');
 });
 
 test('happy path', async t => {

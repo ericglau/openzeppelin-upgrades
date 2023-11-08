@@ -9,28 +9,6 @@ import { UpgradeOptions } from './options';
 // for the "deploy" part we pass a function that simply returns the contract to be imported, rather than
 // actually deploying something.
 
-export async function simulateDeployAdmin(
-  hre: HardhatRuntimeEnvironment,
-  ProxyAdminFactory: ContractFactory,
-  opts: UpgradeOptions,
-  adminAddress: string,
-) {
-  const { deployData, simulateDeploy } = await getSimulatedData(hre, ProxyAdminFactory, opts, adminAddress);
-
-  const manifestAdminAddress = await fetchOrDeployAdmin(deployData.provider, simulateDeploy, opts);
-  // TODO update this warning since new proxy deployments with 5.0 would never use the admin from the manifest
-  if (adminAddress !== manifestAdminAddress) {
-    logWarning(
-      `Imported proxy with admin at '${adminAddress}' which differs from previously deployed admin '${manifestAdminAddress}'`,
-      [
-        `The imported proxy admin is different from the proxy admin that was previously deployed on this network.`,
-        `New proxy deployments will continue to use the admin '${manifestAdminAddress}'.`,
-      ],
-    );
-  }
-  // TODO else if there was no admin in the manifest, also give a warning that the imported admin will not be used for new deployments
-}
-
 export async function simulateDeployImpl(
   hre: HardhatRuntimeEnvironment,
   ImplFactory: ContractFactory,

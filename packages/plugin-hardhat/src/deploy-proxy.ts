@@ -48,11 +48,16 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, defenderModule: 
     const contractInterface = ImplFactory.interface;
     const data = getInitializerData(contractInterface, args, opts.initializer);
 
-    if (kind === 'uups') {
-      if (await manifest.getAdmin()) {
+    if (await manifest.getAdmin()) {
+      if (kind === 'uups') {
         logWarning(`A proxy admin was previously deployed on this network`, [
           `This is not natively used with the current kind of proxy ('uups').`,
           `Changes to the admin will have no effect on this new proxy.`,
+        ]);
+      } else if (kind === 'transparent') {
+        logWarning(`A proxy admin was previously deployed on this network`, [
+          `This is not used with new transparent proxy deployments, since new transparent proxies deploy their own admins.`,
+          `Changes to the previous admin will have no effect on this new proxy.`,
         ]);
       }
     }

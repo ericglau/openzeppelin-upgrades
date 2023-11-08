@@ -1,6 +1,6 @@
 {
   "name": "@openzeppelin/upgrades-core",
-  "version": "1.31.1",
+  "version": "1.32.0",
   "description": "",
   "repository": "https://github.com/OpenZeppelin/openzeppelin-upgrades/tree/master/packages/core",
   "license": "MIT",
@@ -30,11 +30,11 @@
   "scripts": {
     "clean": "hardhat clean && rimraf dist *.tsbuildinfo",
     "compile": "tsc -b && yarn compile:contracts",
-    "compile:contracts": "hardhat compile && node scripts/copy-build-info-v5.js",
+    "compile:contracts": "hardhat compile",
     "prepare": "yarn clean && yarn compile",
-    "prepublishOnly": "bash scripts/copy-artifacts.sh",
-    "test": "tsc -b && hardhat compile --force && node scripts/copy-build-info-v5.js && ava",
-    "test:watch": "hardhat compile --force && fgbg 'ava --watch' 'tsc -b --watch' --",
+    "postprepare": "node scripts/copy-build-info-v5.js && bash scripts/copy-artifacts.sh",
+    "test": "tsc -b && yarn prepare && ava",
+    "test:watch": "yarn prepare && fgbg 'ava --watch' 'tsc -b --watch' --",
     "version": "node ../../scripts/bump-changelog.js",
     "cli": "node ./dist/cli/cli.js"
   },
@@ -57,7 +57,8 @@
     "fgbg": "^0.1.4",
     "hardhat": "^2.0.2",
     "rimraf": "^5.0.0",
-    "typescript": "^4.0.0"
+    "typescript": "^4.0.0",
+    "@openzeppelin/upgrades-core-legacy": "npm:@openzeppelin/upgrades-core@1.31.1"
   },
   "dependencies": {
     "cbor": "^9.0.0",

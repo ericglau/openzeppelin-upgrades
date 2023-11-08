@@ -21,12 +21,13 @@ const settings = {
   },
 };
 
-const proxySolidityVersion = require('./src/solidity-version.json');
-
-const proxyCompileSettings = {
-  ...settings,
-  evmVersion: 'paris',
-};
+const proxyCompiler = {
+  version: require('./src/solidity-version.json'),
+  settings: {
+    ...settings,
+    evmVersion: 'paris',
+  },
+}
 
 function getNamespacedOverrides() {
   const contracts = fs.readdirSync(path.join(__dirname, 'contracts', 'test'));
@@ -58,7 +59,7 @@ module.exports = {
       { version: '0.7.6', settings },
       { version: '0.8.8', settings },
       { version: '0.8.9', settings },
-      { version: proxySolidityVersion, settings: proxyCompileSettings},
+      proxyCompiler,
     ],
     overrides: getNamespacedOverrides(),
   },

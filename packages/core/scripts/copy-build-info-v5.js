@@ -105,3 +105,7 @@ for (const contractFile in modifiedBuildInfo.output.contracts) {
 }
 
 writeJSON('artifacts/build-info-v5.json', modifiedBuildInfo);
+
+// Moves v5 contracts to a separate folder
+fs.cpSync('artifacts/@openzeppelin/contracts', 'artifacts/@openzeppelin/contracts-v5', {recursive: true});
+fs.rmSync('artifacts/@openzeppelin/contracts', {recursive: true});

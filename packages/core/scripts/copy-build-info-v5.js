@@ -22,29 +22,29 @@ function hasPropertyStartsWith(obj, prefix) {
 }
 
 const buildInfoField = readJSON(
-  'artifacts/@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.dbg.json',
+  'artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/ERC1967Proxy.dbg.json',
 ).buildInfo;
-const jsonRelativePath = `artifacts/@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol/${buildInfoField}`;
+const jsonRelativePath = `artifacts/@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol/${buildInfoField}`;
 
 // Assert that all deployable proxy artifacts use the same build-info file
 assert(
   buildInfoField ===
-    readJSON('artifacts/@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy.sol/BeaconProxy.dbg.json').buildInfo,
+    readJSON('artifacts/@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol/BeaconProxy.dbg.json').buildInfo,
 );
 assert(
   buildInfoField ===
-    readJSON('artifacts/@openzeppelin/contracts-v5/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.dbg.json')
+    readJSON('artifacts/@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.dbg.json')
       .buildInfo,
 );
 assert(
   buildInfoField ===
     readJSON(
-      'artifacts/@openzeppelin/contracts-v5/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.dbg.json',
+      'artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.dbg.json',
     ).buildInfo,
 );
 assert(
   buildInfoField ===
-    readJSON('artifacts/@openzeppelin/contracts-v5/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.dbg.json').buildInfo,
+    readJSON('artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.dbg.json').buildInfo,
 );
 
 let buildInfo = readJSON(jsonRelativePath);
@@ -86,22 +86,22 @@ assert(outputSelection.includes('metadata'));
 const sources = buildInfo.input.sources;
 
 // Assert that all deployable proxy artifacts exist in ERC1967's build-info file
-assert(hasProperty(sources, '@openzeppelin/contracts-v5/proxy/ERC1967/ERC1967Proxy.sol'));
-assert(hasProperty(sources, '@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy.sol'));
-assert(hasProperty(sources, '@openzeppelin/contracts-v5/proxy/beacon/UpgradeableBeacon.sol'));
-assert(hasProperty(sources, '@openzeppelin/contracts-v5/proxy/transparent/TransparentUpgradeableProxy.sol'));
-assert(hasProperty(sources, '@openzeppelin/contracts-v5/proxy/transparent/ProxyAdmin.sol'));
+assert(hasProperty(sources, '@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol'));
+assert(hasProperty(sources, '@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol'));
+assert(hasProperty(sources, '@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol'));
+assert(hasProperty(sources, '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol'));
+assert(hasProperty(sources, '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol'));
 
 // Assert that the build-info file does NOT contain test contracts
 assert(!hasPropertyStartsWith(sources, 'contracts/test'));
 
 // Assert that output bytecode does not contain PUSH0
-// for (const contractFile in modifiedBuildInfo.output.contracts) {
-//   const contractNames = contractFiles[contractFile];
-//   for (const contractName in contractNames) {
-//     const bytecode = contractNames[contractName].evm.bytecode.opcodes;
-//     assert(!bytecode.includes('PUSH0'));
-//   }
-// }
+for (const contractFile in modifiedBuildInfo.output.contracts) {
+  const contractNames = contractFiles[contractFile];
+  for (const contractName in contractNames) {
+    const bytecode = contractNames[contractName].evm.bytecode.opcodes;
+    assert(!bytecode.includes('PUSH0'));
+  }
+}
 
 writeJSON('artifacts/build-info-v5.json', modifiedBuildInfo);

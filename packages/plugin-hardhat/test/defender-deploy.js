@@ -10,7 +10,7 @@ const {
   getBeaconProxyFactory,
   getTransparentUpgradeableProxyFactory,
 } = require('../dist/utils/factories');
-const artifactsBuildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info.json');
+const artifactsBuildInfo = require('@openzeppelin/upgrades-core/artifacts/build-info-v5.json');
 
 const TX_HASH = '0x1';
 const DEPLOYMENT_ID = 'abc';

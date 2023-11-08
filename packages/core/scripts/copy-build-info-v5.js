@@ -95,7 +95,7 @@ assert(hasProperty(sources, '@openzeppelin/contracts-v5/proxy/transparent/ProxyA
 // Assert that the build-info file does NOT contain test contracts
 assert(!hasPropertyStartsWith(sources, 'contracts/test'));
 
-// // Assert that output bytecode does not contain PUSH0
+// Assert that output bytecode does not contain PUSH0
 // for (const contractFile in modifiedBuildInfo.output.contracts) {
 //   const contractNames = contractFiles[contractFile];
 //   for (const contractName in contractNames) {

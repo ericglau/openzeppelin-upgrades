@@ -24,10 +24,10 @@
   "scripts": {
     "clean": "hardhat clean && rimraf dist *.tsbuildinfo",
     "compile": "tsc -b && yarn compile:contracts",
-    "compile:contracts": "hardhat compile && node scripts/copy-build-info.js && node scripts/copy-build-info-v5.js",
+    "compile:contracts": "hardhat compile && node scripts/copy-build-info-v5.js",
     "prepare": "yarn clean && yarn compile",
     "prepublishOnly": "bash scripts/copy-artifacts.sh",
-    "test": "tsc -b && hardhat compile --force && node scripts/copy-build-info.js && node scripts/copy-build-info-v5.js && ava",
+    "test": "tsc -b && hardhat compile --force && node scripts/copy-build-info-v5.js && ava",
     "test:watch": "hardhat compile --force && fgbg 'ava --watch' 'tsc -b --watch' --",
     "version": "node ../../scripts/bump-changelog.js",
     "cli": "node ./dist/cli/cli.js"

@@ -1,4 +1,4 @@
-import { fetchOrDeploy, fetchOrDeployAdmin, logWarning } from '@openzeppelin/upgrades-core';
+import { fetchOrDeploy } from '@openzeppelin/upgrades-core';
 import type { ContractFactory } from 'ethers';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { getDeployData } from './deploy-impl';

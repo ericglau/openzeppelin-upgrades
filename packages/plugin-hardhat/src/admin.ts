@@ -64,9 +64,9 @@ export function makeTransferProxyAdminOwnership(
     const { proxies } = await manifest.read();
     for (const { address, kind } of proxies) {
       if ((await admin.getAddress()) == (await getAdminAddress(provider, address))) {
-        console.log(SUCCESS_CHECK + `${address} (${kind}) proxy ownership transfered through admin proxy`);
+        console.log(SUCCESS_CHECK + `${address} (${kind}) proxy ownership transferred through proxy admin`);
       } else {
-        console.log(FAILURE_CROSS + `${address} (${kind}) proxy ownership not affected by admin proxy`);
+        console.log(FAILURE_CROSS + `${address} (${kind}) proxy ownership not affected by proxy admin`);
       }
     }
   };

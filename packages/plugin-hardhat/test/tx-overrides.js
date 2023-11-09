@@ -12,7 +12,7 @@ test.before(async t => {
   t.context.TransparentUpgradableProxy = await ethers.getContractFactory(
     TransparentUpgradableProxy.abi,
     TransparentUpgradableProxy.bytecode,
-  );  
+  );
 });
 
 function getInitializerData(contractInterface, args) {

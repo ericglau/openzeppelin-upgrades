@@ -26,5 +26,4 @@ test('add v4 admin to manifest, then deploy v5 transparent', async t => {
   const greeterAdmin = await upgrades.erc1967.getAdminAddress(await greeter.getAddress());
 
   t.not(greeterAdmin, await admin.getAddress());
-
 });

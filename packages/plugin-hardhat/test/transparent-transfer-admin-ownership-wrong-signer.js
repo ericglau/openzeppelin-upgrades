@@ -2,7 +2,6 @@ const test = require('ava');
 
 const hre = require('hardhat');
 const { ethers, upgrades } = hre;
-const { FunctionFragment } = ethers;
 const testAddress = '0x1E6876a6C2757de611c9F12B23211dBaBd1C9028';
 
 test.before(async t => {
@@ -14,11 +13,12 @@ test('transferProxyAdminOwnership - wrong signer', async t => {
   const { Greeter } = t.context;
   const greeter = await upgrades.deployProxy(Greeter, ['Hello, Hardhat!'], { kind: 'transparent' });
 
-  const signer = (await ethers.getSigners())[1]; 
+  const signer = (await ethers.getSigners())[1];
 
-  const proxyAddress = await greeter.getAddress();  
+  const proxyAddress = await greeter.getAddress();
 
-  await t.throwsAsync(() => upgrades.admin.transferProxyAdminOwnership(proxyAddress, testAddress, signer),
-    { message: /0x118cdaa7/ } // abi encoding of OwnableUnauthorizedAccount(address)
+  await t.throwsAsync(
+    () => upgrades.admin.transferProxyAdminOwnership(proxyAddress, testAddress, signer),
+    { message: /0x118cdaa7/ }, // abi encoding of OwnableUnauthorizedAccount(address)
   );
 });

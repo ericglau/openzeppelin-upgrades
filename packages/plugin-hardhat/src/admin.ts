@@ -2,9 +2,8 @@ import chalk from 'chalk';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Manifest, getAdminAddress } from '@openzeppelin/upgrades-core';
 import { Contract, Signer } from 'ethers';
-import { EthersDeployOptions, getProxyAdminFactory } from './utils';
+import { EthersDeployOptions } from './utils';
 import { disableDefender } from './defender/utils';
-import { attach } from './utils/ethers';
 
 const SUCCESS_CHECK = chalk.green('✔') + ' ';
 const FAILURE_CROSS = chalk.red('✘') + ' ';
@@ -33,9 +32,7 @@ export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, defenderMod
     disableDefender(hre, defenderModule, {}, changeProxyAdmin.name);
 
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
-    const admin = new Contract(proxyAdminAddress, [
-      'function changeProxyAdmin(address,address)',
-    ], signer);
+    const admin = new Contract(proxyAdminAddress, ['function changeProxyAdmin(address,address)'], signer);
 
     const overrides = opts.txOverrides ? [opts.txOverrides] : [];
     await admin.changeProxyAdmin(proxyAddress, newAdmin, ...overrides);
@@ -55,9 +52,7 @@ export function makeTransferProxyAdminOwnership(
     disableDefender(hre, defenderModule, {}, transferProxyAdminOwnership.name);
 
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
-    const admin = new Contract(proxyAdminAddress, [
-      'function transferOwnership(address)',
-    ], signer);
+    const admin = new Contract(proxyAdminAddress, ['function transferOwnership(address)'], signer);
 
     const overrides = opts.txOverrides ? [opts.txOverrides] : [];
     await admin.transferOwnership(newOwner, ...overrides);

@@ -42,7 +42,7 @@ test('use different admin addresses', async t => {
   const [signer1, signer2] = await ethers.getSigners();
   const ProxyAdminSigner2 = ProxyAdmin.connect(signer2);
   const newAdmin = await ProxyAdminSigner2.deploy();
- 
+
   await upgrades.admin.changeProxyAdmin(await greeter.getAddress(), await newAdmin.getAddress(), signer1);
 
   // Signer 1 cannot upgrade since it doesn't own the new admin

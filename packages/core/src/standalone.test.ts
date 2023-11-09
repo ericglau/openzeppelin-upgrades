@@ -45,23 +45,53 @@ test('reports unsafe operation - fully qualified name', t => {
 test('reports storage upgrade errors', t => {
   const v1 = new UpgradeableContract('StandaloneV1', t.context.solcInput, t.context.solcOutput, {}, SOLIDITY_VERSION);
 
-  const v2Good = new UpgradeableContract('StandaloneV2Good', t.context.solcInput, t.context.solcOutput, {}, SOLIDITY_VERSION);
+  const v2Good = new UpgradeableContract(
+    'StandaloneV2Good',
+    t.context.solcInput,
+    t.context.solcOutput,
+    {},
+    SOLIDITY_VERSION,
+  );
   const goodReport = v1.getStorageUpgradeReport(v2Good);
   t.true(goodReport.ok);
 
-  const v2Bad = new UpgradeableContract('StandaloneV2Bad', t.context.solcInput, t.context.solcOutput, {}, SOLIDITY_VERSION);
+  const v2Bad = new UpgradeableContract(
+    'StandaloneV2Bad',
+    t.context.solcInput,
+    t.context.solcOutput,
+    {},
+    SOLIDITY_VERSION,
+  );
   const badReport = v1.getStorageUpgradeReport(v2Bad);
   t.false(badReport.ok);
 });
 
 test('dont report renamed version update', t => {
-  const v1 = new UpgradeableContract('StandaloneRenameV1', t.context.solcInput, t.context.solcOutput, {}, SOLIDITY_VERSION);
+  const v1 = new UpgradeableContract(
+    'StandaloneRenameV1',
+    t.context.solcInput,
+    t.context.solcOutput,
+    {},
+    SOLIDITY_VERSION,
+  );
 
-  const v2 = new UpgradeableContract('StandaloneRenameV2', t.context.solcInput, t.context.solcOutput, {}, SOLIDITY_VERSION);
+  const v2 = new UpgradeableContract(
+    'StandaloneRenameV2',
+    t.context.solcInput,
+    t.context.solcOutput,
+    {},
+    SOLIDITY_VERSION,
+  );
   const goodReport = v1.getStorageUpgradeReport(v2);
   t.true(goodReport.ok);
 
-  const v3 = new UpgradeableContract('StandaloneRenameV3', t.context.solcInput, t.context.solcOutput, {}, SOLIDITY_VERSION);
+  const v3 = new UpgradeableContract(
+    'StandaloneRenameV3',
+    t.context.solcInput,
+    t.context.solcOutput,
+    {},
+    SOLIDITY_VERSION,
+  );
   const goodReport2 = v2.getStorageUpgradeReport(v3);
   t.true(goodReport2.ok);
 });

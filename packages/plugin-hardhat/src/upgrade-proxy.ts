@@ -59,11 +59,14 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule:
 
       return (nextImpl, call) => {
         if (upgradeInterfaceVersion === undefined) {
-          const proxyV4Abi = new Contract(proxyAddress, [
-            "function upgradeToAndCall(address,bytes)",
-            "function upgradeTo(address)"
-          ], signer);
-          return call ? proxyV4Abi.upgradeToAndCall(nextImpl, call, ...overrides) : proxyV4Abi.upgradeTo(nextImpl, ...overrides);
+          const proxyV4Abi = new Contract(
+            proxyAddress,
+            ['function upgradeToAndCall(address,bytes)', 'function upgradeTo(address)'],
+            signer,
+          );
+          return call
+            ? proxyV4Abi.upgradeToAndCall(nextImpl, call, ...overrides)
+            : proxyV4Abi.upgradeTo(nextImpl, ...overrides);
         } else if (upgradeInterfaceVersion === '5.0.0') {
           return proxy.upgradeToAndCall(nextImpl, call ?? '0x', ...overrides);
         } else {
@@ -81,10 +84,11 @@ export function makeUpgradeProxy(hre: HardhatRuntimeEnvironment, defenderModule:
 
       return (nextImpl, call) => {
         if (upgradeInterfaceVersion === undefined) {
-          const adminV4Abi = new Contract(adminAddress, [
-            "function upgradeAndCall(address,address,bytes)",
-            "function upgrade(address,address)"
-          ], signer);
+          const adminV4Abi = new Contract(
+            adminAddress,
+            ['function upgradeAndCall(address,address,bytes)', 'function upgrade(address,address)'],
+            signer,
+          );
           return call
             ? adminV4Abi.upgradeAndCall(proxyAddress, nextImpl, call, ...overrides)
             : adminV4Abi.upgrade(proxyAddress, nextImpl, ...overrides);

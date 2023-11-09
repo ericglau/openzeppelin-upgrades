@@ -102,10 +102,7 @@ async function addImplToManifest(
   await simulateDeployImpl(hre, ImplFactory, opts, implAddress);
 }
 
-async function assertNonEmptyAdminSlot(
-  provider: EthereumProvider,
-  proxyAddress: string,
-) {
+async function assertNonEmptyAdminSlot(provider: EthereumProvider, proxyAddress: string) {
   const adminAddress = await getAdminAddress(provider, proxyAddress);
   if (isEmptySlot(adminAddress)) {
     // Assert that the admin slot of a transparent proxy is not zero, otherwise the wrong kind may be imported.

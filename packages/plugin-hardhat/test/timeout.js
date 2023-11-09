@@ -20,7 +20,6 @@ test.beforeEach(async () => {
 });
 
 const TIMED_OUT_IMPL = 'Timed out waiting for implementation contract deployment';
-const TIMED_OUT_ADMIN = 'Timed out waiting for proxy admin contract deployment';
 const USE_OPTIONS =
   'If the problem persists, adjust the polling parameters with the timeout and pollingInterval options.';
 

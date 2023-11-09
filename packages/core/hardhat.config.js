@@ -27,7 +27,7 @@ const proxyCompiler = {
     ...settings,
     evmVersion: 'paris',
   },
-}
+};
 
 function getNamespacedOverrides() {
   const contracts = fs.readdirSync(path.join(__dirname, 'contracts', 'test'));

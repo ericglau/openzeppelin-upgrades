@@ -91,7 +91,6 @@ export type DeployContractOptions = Omit<StandaloneOptions, 'txOverrides'> & // 
   DefenderDeployOptions & {
     unsafeAllowDeployContract?: boolean;
   };
-export type DeployProxyAdminOptions = EthersDeployOptions & DeployOpts & InitialOwner & DefenderDeploy;
 export type DeployProxyOptions = StandaloneOptions & Initializer & InitialOwner & DefenderDeployOptions;
 export type ForceImportOptions = ProxyKindOption;
 export type PrepareUpgradeOptions = UpgradeOptions & GetTxResponse & DefenderDeployOptions;

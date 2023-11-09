@@ -7,6 +7,7 @@ import {
   ProxyDeployment,
   BeaconProxyUnsupportedError,
   RemoteDeploymentId,
+  InitialOwnerUnsupportedKindError,
 } from '@openzeppelin/upgrades-core';
 
 import {
@@ -72,6 +73,10 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, defenderModule: 
       }
 
       case 'uups': {
+        if (opts.initialOwner !== undefined) {
+          throw new InitialOwnerUnsupportedKindError(kind);
+        }
+
         const ProxyFactory = await getProxyFactory(hre, signer);
         proxyDeployment = Object.assign({ kind }, await deploy(hre, opts, ProxyFactory, impl, data));
         break;
@@ -79,6 +84,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, defenderModule: 
 
       case 'transparent': {
         const initialOwner = await getInitialOwner(opts, signer);
+
         const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, signer);
         proxyDeployment = Object.assign(
           { kind },

@@ -3,8 +3,13 @@ import ERC1967Proxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/co
 import BeaconProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/beacon/BeaconProxy.sol/BeaconProxy.json';
 import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/beacon/UpgradeableBeacon.sol/UpgradeableBeacon.json';
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
-import ITransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/transparent/TransparentUpgradeableProxy.sol/ITransparentUpgradeableProxy.json';
-import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
+
+import ITransparentUpgradeableProxyV5 from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/transparent/TransparentUpgradeableProxy.sol/ITransparentUpgradeableProxy.json';
+import ITransparentUpgradeableProxyV4 from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/ITransparentUpgradeableProxy.json';
+
+import ProxyAdminV5 from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts-v5/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
+import ProxyAdminV4 from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
+
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 export async function getProxyFactory(hre: HardhatRuntimeEnvironment, signer?: Signer): Promise<ContractFactory> {
@@ -18,15 +23,40 @@ export async function getTransparentUpgradeableProxyFactory(
   return hre.ethers.getContractFactory(TransparentUpgradeableProxy.abi, TransparentUpgradeableProxy.bytecode, signer);
 }
 
-export async function getITransparentUpgradeableProxyFactory(
+export async function getITransparentUpgradeableProxyV5Factory(
   hre: HardhatRuntimeEnvironment,
   signer?: Signer,
 ): Promise<ContractFactory> {
-  return hre.ethers.getContractFactory(ITransparentUpgradeableProxy.abi, ITransparentUpgradeableProxy.bytecode, signer);
+  return hre.ethers.getContractFactory(
+    ITransparentUpgradeableProxyV5.abi,
+    ITransparentUpgradeableProxyV5.bytecode,
+    signer,
+  );
 }
 
-export async function getProxyAdminFactory(hre: HardhatRuntimeEnvironment, signer?: Signer): Promise<ContractFactory> {
-  return hre.ethers.getContractFactory(ProxyAdmin.abi, ProxyAdmin.bytecode, signer);
+export async function getITransparentUpgradeableProxyV4Factory(
+  hre: HardhatRuntimeEnvironment,
+  signer?: Signer,
+): Promise<ContractFactory> {
+  return hre.ethers.getContractFactory(
+    ITransparentUpgradeableProxyV4.abi,
+    ITransparentUpgradeableProxyV4.bytecode,
+    signer,
+  );
+}
+
+export async function getProxyAdminV5Factory(
+  hre: HardhatRuntimeEnvironment,
+  signer?: Signer,
+): Promise<ContractFactory> {
+  return hre.ethers.getContractFactory(ProxyAdminV5.abi, ProxyAdminV5.bytecode, signer);
+}
+
+export async function getProxyAdminV4Factory(
+  hre: HardhatRuntimeEnvironment,
+  signer?: Signer,
+): Promise<ContractFactory> {
+  return hre.ethers.getContractFactory(ProxyAdminV4.abi, ProxyAdminV4.bytecode, signer);
 }
 
 export async function getBeaconProxyFactory(hre: HardhatRuntimeEnvironment, signer?: Signer): Promise<ContractFactory> {

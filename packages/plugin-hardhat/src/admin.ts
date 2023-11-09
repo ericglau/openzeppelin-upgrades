@@ -11,13 +11,13 @@ const FAILURE_CROSS = chalk.red('✘') + ' ';
 export type ChangeAdminFunction = (
   proxyAddress: string,
   newAdmin: string,
-  signer: Signer,
+  signer?: Signer,
   opts?: EthersDeployOptions,
 ) => Promise<void>;
 export type TransferProxyAdminOwnershipFunction = (
   proxyAddress: string,
   newOwner: string,
-  signer: Signer,
+  signer?: Signer,
   opts?: EthersDeployOptions,
 ) => Promise<void>;
 export type GetInstanceFunction = (signer?: Signer) => Promise<Contract>;

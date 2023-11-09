@@ -15,7 +15,7 @@ test('transferProxyAdminOwnership', async t => {
 
   const signer = (await ethers.getSigners())[0];
 
-  await upgrades.admin.transferProxyAdminOwnership(await greeter.getAddress(), testAddress, signer);
+  await upgrades.admin.transferProxyAdminOwnership(await greeter.getAddress(), testAddress);
 
   const adminAddress = await upgrades.erc1967.getAdminAddress(await greeter.getAddress());
   const admin = new ethers.Contract(adminAddress, ['function owner() view returns (address)'], signer);

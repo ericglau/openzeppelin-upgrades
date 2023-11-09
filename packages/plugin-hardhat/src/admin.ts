@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { Manifest, getAdminAddress } from '@openzeppelin/upgrades-core';
 import { Contract, Signer } from 'ethers';
-import { EthersDeployOptions } from './utils';
+import { EthersDeployOptions, attachProxyAdminV4 } from './utils';
 import { disableDefender } from './defender/utils';
 
 const SUCCESS_CHECK = chalk.green('✔') + ' ';
@@ -26,13 +26,14 @@ export function makeChangeProxyAdmin(hre: HardhatRuntimeEnvironment, defenderMod
   return async function changeProxyAdmin(
     proxyAddress: string,
     newAdmin: string,
-    signer: Signer,
+    signer?: Signer,
     opts: EthersDeployOptions = {},
   ) {
     disableDefender(hre, defenderModule, {}, changeProxyAdmin.name);
 
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
-    const admin = new Contract(proxyAdminAddress, ['function changeProxyAdmin(address,address)'], signer);
+    // Only compatible with v4 admins
+    const admin = await attachProxyAdminV4(hre, proxyAdminAddress, signer);
 
     const overrides = opts.txOverrides ? [opts.txOverrides] : [];
     await admin.changeProxyAdmin(proxyAddress, newAdmin, ...overrides);
@@ -46,13 +47,14 @@ export function makeTransferProxyAdminOwnership(
   return async function transferProxyAdminOwnership(
     proxyAddress: string,
     newOwner: string,
-    signer: Signer,
+    signer?: Signer,
     opts: EthersDeployOptions = {},
   ) {
     disableDefender(hre, defenderModule, {}, transferProxyAdminOwnership.name);
 
     const proxyAdminAddress = await getAdminAddress(hre.network.provider, proxyAddress);
-    const admin = new Contract(proxyAdminAddress, ['function transferOwnership(address)'], signer);
+    // Compatible with both v4 and v5 admins since they both have transferOwnership
+    const admin = await attachProxyAdminV4(hre, proxyAdminAddress, signer);
 
     const overrides = opts.txOverrides ? [opts.txOverrides] : [];
     await admin.transferOwnership(newOwner, ...overrides);

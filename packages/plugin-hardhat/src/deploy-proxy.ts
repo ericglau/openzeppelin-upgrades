@@ -21,6 +21,7 @@ import {
 } from './utils';
 import { enableDefender } from './defender/utils';
 import { getContractInstance } from './utils/contract-instance';
+import { getInitialOwner } from './utils/initial-owner';
 
 export interface DeployFunction {
   (ImplFactory: ContractFactory, args?: unknown[], opts?: DeployProxyOptions): Promise<Contract>;
@@ -77,9 +78,7 @@ export function makeDeployProxy(hre: HardhatRuntimeEnvironment, defenderModule: 
       }
 
       case 'transparent': {
-        const initialOwner = opts.initialOwner ?? (await signer?.getAddress()) ?? undefined;
-        // TODO give an error if initialOwner is undefined
-
+        const initialOwner = await getInitialOwner(opts, signer);
         const TransparentUpgradeableProxyFactory = await getTransparentUpgradeableProxyFactory(hre, signer);
         proxyDeployment = Object.assign(
           { kind },

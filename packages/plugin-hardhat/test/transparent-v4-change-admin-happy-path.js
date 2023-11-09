@@ -37,9 +37,7 @@ test('changeProxyAdmin', async t => {
   );
   const greeter = await upgrades.forceImport(await proxy.getAddress(), Greeter);
 
-  const signer = (await ethers.getSigners())[0];
-
-  await upgrades.admin.changeProxyAdmin(await greeter.getAddress(), testAddress, signer);
+  await upgrades.admin.changeProxyAdmin(await greeter.getAddress(), testAddress);
   const newAdmin = await upgrades.erc1967.getAdminAddress(await greeter.getAddress());
 
   t.is(newAdmin, testAddress);

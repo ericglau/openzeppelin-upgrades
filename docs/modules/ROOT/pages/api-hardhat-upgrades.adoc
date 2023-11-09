@@ -19,6 +19,8 @@ The following options are common to some functions.
 * `unsafeAllowRenames`: (`boolean`) Configure storage layout check to allow variable renaming.
 * `unsafeSkipStorageCheck`: (`boolean`) upgrades the proxy or beacon without first checking for storage layout compatibility errors. This is a dangerous option meant to be used as a last resort.
 * `constructorArgs`: (`unknown[]`) Provide arguments for the constructor of the implementation contract. Note that these are different from initializer arguments, and will be used in the deployment of the implementation contract itself. Can be used to initialize immutable variables.
+* `initialOwner`: (`string`) the address to set as the initial owner of a transparent proxy's admin or initial owner of a beacon. Defaults to the externally owned account that is deploying the transparent proxy or beacon. Not supported for UUPS proxies.
+** *Since:* `@openzeppelin/hardhat-upgrades@3.0.0`
 * `timeout`: (`number`) Timeout in milliseconds to wait for the transaction confirmation when deploying an implementation contract. Defaults to `60000`. Use `0` to wait indefinitely.
 * `pollingInterval`: (`number`) Polling interval in milliseconds between checks for the transaction confirmation when deploying an implementation contract. Defaults to `5000`.
 * `redeployImplementation`: (`"always" | "never" | "onchange"`) Determines whether the implementation contract will be redeployed. Defaults to `"onchange"`.
@@ -51,6 +53,7 @@ async function deployProxy(
     initializer?: string | false,
     unsafeAllow?: ValidationError[],
     constructorArgs?: unknown[],
+    initialOwner?: string,
     timeout?: number,
     pollingInterval?: number,
     redeployImplementation?: 'always' | 'never' | 'onchange',
@@ -124,6 +127,7 @@ async function deployBeacon(
   opts?: {
     unsafeAllow?: ValidationError[],
     constructorArgs?: unknown[],
+    initialOwner?: string,
     timeout?: number,
     pollingInterval?: number,
     redeployImplementation?: 'always' | 'never' | 'onchange',

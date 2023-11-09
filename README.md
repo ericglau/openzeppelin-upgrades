@@ -84,17 +84,15 @@ it('works before and after upgrading', async function () {
 
 ## How do the plugins work?
 
-Both plugins provide functions which take care of managing upgradeable deployments of your contracts.
+The plugins provide functions which take care of managing upgradeable deployments of your contracts.
 
 For example, `deployProxy` does the following:
 
 1. Validate that the implementation is [upgrade safe](https://docs.openzeppelin.com/upgrades-plugins/faq#what-does-it-mean-for-a-contract-to-be-upgrade-safe)
 
-2. Deploy a [proxy admin](https://docs.openzeppelin.com/upgrades-plugins/faq#what-is-a-proxy-admin) for your project (if needed)
+2. Check if there is an [implementation contract](https://docs.openzeppelin.com/upgrades-plugins/faq#what-is-an-implementation-contract) deployed with the same bytecode, and deploy one if not
 
-3. Check if there is an [implementation contract](https://docs.openzeppelin.com/upgrades-plugins/faq#what-is-an-implementation-contract) deployed with the same bytecode, and deploy one if not
-
-4. Create and initialize the proxy contract
+3. Create and initialize the proxy contract, along with a [proxy admin](https://docs.openzeppelin.com/upgrades-plugins/faq#what-is-a-proxy-admin) (if needed)
 
 And when you call `upgradeProxy`:
 

@@ -18,5 +18,9 @@ echo "openzeppelin dir:"
 ls -la ../../node_modules/@openzeppelin/
 echo "Legacy artifacts:"
 ls -la ../../node_modules/@openzeppelin/upgrades-core-legacy/artifacts/
+echo "pwd:"
+pwd
+echo "artifacts dir:"
+ls -la artifacts/
 
-cp -R ../../node_modules/@openzeppelin/upgrades-core-legacy/artifacts/ artifacts
+cp -R ../../node_modules/@openzeppelin/upgrades-core-legacy/artifacts/ artifacts/

@@ -12,4 +12,11 @@ if ! grep -q '"version": "1.31.1"' ../../node_modules/@openzeppelin/upgrades-cor
   exit 1
 fi
 
+echo "Node modules:"
+ls -la ../../node_modules/
+echo "openzeppelin dir:"
+ls -la ../../node_modules/@openzeppelin/
+echo "Legacy artifacts:"
+ls -la ../../node_modules/@openzeppelin/upgrades-core-legacy/artifacts/
+
 cp -R ../../node_modules/@openzeppelin/upgrades-core-legacy/artifacts/ artifacts

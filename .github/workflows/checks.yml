@@ -2,7 +2,7 @@ name: checks
 
 on:
   push:
-    branches: [master]
+    branches: [actionsv3]
   pull_request: {}
 
 concurrency:
@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
     - name: Set up environment
       uses: ./.github/actions/setup
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
     - name: Set up environment
       uses: ./.github/actions/setup
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v3
 
     - name: Set up environment
       uses: ./.github/actions/setup

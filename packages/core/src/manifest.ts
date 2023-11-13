@@ -20,7 +20,7 @@ export interface ManifestData {
   impls: {
     [version in string]?: ImplDeployment & RemoteDeploymentId;
   };
-  proxies: (ProxyDeployment & RemoteDeploymentId)[];
+  proxies: (Partial<ProxyDeployment> & RemoteDeploymentId)[];
   admin?: Deployment;
 }
 
@@ -162,7 +162,7 @@ export class Manifest {
     return deployment;
   }
 
-  async getProxyFromAddress(address: string): Promise<ProxyDeployment> {
+  async getProxyFromAddress(address: string): Promise<Partial<ProxyDeployment> & RemoteDeploymentId> {
     const data = await this.read();
     const deployment = data.proxies.find(d => d?.address === address);
     if (deployment === undefined) {
@@ -171,10 +171,10 @@ export class Manifest {
     return deployment;
   }
 
-  async addProxy(proxy: ProxyDeployment): Promise<void> {
+  async addProxy(proxy: Partial<ProxyDeployment> & RemoteDeploymentId): Promise<void> {
     await this.lockedRun(async () => {
       const data = await this.read();
-      const existing = data.proxies.findIndex(p => p.address === proxy.address);
+      const existing = data.proxies.findIndex(p => (p.address === proxy.address || p.remoteDeploymentId === proxy.remoteDeploymentId));
       if (existing >= 0) {
         data.proxies.splice(existing, 1);
       }

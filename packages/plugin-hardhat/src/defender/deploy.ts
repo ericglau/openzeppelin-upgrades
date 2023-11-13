@@ -5,8 +5,6 @@ import { parseFullyQualifiedName } from 'hardhat/utils/contract-names';
 
 import { DeploymentResponse, SourceCodeLicense } from '@openzeppelin/defender-sdk-deploy-client';
 import {
-  Deployment,
-  RemoteDeploymentId,
   getContractNameAndRunValidation,
   UpgradesError,
 } from '@openzeppelin/upgrades-core';
@@ -20,7 +18,7 @@ import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 
 import { getNetwork, getDeployClient } from './utils';
-import { DeployTransaction, DefenderDeployOptions, UpgradeOptions } from '../utils';
+import { DefenderDeployOptions, UpgradeOptions, DefenderDeployment } from '../utils';
 import debug from '../utils/debug';
 import { getDeployData } from '../utils/deploy-impl';
 import { ContractSourceNotFoundError } from '@openzeppelin/upgrades-core';
@@ -59,7 +57,7 @@ export async function defenderDeploy(
   factory: ContractFactory,
   opts: UpgradeOptions & DefenderDeployOptions,
   ...args: unknown[]
-): Promise<Required<Deployment & RemoteDeploymentId> & DeployTransaction> {
+): Promise<DefenderDeployment> {
   const client = getDeployClient(hre);
 
   const constructorArgs = [...args] as (string | number | boolean)[];
@@ -104,8 +102,16 @@ export async function defenderDeploy(
     }
   }
 
-  const txResponse = (await hre.ethers.provider.getTransaction(deploymentResponse.txHash)) ?? undefined;
-  const checksumAddress = hre.ethers.getAddress(deploymentResponse.address);
+  let txResponse: ethers.TransactionResponse | undefined;
+  if (deploymentResponse.txHash !== undefined) {
+    txResponse = (await hre.ethers.provider.getTransaction(deploymentResponse.txHash)) ?? undefined;
+  }
+
+  let checksumAddress: string | undefined;
+  if (deploymentResponse.address !== undefined) {
+    checksumAddress = hre.ethers.getAddress(deploymentResponse.address);
+  }
+
   return {
     address: checksumAddress,
     txHash: deploymentResponse.txHash,

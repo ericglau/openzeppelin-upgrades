@@ -136,7 +136,7 @@ export async function waitForDeployment(
 
     const response = await getRemoteDeployment(hre, remoteDeploymentId);
     lastKnownTxHash = response?.txHash;
-    const completed = await isDeploymentCompleted(address, remoteDeploymentId, response);
+    const completed = await isDeploymentCompleted(remoteDeploymentId, response);
     if (completed) {
       break;
     } else {

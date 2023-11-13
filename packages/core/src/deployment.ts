@@ -171,13 +171,11 @@ export interface RemoteDeployment {
 
 export async function waitAndValidateDeployment(
   provider: EthereumProvider,
-  deployment: Deployment & RemoteDeploymentId,
+  deployment: LocalOrRemoteDeployment,
   type?: string,
   opts?: DeployOpts,
   getRemoteDeployment?: (remoteDeploymentId: string) => Promise<RemoteDeployment | undefined>,
 ): Promise<void> {
-  const { txHash, address, remoteDeploymentId } = deployment;
-
   // Poll for 60 seconds with a 5 second poll interval by default.
   const pollTimeout = opts?.timeout ?? 60e3;
   const pollInterval = opts?.pollingInterval ?? 5e3;
@@ -186,21 +184,20 @@ export async function waitAndValidateDeployment(
 
   let foundCode = false;
 
-  if (remoteDeploymentId !== undefined && getRemoteDeployment !== undefined) {
+  if ('remoteDeploymentId' in deployment && deployment.remoteDeploymentId !== undefined && getRemoteDeployment !== undefined) {
     const startTime = Date.now();
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      if (await hasCode(provider, address)) {
-        debug('code in target address found', address);
+      if (deployment.address !== undefined && await hasCode(provider, deployment.address)) {
+        debug('code in target address found', deployment.address);
         foundCode = true;
         break;
       }
 
       const completed = await isDeploymentCompleted(
-        address,
-        remoteDeploymentId,
-        await getRemoteDeployment(remoteDeploymentId),
+        deployment.remoteDeploymentId,
+        await getRemoteDeployment(deployment.remoteDeploymentId),
       );
       if (completed) {
         break;
@@ -215,21 +212,21 @@ export async function waitAndValidateDeployment(
         }
       }
     }
-  } else if (txHash !== undefined) {
+  } else if (deployment.txHash !== undefined) {
     const startTime = Date.now();
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      debug('verifying deployment tx mined', txHash);
-      const receipt = await getTransactionReceipt(provider, txHash);
+      debug('verifying deployment tx mined', deployment.txHash);
+      const receipt = await getTransactionReceipt(provider, deployment.txHash);
       if (receipt && isReceiptSuccessful(receipt)) {
-        debug('succeeded verifying deployment tx mined', txHash);
+        debug('succeeded verifying deployment tx mined', deployment.txHash);
         break;
       } else if (receipt) {
-        debug('tx was reverted', txHash);
+        debug('tx was reverted', deployment.txHash);
         throw new InvalidDeployment(deployment);
       } else {
-        debug('waiting for deployment tx mined', txHash);
+        debug('waiting for deployment tx mined', deployment.txHash);
         await sleep(pollInterval);
       }
       if (pollTimeout != 0) {
@@ -242,32 +239,34 @@ export async function waitAndValidateDeployment(
     }
   }
 
-  if (!foundCode) {
-    debug('verifying code in target address', address);
+  if (!foundCode && deployment.address !== undefined) {
+    debug('verifying code in target address', deployment.address);
     const startTime = Date.now();
-    while (!(await hasCode(provider, address))) {
+    while (!(await hasCode(provider, deployment.address))) {
       const elapsedTime = Date.now() - startTime;
-      if (elapsedTime >= pollTimeout || txHash === undefined) {
+      if (elapsedTime >= pollTimeout || deployment.txHash === undefined) {
         throw new InvalidDeployment(deployment);
       }
       await sleep(pollInterval);
     }
-    debug('code in target address found', address);
+    debug('code in target address found', deployment.address);
   }
 }
 
 export class TransactionMinedTimeout extends UpgradesError {
   constructor(
-    readonly deployment: Deployment & RemoteDeploymentId,
+    readonly deployment: LocalOrRemoteDeployment,
     type?: string,
     configurableTimeout?: boolean,
   ) {
+    let msg;
+    if ('address' in deployment) {
+      msg = `Timed out waiting for ${type ? type + ' ' : ''}contract deployment to address ${deployment.address} with transaction ${deployment.txHash}`;
+    } else {
+      msg = `Timed out waiting for ${type ? type + ' ' : ''}contract deployment with remote deployment id ${deployment.remoteDeploymentId}`;
+    }
     super(
-      `Timed out waiting for ${type ? type + ' ' : ''}contract deployment to address ${deployment.address} with ${
-        deployment.remoteDeploymentId
-          ? `deployment id ${deployment.remoteDeploymentId}`
-          : `transaction ${deployment.txHash}`
-      }`,
+      msg,
       () =>
         'Run the function again to continue waiting for the transaction confirmation.' +
         (configurableTimeout
@@ -277,10 +276,12 @@ export class TransactionMinedTimeout extends UpgradesError {
   }
 }
 
+export type LocalOrRemoteDeployment = Required<Deployment> | (Partial<Deployment> & RemoteDeploymentId);
+
 export class InvalidDeployment extends Error {
   removed = false;
 
-  constructor(readonly deployment: Deployment) {
+  constructor(readonly deployment: LocalOrRemoteDeployment) {
     super();
     // This hides the properties from the error when it's printed.
     makeNonEnumerable(this, 'removed');
@@ -288,7 +289,9 @@ export class InvalidDeployment extends Error {
   }
 
   get message(): string {
-    let msg = `No contract at address ${this.deployment.address}`;
+    let msg = 'address' in this.deployment ?
+     `No contract at address ${this.deployment.address}` :
+     `Remote deployment with id ${this.deployment.remoteDeploymentId} failed`;
     if (this.removed) {
       msg += ' (Removed from manifest)';
     }
@@ -299,14 +302,12 @@ export class InvalidDeployment extends Error {
 /**
  * Checks if the deployment id is completed.
  *
- * @param address The expected address of the deployment.
  * @param remoteDeploymentId The deployment id.
  * @param remoteDeploymentResponse The remote deployment response corresponding to the given id.
  * @returns true if the deployment id is completed, false otherwise.
  * @throws {InvalidDeployment} if the deployment id failed.
  */
 export async function isDeploymentCompleted(
-  address: string,
   remoteDeploymentId: string,
   remoteDeploymentResponse: RemoteDeployment | undefined,
 ): Promise<boolean> {
@@ -321,7 +322,7 @@ export async function isDeploymentCompleted(
     return true;
   } else if (status === 'failed') {
     debug(`deployment id ${remoteDeploymentId} failed with tx hash ${remoteDeploymentResponse.txHash}`);
-    throw new InvalidDeployment({ address, txHash: remoteDeploymentResponse.txHash });
+    throw new InvalidDeployment({ txHash: remoteDeploymentResponse.txHash, remoteDeploymentId });
   } else if (status === 'submitted') {
     debug('waiting for deployment id to be completed', remoteDeploymentId);
     return false;

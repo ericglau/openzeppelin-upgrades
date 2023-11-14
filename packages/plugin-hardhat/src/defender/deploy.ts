@@ -113,12 +113,9 @@ export async function defenderDeploy(
   }
 
   debug('waiting for deployment id ', deploymentResponse.deploymentId);
-  deploymentResponse = await waitForDeployment(
-    hre,
-    opts,
-    deploymentResponse.address,
-    deploymentResponse.deploymentId,
-  ) ?? deploymentResponse;
+  deploymentResponse =
+    (await waitForDeployment(hre, opts, deploymentResponse.address, deploymentResponse.deploymentId)) ??
+    deploymentResponse;
 
   if (deploymentResponse.address === undefined || deploymentResponse.txHash === undefined) {
     throw new UpgradesError(

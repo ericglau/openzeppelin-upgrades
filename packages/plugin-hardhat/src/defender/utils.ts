@@ -1,12 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import {
-  getChainId,
-  hasCode,
-  RemoteDeployment,
-  DeployOpts,
-  isDeploymentCompleted,
-  UpgradesError,
-} from '@openzeppelin/upgrades-core';
+import { getChainId, hasCode, DeployOpts, isDeploymentCompleted, UpgradesError } from '@openzeppelin/upgrades-core';
 
 import { Network, fromChainId } from '@openzeppelin/defender-sdk-base-client';
 import { DeployClient, DeploymentResponse } from '@openzeppelin/defender-sdk-deploy-client';
@@ -104,7 +97,7 @@ export async function getRemoteDeployment(
 ): Promise<DeploymentResponse | undefined> {
   const client = getDeployClient(hre);
   try {
-    return (await client.getDeployedContract(remoteDeploymentId));
+    return await client.getDeployedContract(remoteDeploymentId);
   } catch (e) {
     const message = (e as any).response?.data?.message;
     if (message?.match(/deployment with id .* not found\./)) {
@@ -129,7 +122,7 @@ export async function waitForDeployment(
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    if (address !== undefined && await hasCode(hre.ethers.provider, address)) {
+    if (address !== undefined && (await hasCode(hre.ethers.provider, address))) {
       debug('code in target address found', address);
       break;
     }

@@ -95,7 +95,10 @@ async function validateCached<T extends Deployment>(
       return await validateStoredDeployment(cached, provider, type, opts, merge, getRemoteDeployment);
     } catch (e) {
       if (e instanceof InvalidDeployment && (await isDevelopmentNetwork(provider))) {
-        debug('ignoring invalid deployment in development network', 'address' in e.deployment ? e.deployment.address : e.deployment.remoteDeploymentId);
+        debug(
+          'ignoring invalid deployment in development network',
+          'address' in e.deployment ? e.deployment.address : e.deployment.remoteDeploymentId,
+        );
         if (deployment !== undefined) {
           deleteDeployment(deployment);
         }
@@ -197,10 +200,7 @@ export async function waitAndValidateDeployment(
         break;
       }
 
-      const completed = await isDeploymentCompleted(
-        remoteDeploymentId,
-        await getRemoteDeployment(remoteDeploymentId),
-      );
+      const completed = await isDeploymentCompleted(remoteDeploymentId, await getRemoteDeployment(remoteDeploymentId));
       if (completed) {
         break;
       } else {
@@ -287,9 +287,10 @@ export class InvalidDeployment extends Error {
   }
 
   get message(): string {
-    let msg = 'address' in this.deployment ?
-     `No contract at address ${this.deployment.address}` :
-     `Remote deployment with id ${this.deployment.remoteDeploymentId} failed`;
+    let msg =
+      'address' in this.deployment
+        ? `No contract at address ${this.deployment.address}`
+        : `Remote deployment with id ${this.deployment.remoteDeploymentId} failed`;
     if (this.removed) {
       msg += ' (Removed from manifest)';
     }

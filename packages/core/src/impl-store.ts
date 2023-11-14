@@ -96,8 +96,10 @@ async function fetchOrDeployGeneric<T extends Deployment & RemoteDeploymentId, U
         const data = await manifest.read();
         const deployment = lens(data);
         const stored = deployment.get();
-        if (('txHash' in e.deployment && stored?.txHash === e.deployment.txHash) ||
-          ('remoteDeploymentId' in e.deployment && stored?.remoteDeploymentId === e.deployment.remoteDeploymentId)) {
+        if (
+          ('txHash' in e.deployment && stored?.txHash === e.deployment.txHash) ||
+          ('remoteDeploymentId' in e.deployment && stored?.remoteDeploymentId === e.deployment.remoteDeploymentId)
+        ) {
           deployment.set(undefined);
           await manifest.write(data);
         }

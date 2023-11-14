@@ -34,12 +34,12 @@ export function getContractInstance(
     const origWait = instance.waitForDeployment.bind(instance);
     instance.waitForDeployment = async () => {
       assert(deployment.remoteDeploymentId !== undefined);
-      const updatedTxHash = await waitForDeployment(
+      const updatedTxHash = (await waitForDeployment(
         hre,
         opts,
         await instance.getAddress(),
         deployment.remoteDeploymentId,
-      );
+      ))?.txHash;
 
       if (updatedTxHash !== undefined && updatedTxHash !== deployment.txHash) {
         const updatedTx = await hre.ethers.provider.getTransaction(updatedTxHash);

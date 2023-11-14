@@ -38,7 +38,7 @@ export interface ManifestField<T> {
  * @throws {InvalidDeployment} if the deployment is invalid
  * @throws {TransactionMinedTimeout} if the transaction was not confirmed within the timeout period
  */
-async function fetchOrDeployGeneric<T extends Deployment, U extends T = T>(
+async function fetchOrDeployGeneric<T extends Deployment & RemoteDeploymentId, U extends T = T>(
   lens: ManifestLens<T>,
   provider: EthereumProvider,
   deploy: () => Promise<U>,
@@ -96,7 +96,8 @@ async function fetchOrDeployGeneric<T extends Deployment, U extends T = T>(
         const data = await manifest.read();
         const deployment = lens(data);
         const stored = deployment.get();
-        if (stored?.txHash === e.deployment.txHash) {
+        if (('txHash' in e.deployment && stored?.txHash === e.deployment.txHash) ||
+          ('remoteDeploymentId' in e.deployment && stored?.remoteDeploymentId === e.deployment.remoteDeploymentId)) {
           deployment.set(undefined);
           await manifest.write(data);
         }

@@ -95,7 +95,7 @@ async function validateCached<T extends Deployment>(
       return await validateStoredDeployment(cached, provider, type, opts, merge, getRemoteDeployment);
     } catch (e) {
       if (e instanceof InvalidDeployment && (await isDevelopmentNetwork(provider))) {
-        debug('ignoring invalid deployment in development network', e.deployment.address);
+        debug('ignoring invalid deployment in development network', 'address' in e.deployment ? e.deployment.address : e.deployment.remoteDeploymentId);
         if (deployment !== undefined) {
           deleteDeployment(deployment);
         }
@@ -165,8 +165,8 @@ async function validateStoredDeployment<T extends Deployment & RemoteDeploymentI
  * A deployment that is performed remotely, which has a status and transaction hash.
  */
 export interface RemoteDeployment {
-  status: 'completed' | 'failed' | 'submitted';
-  txHash: string;
+  status: 'completed' | 'failed' | 'submitted' | 'pending';
+  txHash?: string;
 }
 
 export async function waitAndValidateDeployment(
@@ -198,7 +198,6 @@ export async function waitAndValidateDeployment(
       }
 
       const completed = await isDeploymentCompleted(
-        address,
         remoteDeploymentId,
         await getRemoteDeployment(remoteDeploymentId),
       );
@@ -280,7 +279,7 @@ export class TransactionMinedTimeout extends UpgradesError {
 export class InvalidDeployment extends Error {
   removed = false;
 
-  constructor(readonly deployment: Deployment) {
+  constructor(readonly deployment: Deployment | RemoteDeploymentId) {
     super();
     // This hides the properties from the error when it's printed.
     makeNonEnumerable(this, 'removed');
@@ -288,7 +287,9 @@ export class InvalidDeployment extends Error {
   }
 
   get message(): string {
-    let msg = `No contract at address ${this.deployment.address}`;
+    let msg = 'address' in this.deployment ?
+     `No contract at address ${this.deployment.address}` :
+     `Remote deployment with id ${this.deployment.remoteDeploymentId} failed`;
     if (this.removed) {
       msg += ' (Removed from manifest)';
     }
@@ -299,14 +300,12 @@ export class InvalidDeployment extends Error {
 /**
  * Checks if the deployment id is completed.
  *
- * @param address The expected address of the deployment.
  * @param remoteDeploymentId The deployment id.
  * @param remoteDeploymentResponse The remote deployment response corresponding to the given id.
  * @returns true if the deployment id is completed, false otherwise.
  * @throws {InvalidDeployment} if the deployment id failed.
  */
 export async function isDeploymentCompleted(
-  address: string,
   remoteDeploymentId: string,
   remoteDeploymentResponse: RemoteDeployment | undefined,
 ): Promise<boolean> {
@@ -321,8 +320,8 @@ export async function isDeploymentCompleted(
     return true;
   } else if (status === 'failed') {
     debug(`deployment id ${remoteDeploymentId} failed with tx hash ${remoteDeploymentResponse.txHash}`);
-    throw new InvalidDeployment({ address, txHash: remoteDeploymentResponse.txHash });
-  } else if (status === 'submitted') {
+    throw new InvalidDeployment({ remoteDeploymentId });
+  } else if (status === 'submitted' || status === 'pending') {
     debug('waiting for deployment id to be completed', remoteDeploymentId);
     return false;
   } else {

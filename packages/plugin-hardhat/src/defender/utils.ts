@@ -9,7 +9,7 @@ import {
 } from '@openzeppelin/upgrades-core';
 
 import { Network, fromChainId } from '@openzeppelin/defender-sdk-base-client';
-import { DeployClient } from '@openzeppelin/defender-sdk-deploy-client';
+import { DeployClient, DeploymentResponse } from '@openzeppelin/defender-sdk-deploy-client';
 
 import { HardhatDefenderConfig } from '../type-extensions';
 import { DefenderDeploy } from '../utils';
@@ -101,10 +101,10 @@ export function getDeployClient(hre: HardhatRuntimeEnvironment): DeployClient {
 export async function getRemoteDeployment(
   hre: HardhatRuntimeEnvironment,
   remoteDeploymentId: string,
-): Promise<RemoteDeployment | undefined> {
+): Promise<DeploymentResponse | undefined> {
   const client = getDeployClient(hre);
   try {
-    return (await client.getDeployedContract(remoteDeploymentId)) as RemoteDeployment;
+    return (await client.getDeployedContract(remoteDeploymentId));
   } catch (e) {
     const message = (e as any).response?.data?.message;
     if (message?.match(/deployment with id .* not found\./)) {
@@ -121,27 +121,26 @@ export async function getRemoteDeployment(
 export async function waitForDeployment(
   hre: HardhatRuntimeEnvironment,
   opts: DeployOpts,
-  address: string,
+  address: string | undefined,
   remoteDeploymentId: string,
-): Promise<string | undefined> {
+): Promise<DeploymentResponse | undefined> {
   const pollInterval = opts.pollingInterval ?? 5e3;
-  let lastKnownTxHash: string | undefined;
+  let response;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    if (await hasCode(hre.ethers.provider, address)) {
+    if (address !== undefined && await hasCode(hre.ethers.provider, address)) {
       debug('code in target address found', address);
       break;
     }
 
-    const response = await getRemoteDeployment(hre, remoteDeploymentId);
-    lastKnownTxHash = response?.txHash;
-    const completed = await isDeploymentCompleted(address, remoteDeploymentId, response);
+    response = await getRemoteDeployment(hre, remoteDeploymentId);
+    const completed = await isDeploymentCompleted(remoteDeploymentId, response);
     if (completed) {
       break;
     } else {
       await sleep(pollInterval);
     }
   }
-  return lastKnownTxHash;
+  return response;
 }

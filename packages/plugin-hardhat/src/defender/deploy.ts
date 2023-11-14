@@ -19,7 +19,7 @@ import UpgradeableBeacon from '@openzeppelin/upgrades-core/artifacts/@openzeppel
 import TransparentUpgradeableProxy from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json';
 import ProxyAdmin from '@openzeppelin/upgrades-core/artifacts/@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol/ProxyAdmin.json';
 
-import { getNetwork, getDeployClient } from './utils';
+import { getNetwork, getDeployClient, waitForDeployment } from './utils';
 import { DeployTransaction, DefenderDeployOptions, UpgradeOptions } from '../utils';
 import debug from '../utils/debug';
 import { getDeployData } from '../utils/deploy-impl';
@@ -110,6 +110,20 @@ export async function defenderDeploy(
     } else {
       throw e;
     }
+  }
+
+  debug('waiting for deployment id ', deploymentResponse.deploymentId);
+  deploymentResponse = await waitForDeployment(
+    hre,
+    opts,
+    deploymentResponse.address,
+    deploymentResponse.deploymentId,
+  ) ?? deploymentResponse;
+
+  if (deploymentResponse.address === undefined || deploymentResponse.txHash === undefined) {
+    throw new UpgradesError(
+      `Completed deployment id ${deploymentResponse.deploymentId} did not include address or txHash in its response.`,
+    );
   }
 
   const txResponse = (await hre.ethers.provider.getTransaction(deploymentResponse.txHash)) ?? undefined;

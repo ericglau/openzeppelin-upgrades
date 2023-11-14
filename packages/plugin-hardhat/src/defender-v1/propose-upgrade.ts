@@ -28,7 +28,7 @@ export interface ProposalOptions extends UpgradeOptions {
   description?: string;
   proxyAdmin?: string;
   multisig?: string;
-  multisigType?: 'Gnosis Safe' | 'Gnosis Multisig' | 'EOA';
+  multisigType?: 'EOA' | 'Safe' | 'Gnosis Multisig' | 'Relayer';
   bytecodeVerificationReferenceUrl?: string;
 }
 

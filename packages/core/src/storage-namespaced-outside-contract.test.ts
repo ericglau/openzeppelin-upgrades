@@ -10,7 +10,12 @@ test('namespace outside contract - error', async t => {
   const { solcOutput, decodeSrc } = await getOutputAndDecoder(contract);
 
   const error = t.throws(() => validate(solcOutput, decodeSrc));
-  t.assert(error?.message.includes('contracts/test/NamespacedOutsideContract.sol:7: Namespace struct MainStorage is defined outside of a contract'), error?.message);
+  t.assert(
+    error?.message.includes(
+      'contracts/test/NamespacedOutsideContract.sol:7: Namespace struct MainStorage is defined outside of a contract',
+    ),
+    error?.message,
+  );
 });
 
 test('namespace in library - warning', async t => {
@@ -18,7 +23,7 @@ test('namespace in library - warning', async t => {
 
   const { solcOutput, decodeSrc } = await getOutputAndDecoder(contract);
   validate(solcOutput, decodeSrc);
-  
+
   t.pass();
 });
 
@@ -41,4 +46,3 @@ async function getOutputAndDecoder(contract: string) {
   const decodeSrc = solcInputOutputDecoder(solcInput, solcOutput);
   return { solcOutput, decodeSrc };
 }
-

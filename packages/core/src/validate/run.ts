@@ -286,7 +286,8 @@ function assertNotNamespace(node: StructDefinition, decodeSrc: SrcDecoder, stric
   const storageLocation = getStorageLocationAnnotation(node);
   if (storageLocation !== undefined) {
     const msg = `${decodeSrc(node)}: Namespace struct ${node.name} is defined outside of a contract`;
-    const explain = () => `Structs with the @custom:storage-location annotation must be defined within a contract. Move the struct definition into a contract, or remove the annotation if the struct is not used for namespaced storage.`;
+    const explain = () =>
+      `Structs with the @custom:storage-location annotation must be defined within a contract. Move the struct definition into a contract, or remove the annotation if the struct is not used for namespaced storage.`;
     if (strict) {
       throw new UpgradesError(msg, explain);
     } else {

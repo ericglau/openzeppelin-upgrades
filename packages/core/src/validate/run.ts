@@ -266,16 +266,30 @@ function checkNamespaceSolidityVersion(source: string, solcVersion?: string, sol
 
 function checkNamespacesOutsideContract(source: string, solcOutput: SolcOutput, decodeSrc: SrcDecoder) {
   for (const node of solcOutput.sources[source].ast.nodes) {
+    // Namespace struct outside contract
     if (isNodeType('StructDefinition', node)) {
-      const storageLocation = getStorageLocationAnnotation(node);
-      if (storageLocation !== undefined) {
-        throw new UpgradesError(
-          `${decodeSrc(node)}: Namespace struct ${node.name} is defined outside of a contract`,
-          () =>
-            `Structs with the @custom:storage-location annotation must be defined within a contract. Move the struct definition into a contract, or remove the annotation if the struct is not used for namespaced storage.`,
-        );
+      assertNotNamespace(node, decodeSrc);
+    }
+
+    // Namespace struct in non-contract (e.g. library or interface)
+    if (isNodeType('ContractDefinition', node) && node.contractKind !== 'contract') {
+      for (const child of node.nodes) {
+        if (isNodeType('StructDefinition', child)) {
+          assertNotNamespace(child, decodeSrc);
+        }
       }
     }
+  }
+}
+
+function assertNotNamespace(node: StructDefinition, decodeSrc: SrcDecoder) {
+  const storageLocation = getStorageLocationAnnotation(node);
+  if (storageLocation !== undefined) {
+    throw new UpgradesError(
+      `${decodeSrc(node)}: Namespace struct ${node.name} is defined outside of a contract`,
+      () =>
+        `Structs with the @custom:storage-location annotation must be defined within a contract. Move the struct definition into a contract, or remove the annotation if the struct is not used for namespaced storage.`,
+    );
   }
 }
 

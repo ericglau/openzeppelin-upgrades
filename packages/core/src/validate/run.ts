@@ -266,30 +266,32 @@ function checkNamespaceSolidityVersion(source: string, solcVersion?: string, sol
 
 function checkNamespacesOutsideContract(source: string, solcOutput: SolcOutput, decodeSrc: SrcDecoder) {
   for (const node of solcOutput.sources[source].ast.nodes) {
-    // Namespace struct outside contract
+    // Namespace struct outside contract - error
     if (isNodeType('StructDefinition', node)) {
-      assertNotNamespace(node, decodeSrc);
+      assertNotNamespace(node, decodeSrc, true);
     }
 
-    // Namespace struct in non-contract (e.g. library or interface)
+    // Namespace struct in non-contract (e.g. library or interface) - warning (don't give an error to avoid breaking changes, since this is quite common)
     if (isNodeType('ContractDefinition', node) && node.contractKind !== 'contract') {
       for (const child of node.nodes) {
         if (isNodeType('StructDefinition', child)) {
-          assertNotNamespace(child, decodeSrc);
+          assertNotNamespace(child, decodeSrc, false);
         }
       }
     }
   }
 }
 
-function assertNotNamespace(node: StructDefinition, decodeSrc: SrcDecoder) {
+function assertNotNamespace(node: StructDefinition, decodeSrc: SrcDecoder, strict: boolean) {
   const storageLocation = getStorageLocationAnnotation(node);
   if (storageLocation !== undefined) {
-    throw new UpgradesError(
-      `${decodeSrc(node)}: Namespace struct ${node.name} is defined outside of a contract`,
-      () =>
-        `Structs with the @custom:storage-location annotation must be defined within a contract. Move the struct definition into a contract, or remove the annotation if the struct is not used for namespaced storage.`,
-    );
+    const msg = `${decodeSrc(node)}: Namespace struct ${node.name} is defined outside of a contract`;
+    const explain = () => `Structs with the @custom:storage-location annotation must be defined within a contract. Move the struct definition into a contract, or remove the annotation if the struct is not used for namespaced storage.`;
+    if (strict) {
+      throw new UpgradesError(msg, explain);
+    } else {
+      console.warn(`${msg}. ${explain()}`);
+    }
   }
 }
 

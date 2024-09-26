@@ -27,15 +27,6 @@ test('namespace in library - warning', async t => {
   t.pass();
 });
 
-test('namespace in interface - warning', async t => {
-  const contract = 'contracts/test/NamespacedInInterface.sol:Example';
-
-  const { solcOutput, decodeSrc } = await getOutputAndDecoder(contract);
-  validate(solcOutput, decodeSrc);
-
-  t.pass();
-});
-
 async function getOutputAndDecoder(contract: string) {
   const buildInfo = await artifacts.getBuildInfo(contract);
   if (buildInfo === undefined) {

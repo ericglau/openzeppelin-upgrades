@@ -271,8 +271,8 @@ function checkNamespacesOutsideContract(source: string, solcOutput: SolcOutput, 
       assertNotNamespace(node, decodeSrc, true);
     }
 
-    // Namespace struct in non-contract (e.g. library or interface) - warning (don't give an error to avoid breaking changes, since this is quite common)
-    if (isNodeType('ContractDefinition', node) && node.contractKind !== 'contract') {
+    // Namespace struct in library - warning (don't give an error to avoid breaking changes, since this is quite common)
+    if (isNodeType('ContractDefinition', node) && node.contractKind === 'library') {
       for (const child of node.nodes) {
         if (isNodeType('StructDefinition', child)) {
           assertNotNamespace(child, decodeSrc, false);
@@ -291,7 +291,7 @@ function assertNotNamespace(node: StructDefinition, decodeSrc: SrcDecoder, stric
     if (strict) {
       throw new UpgradesError(msg, explain);
     } else {
-      console.warn(`${msg}. ${explain()}`);
+      console.warn(`Warning: ${msg}. ${explain()}`);
     }
   }
 }

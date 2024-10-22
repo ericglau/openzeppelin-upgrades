@@ -50,6 +50,7 @@ export const errorKinds = [
   'selfdestruct',
   'missing-public-upgradeto',
   'internal-function-storage',
+  'missing-initializer',
 ] as const;
 
 export type ValidationError =
@@ -71,7 +72,8 @@ interface ValidationErrorWithName extends ValidationErrorBase {
     | 'external-library-linking'
     | 'struct-definition'
     | 'enum-definition'
-    | 'internal-function-storage';
+    | 'internal-function-storage'
+    | 'missing-initializer';
 }
 
 interface ValidationErrorConstructor extends ValidationErrorBase {
@@ -209,6 +211,7 @@ export function validate(
           // https://github.com/OpenZeppelin/openzeppelin-upgrades/issues/52
           ...getLinkingErrors(contractDef, bytecode),
           ...getInternalFunctionStorageErrors(contractDef, deref, decodeSrc),
+          ...getMissingInitializers(contractDef, deref, decodeSrc),
         ];
 
         validation[key].layout = extractStorageLayout(
@@ -627,6 +630,33 @@ function* getInternalFunctionStorageErrors(
       }
     }
   }
+}
+
+function* getMissingInitializers(
+  contractDef: ContractDefinition,
+  deref: ASTDereferencer,
+  decodeSrc: SrcDecoder,
+): Generator<ValidationErrorWithName> {
+  if (contractDef.name === 'Initializable') {
+    return;
+  }
+
+  const hasInitializer = [...findAll('FunctionDefinition', contractDef)].some(fnDef =>
+    fnDef.modifiers.some(modifier => ['initializer', 'reinitializer', 'onlyInitializing'].includes(modifier.modifierName.name)) ||
+    ['initialize', 'initializer', 'reinitialize', 'reinitializer'].includes(fnDef.name)
+  );
+
+  if (!hasInitializer) {
+    yield {
+      kind: 'missing-initializer',
+      name: contractDef.name,
+      src: decodeSrc(contractDef),
+    };
+  }
+
+  // this contract does not call parent all initializers if there is parent which has an initializer, and it is not called by any of this contract's initializer functions
+ 
+  
 }
 
 /**

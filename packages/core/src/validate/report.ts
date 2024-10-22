@@ -72,6 +72,11 @@ const errorInfo: ErrorDescriptions<ValidationError> = {
       `     flag and ensure you always reassign internal functions in storage during upgrades`,
     link: 'https://zpl.in/upgrades/error-009',
   },
+  'missing-initializer': {
+    msg: () => `Contract is missing an initializer`,
+    hint: () => `Define an initializer function`, // TODO include instruction to call parent initializers, or use a separate error message
+    link: 'https://zpl.in/upgrades/error-010', // TODO define link
+  },
 };
 
 function describeError(e: ValidationError, color = true): string {

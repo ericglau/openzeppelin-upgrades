@@ -731,6 +731,7 @@ function* getInitializerErrors(
               }
             }
 
+
           
             // // check if the function call is to a parent initializer in the correct order
             // for (const [baseName, initializers] of baseContractsInitializersMap) {
@@ -754,6 +755,16 @@ function* getInitializerErrors(
         //     };
         //   }
         // }
+
+
+        // if there are still expected parent initializers, then yield an error
+        if (remainingBaseContracts.length > 0) {
+          yield {
+            kind: 'missing-initializer-call',
+            name: contractDef.name,
+            src: decodeSrc(fnDef),
+          };
+        }
 
       }
     }

@@ -211,7 +211,7 @@ export function validate(
           // https://github.com/OpenZeppelin/openzeppelin-upgrades/issues/52
           ...getLinkingErrors(contractDef, bytecode),
           ...getInternalFunctionStorageErrors(contractDef, deref, decodeSrc),
-          ...getMissingInitializers(contractDef, deref, decodeSrc),
+          ...getInitializerErrors(contractDef, deref, decodeSrc),
         ];
 
         validation[key].layout = extractStorageLayout(
@@ -632,39 +632,38 @@ function* getInternalFunctionStorageErrors(
   }
 }
 
-function* getMissingInitializers(
+function* getInitializerErrors(
   contractDef: ContractDefinition,
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
 ): Generator<ValidationErrorWithName> {
-  // Initializable provides the modifiers, but does not have an initializer itself
-  if (contractDef.name === 'Initializable') {
-    return;
-  }
-
-  if (!hasInitializer(contractDef)) {
+  if (contractDef.name !== 'Initializable' && !hasInitializer(contractDef)) {
+    // Report if initializer is missing
     yield {
       kind: 'missing-initializer',
       name: contractDef.name,
       src: decodeSrc(contractDef),
     };
-  }
+  } else {
+    // Report if initializer does not call parent initializers
+    console.log('THIS CONTRACT DEFINITION ', contractDef.name);
 
-  console.log('THIS CONTRACT DEFINITION ', contractDef.name);
-
-  // this contract does not call parent all initializers if there is parent which has an initializer, and it is not called by any of this contract's initializer functions
-  const baseContracts = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
-
-  // for each possible initializer in this contract, check if it calls any parent initializer
-  for (const fnDef of getPossibleInitializers(contractDef)) {
-    if (baseContracts.length > 0 && !callsParentInitializers(fnDef, baseContracts)) {
-      yield {
-        kind: 'missing-initializer', // TODO use a new error kind
-        name: contractDef.name,
-        src: decodeSrc(fnDef),
-      };
+    // this contract does not call parent all initializers if there is parent which has an initializer, and it is not called by any of this contract's initializer functions
+    const baseContracts = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
+  
+    // for each possible initializer in this contract, check if it calls any parent initializer
+    for (const fnDef of getPossibleInitializers(contractDef)) {
+      if (baseContracts.length > 0 && !callsParentInitializers(fnDef, baseContracts)) {
+        yield {
+          kind: 'missing-initializer', // TODO use a new error kind
+          name: contractDef.name,
+          src: decodeSrc(fnDef),
+        };
+      }
     }
   }
+
+
 }
 
 function callsParentInitializers(fnDef: FunctionDefinition, baseContracts: ContractDefinition[]) {

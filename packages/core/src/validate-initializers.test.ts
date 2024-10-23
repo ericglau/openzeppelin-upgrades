@@ -69,6 +69,7 @@ function testOverride(
 }
 
 testValid('NoInitializer', 'transparent', false);
+
 testValid('HasInitializerModifier', 'transparent', true);
 testValid('HasReinitializerModifier', 'transparent', true);
 testValid('HasOnlyInitializingModifier', 'transparent', true);
@@ -76,3 +77,6 @@ testValid('HasInitializeName', 'transparent', true);
 testValid('HasInitializerName', 'transparent', true);
 testValid('HasReinitializeName', 'transparent', true);
 testValid('HasReinitializerName', 'transparent', true);
+
+testValid('CallsParentInitializer', 'transparent', true);
+testValid('NotCallsParentInitializer', 'transparent', false);

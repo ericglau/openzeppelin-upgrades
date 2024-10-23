@@ -17,7 +17,7 @@ contract HasReinitializerModifier is Initializable {
 }
 
 contract HasOnlyInitializingModifier is Initializable {
-  function foo() onlyInitializing() public {}
+  function foo() onlyInitializing() internal {}
 }
 
 contract HasInitializeName {
@@ -34,4 +34,14 @@ contract HasReinitializeName {
 
 contract HasReinitializerName {
   function reinitializer(uint64 version) public {}
+}
+
+contract CallsParentInitializer is HasInitializerModifier {
+  function foo2() initializer public {
+    foo();
+  }
+}
+
+contract NotCallsParentInitializer is HasInitializerModifier {
+  function foo2() initializer public {}
 }

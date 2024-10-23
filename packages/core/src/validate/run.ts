@@ -637,16 +637,12 @@ function* getMissingInitializers(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
 ): Generator<ValidationErrorWithName> {
+  // Initializable provides the modifiers, but does not have an initializer itself
   if (contractDef.name === 'Initializable') {
     return;
   }
 
-  const hasInitializer = [...findAll('FunctionDefinition', contractDef)].some(fnDef =>
-    fnDef.modifiers.some(modifier => ['initializer', 'reinitializer', 'onlyInitializing'].includes(modifier.modifierName.name)) ||
-    ['initialize', 'initializer', 'reinitialize', 'reinitializer'].includes(fnDef.name)
-  );
-
-  if (!hasInitializer) {
+  if (!hasInitializer(contractDef)) {
     yield {
       kind: 'missing-initializer',
       name: contractDef.name,
@@ -654,9 +650,64 @@ function* getMissingInitializers(
     };
   }
 
+  console.log('THIS CONTRACT DEFINITION ', contractDef.name);
+
   // this contract does not call parent all initializers if there is parent which has an initializer, and it is not called by any of this contract's initializer functions
- 
-  
+  const baseContracts = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
+
+  // for each possible initializer in this contract, check if it calls any parent initializer
+  for (const fnDef of getPossibleInitializers(contractDef)) {
+    if (baseContracts.length > 0 && !callsParentInitializers(fnDef, baseContracts)) {
+      yield {
+        kind: 'missing-initializer', // TODO use a new error kind
+        name: contractDef.name,
+        src: decodeSrc(fnDef),
+      };
+    }
+  }
+}
+
+function callsParentInitializers(fnDef: FunctionDefinition, baseContracts: ContractDefinition[]) {
+  const baseContractsInitializersMap = new Map(baseContracts.map(base => [base.name, getPossibleInitializers(base)]));
+
+
+  console.log('BASE CONTRACTS ', baseContracts.map(base => base.name));
+  console.log('BASE CONTRACTS INITIALIZERS MAP ', JSON.stringify([...baseContractsInitializersMap.entries()]));
+
+  const expressionStatements = fnDef.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
+  console.log('EXPRESSION STATEMENTS ', expressionStatements.map(stmt => stmt.nodeType));
+  for (const stmt of expressionStatements) {
+    const fnCall = stmt.expression;
+    if (fnCall.nodeType === 'FunctionCall' && fnCall.expression.nodeType === 'Identifier') {
+      const referencedFn = fnCall.expression.referencedDeclaration;
+      console.log('REFERENCED FN ', referencedFn);
+
+      // check if the function call is to a parent initializer in the correct order
+      for (const [baseName, initializers] of baseContractsInitializersMap) {
+        if (referencedFn !== undefined && initializers.length > 0 && initializers[0].id === referencedFn) {
+          console.log('FOUND PARENT CALL FOR ', baseName, ' WITH FN NAME ', fnCall.expression.name);
+          baseContractsInitializersMap.set(baseName, initializers.slice(1));
+          break;
+        }
+      }
+    }
+  }
+
+  console.log('REMAINING INITIALIZERS ', JSON.stringify([...baseContractsInitializersMap.entries()]));
+
+  // if all parent initializers have been called, then the contract is good
+  return [...baseContractsInitializersMap.values()].every(initializers => initializers.length === 0);
+}
+
+function hasInitializer(contractDef: ContractDefinition) {
+  return getPossibleInitializers(contractDef).length > 0;
+}
+
+function getPossibleInitializers(contractDef: ContractDefinition) {
+  const fns = [...findAll('FunctionDefinition', contractDef)];
+  return fns.filter(fnDef => fnDef.modifiers.some(modifier => ['initializer', 'reinitializer', 'onlyInitializing'].includes(modifier.modifierName.name)) ||
+    ['initialize', 'initializer', 'reinitialize', 'reinitializer'].includes(fnDef.name)
+  );
 }
 
 /**

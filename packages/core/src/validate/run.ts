@@ -632,47 +632,56 @@ function* getInternalFunctionStorageErrors(
   }
 }
 
+/**
+ * Reports an error if any of the following are true:
+ * - 1. Parent contract has an initializer and this contract does not have an initializer
+ * - 2. Parent contract has an initializer and this contract does not call it from any of its initializer functions
+ * - 3. Parent contract has an initializer and this contract has duplicate calls to the same initializer
+ * - 4. Parent contracts have initializers and this contract does not call them in the correct linearized order
+ */
 function* getInitializerErrors(
   contractDef: ContractDefinition,
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
 ): Generator<ValidationErrorWithName> {
-  if (contractDef.name !== 'Initializable' && !hasInitializer(contractDef)) {
-    // Report if initializer is missing
-    yield {
-      kind: 'missing-initializer',
-      name: contractDef.name,
-      src: decodeSrc(contractDef),
-    };
-  } else {
-    // Report if initializer does not call parent initializers
-    console.log('THIS CONTRACT DEFINITION ', contractDef.name);
+  if (contractDef.baseContracts.length > 0) {
+    console.log('THIS CONTRACT DEFINITION HAS BASE CONTRACTS: ', contractDef.name);
 
     // this contract does not call parent all initializers if there is parent which has an initializer, and it is not called by any of this contract's initializer functions
     const baseContracts = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
-  
-    // for each possible initializer in this contract, check if it calls any parent initializer
-    for (const fnDef of getPossibleInitializers(contractDef)) {
-      if (baseContracts.length > 0 && !callsParentInitializers(fnDef, baseContracts)) {
+    const baseContractsInitializersMap = new Map(baseContracts.map(base => [base.name, getPossibleInitializers(base)]));
+
+    console.log('BASE CONTRACTS ', baseContracts.map(base => base.name));
+    console.log('BASE CONTRACTS INITIALIZERS MAP ', JSON.stringify([...baseContractsInitializersMap.entries()]));
+
+    if (hasParentInitializers(baseContractsInitializersMap)) {
+      const possibleInitializers = getPossibleInitializers(contractDef);
+      // Case 1. Parent contract has an initializer and this contract does not have an initializer
+      if (possibleInitializers.length === 0) {
         yield {
-          kind: 'missing-initializer', // TODO use a new error kind
+          kind: 'missing-initializer',
           name: contractDef.name,
-          src: decodeSrc(fnDef),
+          src: decodeSrc(contractDef),
         };
       }
+
+      // for each possible initializer in this contract, check if it calls any possible parent initializer
+      for (const fnDef of possibleInitializers) {
+        if (!callsParentInitializers(fnDef, baseContractsInitializersMap)) {
+          yield {
+            kind: 'missing-initializer', // TODO use a new error kind
+            name: contractDef.name,
+            src: decodeSrc(fnDef),
+          };
+        }
+      }
     }
+
+
   }
-
-
 }
 
-function callsParentInitializers(fnDef: FunctionDefinition, baseContracts: ContractDefinition[]) {
-  const baseContractsInitializersMap = new Map(baseContracts.map(base => [base.name, getPossibleInitializers(base)]));
-
-
-  console.log('BASE CONTRACTS ', baseContracts.map(base => base.name));
-  console.log('BASE CONTRACTS INITIALIZERS MAP ', JSON.stringify([...baseContractsInitializersMap.entries()]));
-
+function callsParentInitializers(fnDef: FunctionDefinition, baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
   const expressionStatements = fnDef.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
   console.log('EXPRESSION STATEMENTS ', expressionStatements.map(stmt => stmt.nodeType));
   for (const stmt of expressionStatements) {
@@ -698,8 +707,8 @@ function callsParentInitializers(fnDef: FunctionDefinition, baseContracts: Contr
   return [...baseContractsInitializersMap.values()].every(initializers => initializers.length === 0);
 }
 
-function hasInitializer(contractDef: ContractDefinition) {
-  return getPossibleInitializers(contractDef).length > 0;
+function hasParentInitializers(baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
+  return [...baseContractsInitializersMap.values()].some(initializers => initializers.length > 0);
 }
 
 function getPossibleInitializers(contractDef: ContractDefinition) {

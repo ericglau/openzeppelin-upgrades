@@ -20,7 +20,7 @@ const test = _test as TestFn<Context>;
 
 test.before(async t => {
   const contracts = [
-    'contracts/test/ValidationsInitializer.sol:NoInitializer',
+    'contracts/test/ValidationsInitializer.sol:Parent_NoInitializer',
   ];
 
   t.context.validation = {} as RunValidation;
@@ -68,16 +68,37 @@ function testOverride(
   });
 }
 
-testValid('NoInitializer', 'transparent', false);
+testValid('Child_Of_NoInitializer_Ok', 'transparent', true);
 
-testValid('HasInitializerModifier', 'transparent', true);
-testValid('HasReinitializerModifier', 'transparent', true);
-testValid('HasOnlyInitializingModifier', 'transparent', true);
-testValid('HasInitializeName', 'transparent', true);
-testValid('HasInitializerName', 'transparent', true);
-testValid('HasReinitializeName', 'transparent', true);
-testValid('HasReinitializerName', 'transparent', true);
+testValid('Child_Of_InitializerModifier_Ok', 'transparent', true);
+testValid('Child_Of_InitializerModifier_Bad', 'transparent', false);
+testValid('Child_Of_InitializerModifier_UsesSuper_Ok', 'transparent', true);
 
-testValid('CallsParentInitializer', 'transparent', true);
-testValid('CallsParentInitializerUsingSuper', 'transparent', true);
-testValid('NotCallsParentInitializer', 'transparent', false);
+testValid('Child_Of_ReinitializerModifier_Ok', 'transparent', true);
+testValid('Child_Of_ReinitializerModifier_Bad', 'transparent', false);
+
+testValid('Child_Of_OnlyInitializingModifier_Ok', 'transparent', true);
+testValid('Child_Of_OnlyInitializingModifier_Bad', 'transparent', false);
+
+testValid('InitializerCalledFromRegularFn_Bad', 'transparent', false);
+testValid('InitializerNotCalledFromInitializer_Bad', 'transparent', false);
+testValid('InitializerCalledMultipleTimes_Bad', 'transparent', false);
+
+testValid('CorrectLinearizedInitializationOrder', 'transparent', true);
+testValid('IncorrectLinearizedInitializationOrder', 'transparent', false);
+
+
+// testValid('HasParentWithoutInitializer', 'transparent', true);
+// testValid('HasParentWithInitializer', 'transparent', false);
+
+// testValid('HasInitializerModifier', 'transparent', true);
+// testValid('HasReinitializerModifier', 'transparent', true);
+// testValid('HasOnlyInitializingModifier', 'transparent', true);
+// testValid('HasInitializeName', 'transparent', true);
+// testValid('HasInitializerName', 'transparent', true);
+// testValid('HasReinitializeName', 'transparent', true);
+// testValid('HasReinitializerName', 'transparent', true);
+
+// testValid('CallsParentInitializer', 'transparent', true);
+// testValid('CallsParentInitializerUsingSuper', 'transparent', true);
+// testValid('NotCallsParentInitializer', 'transparent', false);

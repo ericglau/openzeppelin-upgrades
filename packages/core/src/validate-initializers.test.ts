@@ -82,7 +82,7 @@ testValid('Child_Of_OnlyInitializingModifier_Bad', 'transparent', false);
 
 testValid('InitializerCalledFromRegularFn_Bad', 'transparent', false);
 testValid('InitializerNotCalledFromInitializer_Bad', 'transparent', false);
-testValid('InitializerCalledMultipleTimes_Bad', 'transparent', false);
+testValid('InitializerDuplicateCalls_Bad', 'transparent', false);
 
 testValid('CorrectLinearizedInitializationOrder', 'transparent', true);
 testValid('IncorrectLinearizedInitializationOrder', 'transparent', false);

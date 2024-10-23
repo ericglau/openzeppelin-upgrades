@@ -91,7 +91,7 @@ contract InitializerNotCalledFromInitializer_Bad is Parent_InitializerModifier {
   function initialize() public {}
 }
 
-contract InitializerCalledMultipleTimes_Bad is Parent_InitializerModifier {
+contract InitializerDuplicateCalls_Bad is Parent_InitializerModifier {
   function initialize() public {
     parentInit();
     parentInit();

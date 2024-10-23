@@ -678,14 +678,14 @@ function callsParentInitializers(fnDef: FunctionDefinition, baseContracts: Contr
   console.log('EXPRESSION STATEMENTS ', expressionStatements.map(stmt => stmt.nodeType));
   for (const stmt of expressionStatements) {
     const fnCall = stmt.expression;
-    if (fnCall.nodeType === 'FunctionCall' && fnCall.expression.nodeType === 'Identifier') {
+    if (fnCall.nodeType === 'FunctionCall' && (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')) {
       const referencedFn = fnCall.expression.referencedDeclaration;
       console.log('REFERENCED FN ', referencedFn);
 
       // check if the function call is to a parent initializer in the correct order
       for (const [baseName, initializers] of baseContractsInitializersMap) {
         if (referencedFn !== undefined && initializers.length > 0 && initializers[0].id === referencedFn) {
-          console.log('FOUND PARENT CALL FOR ', baseName, ' WITH FN NAME ', fnCall.expression.name);
+          console.log('FOUND PARENT CALL FOR ', baseName);
           baseContractsInitializersMap.set(baseName, initializers.slice(1));
           break;
         }

@@ -79,4 +79,5 @@ testValid('HasReinitializeName', 'transparent', true);
 testValid('HasReinitializerName', 'transparent', true);
 
 testValid('CallsParentInitializer', 'transparent', true);
+testValid('CallsParentInitializerUsingSuper', 'transparent', true);
 testValid('NotCallsParentInitializer', 'transparent', false);

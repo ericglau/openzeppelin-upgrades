@@ -42,6 +42,12 @@ contract CallsParentInitializer is HasInitializerModifier {
   }
 }
 
+contract CallsParentInitializerUsingSuper is HasInitializerModifier {
+  function foo2() initializer public {
+    super.foo();
+  }
+}
+
 contract NotCallsParentInitializer is HasInitializerModifier {
   function foo2() initializer public {}
 }

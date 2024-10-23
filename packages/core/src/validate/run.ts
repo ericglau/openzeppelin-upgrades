@@ -655,7 +655,8 @@ function* getInitializerErrors(
 
     console.log('THIS CONTRACT DEFINITION HAS BASE CONTRACTS: ', contractDef.name);
 
-    const baseContracts = contractDef.linearizedBaseContracts.map(id => deref('ContractDefinition', id));
+    // const baseContracts = contractDef.linearizedBaseContracts.map(id => deref('ContractDefinition', id));
+    const baseContracts = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
     const baseContractsInitializersMap = new Map(baseContracts.map(base => [base.name, getPossibleInitializers(base)]));
 
     console.log('BASE CONTRACTS ', baseContracts.map(base => base.name));
@@ -687,6 +688,7 @@ function* getInitializerErrors(
         //   sourceExpression: Expression;
         // }
 
+        const remainingBaseContracts = baseContracts.map(base => base.name);
         const foundParentInitializerCalls: number[] = [];
 
         const expressionStatements = fnDef.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
@@ -706,6 +708,19 @@ function* getInitializerErrors(
                 if (duplicate) {
                   yield {
                     kind: 'duplicate-initializer-call',
+                    name: contractDef.name,
+                    src: decodeSrc(fnCall),
+                  };
+                }
+                console.log('LOOKING FOR BASENAME ', baseName);
+                console.log('REMAINING BASE CONTRACTS ', remainingBaseContracts);
+
+                if (remainingBaseContracts.length > 0 && baseName === remainingBaseContracts[0]) {
+                  console.log('FOUND PARENT CALL FOR ', baseName);
+                  remainingBaseContracts.shift();
+                } else {
+                  yield {
+                    kind: 'incorrect-initializer-order',
                     name: contractDef.name,
                     src: decodeSrc(fnCall),
                   };

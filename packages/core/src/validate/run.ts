@@ -659,7 +659,7 @@ function* getInitializerErrors(
     if (baseContractsWithInitializers.length > 0) {
       // Check for missing initializers
       const contractInitializers = getPossibleInitializers(contractDef);
-      if (contractInitializers.length === 0) {
+      if (contractInitializers.length === 0 && !skipCheck('missing-initializer', contractDef)) {
         yield {
           kind: 'missing-initializer',
           name: contractDef.name,
@@ -684,34 +684,43 @@ function* getInitializerErrors(
               const foundParentInitializer = initializers.find(init => init.id === referencedFn);
               if (referencedFn && foundParentInitializer) {
                 const duplicate = calledInitializerIds.includes(referencedFn);
-                if (duplicate) {
+                if (duplicate && 
+                  !skipCheck('duplicate-initializer-call', contractDef) && 
+                  !skipCheck('duplicate-initializer-call', contractInitializer) &&
+                  !skipCheck('duplicate-initializer-call', stmt)) {
                   yield {
                     kind: 'duplicate-initializer-call',
                     name: contractDef.name,
                     src: decodeSrc(fnCall),
                   };
                 }
+                calledInitializerIds.push(referencedFn);
 
-                const correctLinearization = uninitializedBaseContracts.length > 0 && baseName === uninitializedBaseContracts[0];
-                if (correctLinearization) {
-                  uninitializedBaseContracts.shift();
-                } else {
+                const index = uninitializedBaseContracts.indexOf(baseName);
+                if (!duplicate && 
+                  index !== 0 &&
+                  !skipCheck('incorrect-initializer-order', contractDef) &&
+                  !skipCheck('incorrect-initializer-order', contractInitializer)) {
                   yield {
                     kind: 'incorrect-initializer-order',
                     name: contractDef.name,
                     src: decodeSrc(fnCall),
                   };
                 }
-
-                calledInitializerIds.push(referencedFn);
-                break;
+                if (index !== -1) {
+                  uninitializedBaseContracts.splice(index, 1);
+                }
               }
             }
           }
         }
 
         // If there are any base contracts that were not initialized, report an error
-        if (uninitializedBaseContracts.length > 0) {
+        if (uninitializedBaseContracts.length > 0 &&
+          !skipCheck('missing-initializer-call', contractDef) &&
+          !skipCheck('missing-initializer-call', contractInitializer)) {
+            console.log('contractDef', contractDef.name);
+            console.log('uninitializedBaseContracts', uninitializedBaseContracts);
           yield {
             kind: 'missing-initializer-call',
             name: contractDef.name,

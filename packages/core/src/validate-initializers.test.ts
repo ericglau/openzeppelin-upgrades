@@ -81,10 +81,22 @@ testValid('Child_Of_OnlyInitializingModifier_Ok', 'transparent', true);
 testValid('Child_Of_OnlyInitializingModifier_Bad', 'transparent', false);
 
 testValid('InitializerCalledFromRegularFn_Bad', 'transparent', false);
+testValid('InitializerCalledFromRegularFn_UnsafeAllow_Fn', 'transparent', true);
+testValid('InitializerCalledFromRegularFn_UnsafeAllow_Contract', 'transparent', true);
+testOverride('InitializerCalledFromRegularFn_Bad', 'transparent', { unsafeAllow: ['missing-initializer'] }, true);
 
 testValid('InitializationOrder_Ok', 'transparent', true);
 testValid('InitializationOrder_IgnoreParentWithoutInitializer_Ok', 'transparent', true);
+
 testValid('InitializationOrder_WrongOrder_Bad', 'transparent', false);
+testValid('InitializationOrder_WrongOrder_UnsafeAllow', 'transparent', true);
+testOverride('InitializationOrder_WrongOrder_Bad', 'transparent', { unsafeAllow: ['incorrect-initializer-order'] }, true);
+
 testValid('InitializationOrder_MissingCall_Bad', 'transparent', false);
+testValid('InitializationOrder_MissingCall_UnsafeAllow', 'transparent', true);
+testOverride('InitializationOrder_MissingCall_Bad', 'transparent', { unsafeAllow: ['missing-initializer-call'] }, true);
+
 testValid('InitializationOrder_Duplicate_Bad', 'transparent', false);
+testValid('InitializationOrder_Duplicate_UnsafeAllow', 'transparent', true);
+testOverride('InitializationOrder_Duplicate_Bad', 'transparent', { unsafeAllow: ['duplicate-initializer-call'] }, true);
 

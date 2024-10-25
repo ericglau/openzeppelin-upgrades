@@ -87,6 +87,20 @@ contract InitializerCalledFromRegularFn_Bad is Parent_InitializerModifier {
   }
 }
 
+contract InitializerCalledFromRegularFn_UnsafeAllow_Fn is Parent_InitializerModifier {
+  /// @custom:oz-upgrades-unsafe-allow missing-initializer
+  function regularFn() public {
+    parentInit();
+  }
+}
+
+/// @custom:oz-upgrades-unsafe-allow missing-initializer
+contract InitializerCalledFromRegularFn_UnsafeAllow_Contract is Parent_InitializerModifier {
+  function regularFn() public {
+    parentInit();
+  }
+}
+
 contract A is Initializable {
   function __A_init() onlyInitializing internal {}
 }
@@ -125,7 +139,26 @@ contract InitializationOrder_WrongOrder_Bad is A, B, C, Parent_NoInitializer {
   }
 }
 
-contract InitializationOrder_MissingCall_Bad is A, B, C, Parent_NoInitializer {
+contract InitializationOrder_WrongOrder_UnsafeAllow is A, B, C, Parent_NoInitializer {
+  /// @custom:oz-upgrades-unsafe-allow incorrect-initializer-order
+  function initialize() public {
+    __A_init();
+    __C_init();
+    parentFn();
+    __B_init();
+  }
+}
+
+contract InitializationOrder_MissingCall is A, B, C, Parent_NoInitializer {
+  function initialize() public {
+    __A_init();
+    __B_init();
+    parentFn();
+  }
+}
+
+contract InitializationOrder_MissingCall_UnsafeAllow is A, B, C, Parent_NoInitializer {
+  /// @custom:oz-upgrades-unsafe-allow missing-initializer-call
   function initialize() public {
     __A_init();
     __B_init();
@@ -134,6 +167,17 @@ contract InitializationOrder_MissingCall_Bad is A, B, C, Parent_NoInitializer {
 }
 
 contract InitializationOrder_Duplicate_Bad is A, B, C, Parent_NoInitializer {
+  function initialize() public {
+    __A_init();
+    __B_init();
+    parentFn();
+    __B_init();
+    __C_init();
+  }
+}
+
+contract InitializationOrder_Duplicate_UnsafeAllow is A, B, C, Parent_NoInitializer {
+  /// @custom:oz-upgrades-unsafe-allow duplicate-initializer-call
   function initialize() public {
     __A_init();
     __B_init();

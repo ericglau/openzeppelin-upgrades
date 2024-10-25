@@ -111,15 +111,15 @@ contract InitializationOrder_Ok is A, B, C, Parent_NoInitializer {
   function initialize() public {
     __A_init();
     __B_init();
-    parentFn(); // this is not an initializer so we don't check its linearization order
     __C_init();
   }
 }
 
-contract InitializationOrder_IgnoreParentWithoutInitializer_Ok is A, B, C, Parent_NoInitializer {
+contract InitializationOrder_Ok_2 is A, B, C, Parent_NoInitializer {
   function initialize() public {
     __A_init();
     __B_init();
+    parentFn(); // this is not an initializer so we don't check its linearization order
     __C_init();
   }
 }

@@ -82,7 +82,7 @@ testValid('MissingInitializer_UnsafeAllow_Contract', 'transparent', true);
 testOverride('MissingInitializer_Bad', 'transparent', { unsafeAllow: ['missing-initializer'] }, true);
 
 testValid('InitializationOrder_Ok', 'transparent', true);
-testValid('InitializationOrder_IgnoreParentWithoutInitializer_Ok', 'transparent', true);
+testValid('InitializationOrder_Ok_2', 'transparent', true);
 
 testValid('InitializationOrder_WrongOrder_Bad', 'transparent', false);
 testValid('InitializationOrder_WrongOrder_UnsafeAllow_Contract', 'transparent', true);

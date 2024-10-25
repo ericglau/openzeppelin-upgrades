@@ -3,7 +3,6 @@ import { artifacts } from 'hardhat';
 
 import {
   validate,
-  getStorageLayout,
   getContractVersion,
   assertUpgradeSafe,
   ValidationOptions,
@@ -19,9 +18,7 @@ interface Context {
 const test = _test as TestFn<Context>;
 
 test.before(async t => {
-  const contracts = [
-    'contracts/test/ValidationsInitializer.sol:Parent_NoInitializer',
-  ];
+  const contracts = ['contracts/test/ValidationsInitializer.sol:Parent_NoInitializer'];
 
   t.context.validation = {} as RunValidation;
   for (const contract of contracts) {
@@ -90,7 +87,12 @@ testValid('InitializationOrder_IgnoreParentWithoutInitializer_Ok', 'transparent'
 testValid('InitializationOrder_WrongOrder_Bad', 'transparent', false);
 testValid('InitializationOrder_WrongOrder_UnsafeAllow_Contract', 'transparent', true);
 testValid('InitializationOrder_WrongOrder_UnsafeAllow_Function', 'transparent', true);
-testOverride('InitializationOrder_WrongOrder_Bad', 'transparent', { unsafeAllow: ['incorrect-initializer-order'] }, true);
+testOverride(
+  'InitializationOrder_WrongOrder_Bad',
+  'transparent',
+  { unsafeAllow: ['incorrect-initializer-order'] },
+  true,
+);
 
 testValid('InitializationOrder_MissingCall_Bad', 'transparent', false);
 testValid('InitializationOrder_MissingCall_UnsafeAllow_Contract', 'transparent', true);
@@ -102,4 +104,3 @@ testValid('InitializationOrder_Duplicate_UnsafeAllow_Contract', 'transparent', t
 testValid('InitializationOrder_Duplicate_UnsafeAllow_Function', 'transparent', true);
 testValid('InitializationOrder_Duplicate_UnsafeAllow_Call', 'transparent', true);
 testOverride('InitializationOrder_Duplicate_Bad', 'transparent', { unsafeAllow: ['duplicate-initializer-call'] }, true);
-

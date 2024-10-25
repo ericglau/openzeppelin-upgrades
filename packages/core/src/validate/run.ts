@@ -688,7 +688,8 @@ function* getInitializerErrors(
         //   sourceExpression: Expression;
         // }
 
-        const remainingBaseContracts = baseContracts.map(base => base.name);
+        const remainingBaseContracts = baseContracts.map(base => base.name).filter(base => baseContractHasInitializers(base, baseContractsInitializersMap));
+
         const foundParentInitializerCalls: number[] = [];
 
         const expressionStatements = fnDef.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
@@ -801,6 +802,11 @@ function callsParentInitializers(fnDef: FunctionDefinition, baseContractsInitial
 
 function hasParentInitializers(baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
   return [...baseContractsInitializersMap.values()].some(initializers => initializers.length > 0);
+}
+
+function baseContractHasInitializers(baseName: string, baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
+  const initializers = baseContractsInitializersMap.get(baseName);
+  return initializers !== undefined && initializers.length > 0;
 }
 
 function getPossibleInitializers(contractDef: ContractDefinition) {

@@ -87,30 +87,28 @@ contract InitializerCalledFromRegularFn_Bad is Parent_InitializerModifier {
   }
 }
 
-contract InitializerNotCalledFromInitializer_Bad is Parent_InitializerModifier {
-  function initialize() public {}
-}
-
-contract InitializerDuplicateCalls_Bad is Parent_InitializerModifier {
-  function initialize() public {
-    parentInit();
-    parentInit();
-  }
-}
-
 contract A is Initializable {
-  function __A_init() initializer internal {}
+  function __A_init() onlyInitializing internal {}
 }
 
 contract B is Initializable {
-  function __B_init() initializer internal {}
+  function __B_init() onlyInitializing internal {}
 }
 
 contract C is Initializable {
-  function __C_init() initializer internal {}
+  function __C_init() onlyInitializing internal {}
 }
 
-contract CorrectLinearizedInitializationOrder is A, B, C {
+contract InitializationOrder_Ok is A, B, C, Parent_NoInitializer {
+  function initialize() public {
+    __A_init();
+    __B_init();
+    parentFn(); // this is not an initializer so we don't check its linearization order
+    __C_init();
+  }
+}
+
+contract InitializationOrder_IgnoreParentWithoutInitializer_Ok is A, B, C, Parent_NoInitializer {
   function initialize() public {
     __A_init();
     __B_init();
@@ -118,10 +116,29 @@ contract CorrectLinearizedInitializationOrder is A, B, C {
   }
 }
 
-contract IncorrectLinearizedInitializationOrder is A, B, C {
+contract InitializationOrder_WrongOrder_Bad is A, B, C, Parent_NoInitializer {
   function initialize() public {
     __A_init();
     __C_init();
+    parentFn();
     __B_init();
+  }
+}
+
+contract InitializationOrder_MissingCall_Bad is A, B, C, Parent_NoInitializer {
+  function initialize() public {
+    __A_init();
+    __B_init();
+    parentFn();
+  }
+}
+
+contract InitializationOrder_Duplicate_Bad is A, B, C, Parent_NoInitializer {
+  function initialize() public {
+    __A_init();
+    __B_init();
+    parentFn();
+    __B_init();
+    __C_init();
   }
 }

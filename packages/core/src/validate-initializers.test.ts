@@ -81,10 +81,10 @@ testValid('Child_Of_OnlyInitializingModifier_Ok', 'transparent', true);
 testValid('Child_Of_OnlyInitializingModifier_Bad', 'transparent', false);
 
 testValid('InitializerCalledFromRegularFn_Bad', 'transparent', false);
-testValid('InitializerNotCalledFromInitializer_Bad', 'transparent', false);
-testValid('InitializerDuplicateCalls_Bad', 'transparent', false);
 
-testValid('CorrectLinearizedInitializationOrder', 'transparent', true);
-testValid('IncorrectLinearizedInitializationOrder', 'transparent', false);
-
+testValid('InitializationOrder_Ok', 'transparent', true);
+testValid('InitializationOrder_IgnoreParentWithoutInitializer_Ok', 'transparent', true);
+testValid('InitializationOrder_WrongOrder_Bad', 'transparent', false);
+testValid('InitializationOrder_MissingCall_Bad', 'transparent', false);
+testValid('InitializationOrder_Duplicate_Bad', 'transparent', false);
 

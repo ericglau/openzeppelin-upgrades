@@ -640,11 +640,11 @@ function* getInternalFunctionStorageErrors(
 }
 
 /**
- * Reports an error if any of the following are true:
- * - 1. Missing initializer: Parent contract has an initializer and this contract does not have an initializer
- * - 2. Missing initializer call: Parent contract has an initializer and this contract does not call it from any of its initializer functions
- * - 3. Duplicate initializer call: Parent contract has an initializer and this contract has duplicate calls to the same initializer
- * - 4. Incorrect initializer linearization: Parent contracts have initializers and this contract does not call them in the correct linearized order
+ * Reports an error if a parent contract has an initializer and any of the following are true:
+ * - 1. Missing initializer: This contract does not appear to have an initializer.
+ * - 2. Missing initializer call: This contract's initializer is missing a call to a parent initializer.
+ * - 3. Duplicate initializer call: This contract has duplicate calls to the same parent initializer function.
+ * - 4. Incorrect initializer order: This contract does not call parent initializers in the correct order.
  */
 function* getInitializerErrors(
   contractDef: ContractDefinition,
@@ -652,19 +652,13 @@ function* getInitializerErrors(
   decodeSrc: SrcDecoder,
 ): Generator<ValidationErrorWithName> {
   if (contractDef.baseContracts.length > 0) {
+    const baseContractDefs = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
+    const baseContractsInitializersMap = new Map(baseContractDefs.map(base => [base.name, getPossibleInitializers(base)]));
+    const baseContractsWithInitializers = baseContractDefs.filter(base => hasInitializers(base.name, baseContractsInitializersMap)).map(base => base.name);
 
-    console.log('THIS CONTRACT DEFINITION HAS BASE CONTRACTS: ', contractDef.name);
-
-    // const baseContracts = contractDef.linearizedBaseContracts.map(id => deref('ContractDefinition', id));
-    const baseContracts = contractDef.baseContracts.map(base => deref('ContractDefinition', base.baseName.referencedDeclaration));
-    const baseContractsInitializersMap = new Map(baseContracts.map(base => [base.name, getPossibleInitializers(base)]));
-
-    console.log('BASE CONTRACTS ', baseContracts.map(base => base.name));
-    console.log('BASE CONTRACTS INITIALIZERS MAP ', JSON.stringify([...baseContractsInitializersMap.entries()]));
-
-    if (hasParentInitializers(baseContractsInitializersMap)) {
+    if (baseContractsWithInitializers.length > 0) {
+      // Check for missing initializers
       const contractInitializers = getPossibleInitializers(contractDef);
-      // Case 1. Parent contract has an initializer and this contract does not have an initializer
       if (contractInitializers.length === 0) {
         yield {
           kind: 'missing-initializer',
@@ -673,39 +667,23 @@ function* getInitializerErrors(
         };
       }
 
-      // for each possible initializer in this contract, check if it calls any possible parent initializer
-      for (const fnDef of contractInitializers) {
-        // if (!callsParentInitializers(fnDef, baseContractsInitializersMap)) {
-        //   yield {
-        //     kind: 'missing-initializer', // TODO use a new error kind
-        //     name: contractDef.name,
-        //     src: decodeSrc(fnDef),
-        //   };
-        // }
+      for (const contractInitializer of contractInitializers) {
+        const uninitializedBaseContracts = [...baseContractsWithInitializers];
+        const calledInitializerIds: number[] = [];
 
-        // interface InitializerCall {
-        //   targetFn: FunctionDefinition;
-        //   sourceExpression: Expression;
-        // }
-
-        const remainingBaseContracts = baseContracts.map(base => base.name).filter(base => baseContractHasInitializers(base, baseContractsInitializersMap));
-
-        const foundParentInitializerCalls: number[] = [];
-
-        const expressionStatements = fnDef.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
-        console.log('EXPRESSION STATEMENTS ', expressionStatements.map(stmt => stmt.nodeType));
+        const expressionStatements = contractInitializer.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
         for (const stmt of expressionStatements) {
           const fnCall = stmt.expression;
           if (fnCall.nodeType === 'FunctionCall' && (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')) {
             const referencedFn = fnCall.expression.referencedDeclaration;
-            console.log('REFERENCED FN ', referencedFn);
 
-            // if this is a call to a parent initializer, then add it to the list of found parent initializer calls
+            // If this is a call to a parent initializer, then:
+            // - Check for duplicates
+            // - Check if the parent initializer is called in the correct order
             for (const [baseName, initializers] of baseContractsInitializersMap) {
               const foundParentInitializer = initializers.find(init => init.id === referencedFn);
               if (referencedFn && foundParentInitializer) {
-                // if duplicate, yield it here
-                const duplicate = foundParentInitializerCalls.includes(referencedFn);
+                const duplicate = calledInitializerIds.includes(referencedFn);
                 if (duplicate) {
                   yield {
                     kind: 'duplicate-initializer-call',
@@ -713,12 +691,10 @@ function* getInitializerErrors(
                     src: decodeSrc(fnCall),
                   };
                 }
-                console.log('LOOKING FOR BASENAME ', baseName);
-                console.log('REMAINING BASE CONTRACTS ', remainingBaseContracts);
 
-                if (remainingBaseContracts.length > 0 && baseName === remainingBaseContracts[0]) {
-                  console.log('FOUND PARENT CALL FOR ', baseName);
-                  remainingBaseContracts.shift();
+                const correctLinearization = uninitializedBaseContracts.length > 0 && baseName === uninitializedBaseContracts[0];
+                if (correctLinearization) {
+                  uninitializedBaseContracts.shift();
                 } else {
                   yield {
                     kind: 'incorrect-initializer-order',
@@ -727,84 +703,27 @@ function* getInitializerErrors(
                   };
                 }
 
-                foundParentInitializerCalls.push(referencedFn);
+                calledInitializerIds.push(referencedFn);
                 break;
               }
             }
-
-
-          
-            // // check if the function call is to a parent initializer in the correct order
-            // for (const [baseName, initializers] of baseContractsInitializersMap) {
-            //   if (referencedFn && remainingBaseContracts.length > 0 && baseContractsInitializersMap.get(remainingBaseContracts[0])?.includes(referencedFn)) {
-            //     console.log('FOUND PARENT CALL FOR ', baseName);
-            //     baseContractsInitializersMap.set(baseName, initializers.slice(1));
-            //     break;
-            //   }
-            // }
           }
         }
 
-        // for the list of found parent initializer calls, check if there are any duplicates
-        // for (const [index, call] of foundParentInitializerCalls.entries()) {
-        //   const duplicateCalls = foundParentInitializerCalls.slice(index + 1).filter(c => c.targetFn === call.targetFn);
-        //   if (duplicateCalls.length > 0) {
-        //     yield {
-        //       kind: 'missing-initializer',
-        //       name: contractDef.name,
-        //       src: decodeSrc(call.sourceExpression),
-        //     };
-        //   }
-        // }
-
-
-        // if there are still expected parent initializers, then yield an error
-        if (remainingBaseContracts.length > 0) {
+        // If there are any base contracts that were not initialized, report an error
+        if (uninitializedBaseContracts.length > 0) {
           yield {
             kind: 'missing-initializer-call',
             name: contractDef.name,
-            src: decodeSrc(fnDef),
+            src: decodeSrc(contractInitializer),
           };
         }
-
-      }
-    }
-
-
-  }
-}
-
-function callsParentInitializers(fnDef: FunctionDefinition, baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
-  const expressionStatements = fnDef.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
-  console.log('EXPRESSION STATEMENTS ', expressionStatements.map(stmt => stmt.nodeType));
-  for (const stmt of expressionStatements) {
-    const fnCall = stmt.expression;
-    if (fnCall.nodeType === 'FunctionCall' && (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')) {
-      const referencedFn = fnCall.expression.referencedDeclaration;
-      console.log('REFERENCED FN ', referencedFn);
-
-      // check if the function call is to a parent initializer in the correct order
-      for (const [baseName, initializers] of baseContractsInitializersMap) {
-        if (referencedFn !== undefined && initializers.length > 0 && initializers[0].id === referencedFn) {
-          console.log('FOUND PARENT CALL FOR ', baseName);
-          baseContractsInitializersMap.set(baseName, initializers.slice(1));
-          break;
-        }
       }
     }
   }
-
-  console.log('REMAINING INITIALIZERS ', JSON.stringify([...baseContractsInitializersMap.entries()]));
-
-  // if all parent initializers have been called, then the contract is good
-  return [...baseContractsInitializersMap.values()].every(initializers => initializers.length === 0);
 }
 
-function hasParentInitializers(baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
-  return [...baseContractsInitializersMap.values()].some(initializers => initializers.length > 0);
-}
-
-function baseContractHasInitializers(baseName: string, baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
+function hasInitializers(baseName: string, baseContractsInitializersMap: Map<string, FunctionDefinition[]>) {
   const initializers = baseContractsInitializersMap.get(baseName);
   return initializers !== undefined && initializers.length > 0;
 }

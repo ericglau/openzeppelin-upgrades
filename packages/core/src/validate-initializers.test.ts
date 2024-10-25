@@ -68,23 +68,23 @@ function testOverride(
 testValid('Child_Of_NoInitializer_Ok', 'transparent', true);
 
 testValid('Child_Of_InitializerModifier_Ok', 'transparent', true);
-testValid('Child_Of_InitializerModifier_Bad', 'transparent', false);
+testValid('Child_Of_InitializerModifier_Bad', 'transparent', false, 1);
 testValid('Child_Of_InitializerModifier_UsesSuper_Ok', 'transparent', true);
 
 testValid('Child_Of_ReinitializerModifier_Ok', 'transparent', true);
-testValid('Child_Of_ReinitializerModifier_Bad', 'transparent', false);
+testValid('Child_Of_ReinitializerModifier_Bad', 'transparent', false, 1);
 
 testValid('Child_Of_OnlyInitializingModifier_Ok', 'transparent', true);
-testValid('Child_Of_OnlyInitializingModifier_Bad', 'transparent', false);
+testValid('Child_Of_OnlyInitializingModifier_Bad', 'transparent', false, 1);
 
-testValid('MissingInitializer_Bad', 'transparent', false);
+testValid('MissingInitializer_Bad', 'transparent', false, 1);
 testValid('MissingInitializer_UnsafeAllow_Contract', 'transparent', true);
 testOverride('MissingInitializer_Bad', 'transparent', { unsafeAllow: ['missing-initializer'] }, true);
 
 testValid('InitializationOrder_Ok', 'transparent', true);
 testValid('InitializationOrder_Ok_2', 'transparent', true);
 
-testValid('InitializationOrder_WrongOrder_Bad', 'transparent', false);
+testValid('InitializationOrder_WrongOrder_Bad', 'transparent', false, 1);
 testValid('InitializationOrder_WrongOrder_UnsafeAllow_Contract', 'transparent', true);
 testValid('InitializationOrder_WrongOrder_UnsafeAllow_Function', 'transparent', true);
 testOverride(
@@ -94,12 +94,12 @@ testOverride(
   true,
 );
 
-testValid('InitializationOrder_MissingCall_Bad', 'transparent', false);
+testValid('InitializationOrder_MissingCall_Bad', 'transparent', false, 1);
 testValid('InitializationOrder_MissingCall_UnsafeAllow_Contract', 'transparent', true);
 testValid('InitializationOrder_MissingCall_UnsafeAllow_Function', 'transparent', true);
 testOverride('InitializationOrder_MissingCall_Bad', 'transparent', { unsafeAllow: ['missing-initializer-call'] }, true);
 
-testValid('InitializationOrder_Duplicate_Bad', 'transparent', false);
+testValid('InitializationOrder_Duplicate_Bad', 'transparent', false, 1);
 testValid('InitializationOrder_Duplicate_UnsafeAllow_Contract', 'transparent', true);
 testValid('InitializationOrder_Duplicate_UnsafeAllow_Function', 'transparent', true);
 testValid('InitializationOrder_Duplicate_UnsafeAllow_Call', 'transparent', true);

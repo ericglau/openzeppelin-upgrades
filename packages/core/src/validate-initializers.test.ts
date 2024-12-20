@@ -132,6 +132,11 @@ testAccepts('Child_Of_ParentPrivateInitializer_Ok', 'transparent');
 testAccepts('Child_Of_ParentPublicInitializer_Ok', 'transparent');
 testRejects('Child_Has_PrivateInitializer_Bad', 'transparent', 'Contract is missing an initializer');
 
+testRejects('TransitiveParent_Bad', 'transparent', 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`');
+testAccepts('TransitiveChild_Bad_Parent', 'transparent'); // should only have 1 error: 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
+testAccepts('TransitiveChild_Bad_Order', 'transparent'); // should have 2 errors: 'Contract has an incorrect order of parent initializer calls. Expected initializers to be called for parent contracts in the following order: TransitiveGrandparent1, TransitiveGrandparent2, TransitiveParent_Bad', 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
+testAccepts('TransitiveChild_Bad_Order2', 'transparent'); // should have 2 errors: 'Contract has an incorrect order of parent initializer calls. Expected initializers to be called for parent contracts in the following order: TransitiveGrandparent1, TransitiveGrandparent2, TransitiveParent_Bad', 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
+
 testAccepts('Ownable_Ok', 'transparent');
 testAccepts('Ownable2Step_Ok', 'transparent');
 testRejects(

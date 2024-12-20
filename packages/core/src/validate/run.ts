@@ -720,11 +720,11 @@ function* getInitializerErrors(
       }
     }
 
-    const remainingBaseContracts = linearizedBaseContractDefs
+    const baseContractsToInitialize = linearizedBaseContractDefs
       .filter(base => baseContractsInitializersMap.get(base.name)?.length)
       .map(base => base.name);
 
-    if (remainingBaseContracts.length > 0) {
+    if (baseContractsToInitialize.length > 0) {
       // Check for missing initializers
       const contractInitializers = getPossibleInitializers(contractDef, false);
 
@@ -733,11 +733,11 @@ function* getInitializerErrors(
       // - they are all internal, the contract must have its own initializer
       // - otherwise the contract does not need its own initializer, since one of the parent's initializers can be called during deployment
       const requiresParentInitializerCall =
-        remainingBaseContracts.length > 1 ||
-        (remainingBaseContracts.length === 1 &&
-          baseContractsInitializersMap.get(remainingBaseContracts[0])!.length > 0 &&
+        baseContractsToInitialize.length > 1 ||
+        (baseContractsToInitialize.length === 1 &&
+          baseContractsInitializersMap.get(baseContractsToInitialize[0])!.length > 0 &&
           baseContractsInitializersMap
-            .get(remainingBaseContracts[0])!
+            .get(baseContractsToInitialize[0])!
             .every(contractDef => contractDef.visibility === 'internal'));
 
       if (
@@ -752,7 +752,7 @@ function* getInitializerErrors(
       }
 
       for (const contractInitializer of contractInitializers) {
-        const uninitializedBaseContracts = [...remainingBaseContracts];
+        const uninitializedBaseContracts = [...baseContractsToInitialize];
         const calledInitializerIds: number[] = [];
 
         const expressionStatements =
@@ -798,7 +798,7 @@ function* getInitializerErrors(
                   yield {
                     kind: 'incorrect-initializer-order',
                     src: decodeSrc(fnCall),
-                    expectedLinearization: remainingBaseContracts,
+                    expectedLinearization: baseContractsToInitialize,
                   };
                 }
                 if (index !== -1) {

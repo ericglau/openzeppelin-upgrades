@@ -673,6 +673,9 @@ function* getInitializerErrors(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
 ): Generator<ValidationErrorInitializer> {
+  if (contractDef.abstract) {
+    return;
+  }
   if (contractDef.linearizedBaseContracts.length > 0) {
     const linearizedBaseContractDefs = contractDef.linearizedBaseContracts.map(base =>
       deref('ContractDefinition', base),
@@ -687,11 +690,41 @@ function* getInitializerErrors(
       linearizedBaseContractDefs.map(base => [base.name, getPossibleInitializers(base, true)]),
     );
 
-    const requiredBaseContracts = linearizedBaseContractDefs
+    // For each base contract, if its initializer calls any of the other base contracts' intializers, it can be removed from the list.
+    // Ignore whether the base contracts are calling their initializers in the correct order, because we only check the order of THIS contract's calls.
+    for (const base of linearizedBaseContractDefs) {
+      const baseInitializers = baseContractsInitializersMap.get(base.name)!;
+      for (const initializer of baseInitializers) {
+        const expressionStatements =
+          initializer.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
+        for (const stmt of expressionStatements) {
+          const fnCall = stmt.expression;
+          if (
+            fnCall.nodeType === 'FunctionCall' &&
+            (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')
+          ) {
+            const referencedFn = fnCall.expression.referencedDeclaration;
+            if (referencedFn) {
+              const foundParentInitializer = linearizedBaseContractDefs.find(
+                base => baseContractsInitializersMap.get(base.name)!.some(init => init.id === referencedFn),
+              );
+              if (foundParentInitializer) {
+                const index = linearizedBaseContractDefs.indexOf(foundParentInitializer);
+                if (index !== -1) {
+                  linearizedBaseContractDefs.splice(index, 1);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const remainingBaseContracts = linearizedBaseContractDefs
       .filter(base => baseContractsInitializersMap.get(base.name)?.length)
       .map(base => base.name);
 
-    if (requiredBaseContracts.length > 0) {
+    if (remainingBaseContracts.length > 0) {
       // Check for missing initializers
       const contractInitializers = getPossibleInitializers(contractDef, false);
 
@@ -700,11 +733,11 @@ function* getInitializerErrors(
       // - they are all internal, the contract must have its own initializer
       // - otherwise the contract does not need its own initializer, since one of the parent's initializers can be called during deployment
       const requiresParentInitializerCall =
-        requiredBaseContracts.length > 1 ||
-        (requiredBaseContracts.length === 1 &&
-          baseContractsInitializersMap.get(requiredBaseContracts[0])!.length > 0 &&
+        remainingBaseContracts.length > 1 ||
+        (remainingBaseContracts.length === 1 &&
+          baseContractsInitializersMap.get(remainingBaseContracts[0])!.length > 0 &&
           baseContractsInitializersMap
-            .get(requiredBaseContracts[0])!
+            .get(remainingBaseContracts[0])!
             .every(contractDef => contractDef.visibility === 'internal'));
 
       if (
@@ -719,7 +752,7 @@ function* getInitializerErrors(
       }
 
       for (const contractInitializer of contractInitializers) {
-        const uninitializedBaseContracts = [...requiredBaseContracts];
+        const uninitializedBaseContracts = [...remainingBaseContracts];
         const calledInitializerIds: number[] = [];
 
         const expressionStatements =
@@ -754,6 +787,7 @@ function* getInitializerErrors(
                 }
                 calledInitializerIds.push(referencedFn);
 
+                // TODO handle linearized contracts
                 const index = uninitializedBaseContracts.indexOf(baseName);
                 if (
                   !duplicate && // Omit duplicate calls to avoid treating them as out of order. Duplicates are either reported above or they were skipped.
@@ -764,7 +798,7 @@ function* getInitializerErrors(
                   yield {
                     kind: 'incorrect-initializer-order',
                     src: decodeSrc(fnCall),
-                    expectedLinearization: requiredBaseContracts,
+                    expectedLinearization: remainingBaseContracts,
                   };
                 }
                 if (index !== -1) {

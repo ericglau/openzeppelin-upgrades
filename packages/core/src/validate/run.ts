@@ -785,8 +785,9 @@ function* getInitializerErrors(
             // If this is a call to a parent initializer, then:
             // - Check if it was already called (duplicate call)
             // - Otherwise, check if the parent initializer is called in the correct order
-            for (const [baseName, initializers] of baseContractsInitializersMap) {
-              const foundParentInitializer = initializers.find(init => init.id === referencedFn);
+            for (const baseContractToInitialize of baseContractsToInitialize) {
+              const baseInitializers = baseContractsInitializersMap.get(baseContractToInitialize)!;
+              const foundParentInitializer = baseInitializers.find(init => init.id === referencedFn);
               if (referencedFn && foundParentInitializer) {
                 const duplicate = calledInitializerIds.includes(referencedFn);
                 if (
@@ -799,14 +800,14 @@ function* getInitializerErrors(
                     kind: 'duplicate-initializer-call',
                     src: decodeSrc(fnCall),
                     parentInitializer: foundParentInitializer.name,
-                    parentContract: baseName,
+                    parentContract: baseContractToInitialize,
                   };
                 }
                 calledInitializerIds.push(referencedFn);
 
-                foundOrder.push(baseName);
+                foundOrder.push(baseContractToInitialize);
                 // TODO handle linearized contracts
-                const index = remaining.indexOf(baseName);
+                const index = remaining.indexOf(baseContractToInitialize);
                 if (
                   !duplicate && // Omit duplicate calls to avoid treating them as out of order. Duplicates are either reported above or they were skipped.
                   index !== 0 &&

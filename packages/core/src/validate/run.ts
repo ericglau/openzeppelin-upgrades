@@ -725,7 +725,7 @@ function* getInitializerErrors(
                       ' from baseContractsInitializersMap because it is called by ' +
                       base.name,
                   );
-                  earlierBaseContractDefs.splice(index, 1);
+                  linearizedBaseContractDefs.splice(index, 1);
                 }
               }
             }

@@ -337,8 +337,14 @@ abstract contract TransitiveGrandparent2 is Initializable {
   }
 }
 
+contract TransitiveParent_Ok is TransitiveGrandparent1, TransitiveGrandparent2 {
+  function initializeParent() initializer public {
+    __TransitiveGrandparent1_init();
+    __TransitiveGrandparent2_init();
+  }
+}
+
 contract TransitiveParent_Bad is TransitiveGrandparent1, TransitiveGrandparent2 {
-  uint z;
   function initializeParent() initializer public {
     __TransitiveGrandparent1_init();
     // Does not call __TransitiveGrandparent2_init, and this contract is not abstract, so it is required
@@ -361,6 +367,13 @@ contract TransitiveChild_Bad_Order is TransitiveParent_Bad { // correct lineariz
 contract TransitiveChild_Bad_Order2 is TransitiveParent_Bad { // correct linearization order is impossible
   function initialize() initializer public {
     __TransitiveGrandparent2_init();
+    initializeParent();
+  }
+}
+
+contract TransitiveDuplicate_Bad is TransitiveGrandparent1, TransitiveParent_Ok {
+  function initialize() initializer public {
+    __TransitiveGrandparent1_init();
     initializeParent();
   }
 }

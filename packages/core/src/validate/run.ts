@@ -693,6 +693,8 @@ function* getInitializerErrors(
       linearizedBaseContractDefs.map(base => [base.name, getPossibleInitializers(base, true)]),
     );
 
+    console.log(' -> Before removing: ' + linearizedBaseContractDefs.map(base => base.name).join(', '));
+
     // For each base contract, if its initializer calls any of the earlier base contracts' intializers, it can be removed from the list.
     // Ignore whether the base contracts are calling their initializers in the correct order, because we only check the order of THIS contract's calls.
     for (const base of linearizedBaseContractDefs) {
@@ -722,10 +724,10 @@ function* getInitializerErrors(
                   console.log(
                     '  - Removing ' +
                       foundParentInitializer.name +
-                      ' from baseContractsInitializersMap because it is called by ' +
+                      ' from linearizedBaseContractDefs because it is called by ' +
                       base.name,
                   );
-                  linearizedBaseContractDefs.splice(index, 1);
+                  linearizedBaseContractDefs.splice(linearizedBaseContractDefs.indexOf(foundParentInitializer), 1);
                 }
               }
             }
@@ -733,6 +735,8 @@ function* getInitializerErrors(
         }
       }
     }
+
+    console.log(' -> After removing: ' + linearizedBaseContractDefs.map(base => base.name).join(', '));
 
     const baseContractsToInitialize = linearizedBaseContractDefs
       .filter(base => baseContractsInitializersMap.get(base.name)?.length)

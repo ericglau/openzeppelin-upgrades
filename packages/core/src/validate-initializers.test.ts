@@ -112,8 +112,7 @@ testAccepts('InitializationOrder_Ok', 'transparent');
 testAccepts('InitializationOrder_Ok_2', 'transparent');
 
 testRejects('InitializationOrder_WrongOrder_Bad', 'transparent', {
-  contains:
-    'Expected initializers to be called for parent contracts in the following order: A, B, C',
+  contains: 'Expected initializers to be called for parent contracts in the following order: A, B, C',
   count: 1,
 });
 testAccepts('InitializationOrder_WrongOrder_UnsafeAllow_Contract', 'transparent');
@@ -137,8 +136,7 @@ testAccepts('InitializationOrder_Duplicate_UnsafeAllow_Function', 'transparent')
 testAccepts('InitializationOrder_Duplicate_UnsafeAllow_Call', 'transparent');
 testOverride('InitializationOrder_Duplicate_Bad', 'transparent', { unsafeAllow: ['duplicate-initializer-call'] });
 testRejects('InitializationOrder_UnsafeAllowDuplicate_But_WrongOrder', 'transparent', {
-  contains:
-    'Expected initializers to be called for parent contracts in the following order: A, B, C',
+  contains: 'Expected initializers to be called for parent contracts in the following order: A, B, C',
   count: 1,
 });
 
@@ -154,10 +152,25 @@ testRejects('TransitiveParent_Bad', 'transparent', {
   contains: 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`',
   count: 1,
 });
-testAccepts('TransitiveChild_Bad_Parent', 'transparent'); // should only have 1 error: 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
-testAccepts('TransitiveChild_Bad_Order', 'transparent'); // should have 2 errors: 'Expected initializers to be called for parent contracts in the following order: TransitiveGrandparent1, TransitiveGrandparent2, TransitiveParent_Bad', 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
-testAccepts('TransitiveChild_Bad_Order2', 'transparent'); // should have 2 errors: 'Expected initializers to be called for parent contracts in the following order: TransitiveGrandparent1, TransitiveGrandparent2, TransitiveParent_Bad', 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
-testAccepts('TransitiveDuplicate_Bad', 'transparent'); // should have 1 error: 'Contract has duplicate calls to parent'
+testRejects('TransitiveChild_Bad_Parent', 'transparent', {
+  contains: 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`',
+  count: 3, // should be 2 if we ignore wrong order.  the errors are: missing for child, missing for parent
+});
+testRejects('TransitiveChild_Bad_Order', 'transparent', {
+  contains:
+    'Expected initializers to be called for parent contracts in the following order: TransitiveGrandparent2, TransitiveParent_Bad',
+  count: 2,
+}); // should have 2 errors: 'Expected initializers to be called for parent contracts in the following order: TransitiveGrandparent2, TransitiveParent_Bad', 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`'
+// but 1 if we ignore wrong order
+testRejects('TransitiveChild_Bad_Order2', 'transparent', {
+  contains: 'Contract is missing initializer calls for one or more parent contracts: `TransitiveGrandparent2`',
+  count: 1,
+});
+testRejects('TransitiveDuplicate_Bad', 'transparent', {
+  contains: 'Contract has duplicate calls to parent',
+  count: 1,
+});
+// should allow this if we ignore duplicate calls transitively
 
 testAccepts('Ownable_Ok', 'transparent');
 testAccepts('Ownable2Step_Ok', 'transparent');

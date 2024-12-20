@@ -357,14 +357,14 @@ contract TransitiveChild_Bad_Parent is TransitiveParent_Bad { // this contract i
   }
 }
 
-contract TransitiveChild_Bad_Order is TransitiveParent_Bad { // correct linearization order is impossible
+contract TransitiveChild_Bad_Order is TransitiveParent_Bad { // grandparent should be initialized first
   function initialize() initializer public {
     initializeParent();
     __TransitiveGrandparent2_init();
   }
 }
 
-contract TransitiveChild_Bad_Order2 is TransitiveParent_Bad { // correct linearization order is impossible
+contract TransitiveChild_Bad_Order2 is TransitiveParent_Bad { // this contract is ok but the parent is not
   function initialize() initializer public {
     __TransitiveGrandparent2_init();
     initializeParent();

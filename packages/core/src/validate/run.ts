@@ -24,6 +24,8 @@ import { getStorageLocationAnnotation, isNamespaceSupported } from '../storage/n
 import { UpgradesError } from '../error';
 import { assertUnreachable } from '../utils/assert';
 import { logWarning } from '../utils/log';
+import { call } from '../provider';
+import { get } from 'http';
 
 export type ValidationRunData = Record<string, ContractValidation>;
 
@@ -673,7 +675,11 @@ function* getInitializerErrors(
   deref: ASTDereferencer,
   decodeSrc: SrcDecoder,
 ): Generator<ValidationErrorInitializer> {
+  if (contractDef.abstract) {
+    return;
+  }
   if (contractDef.linearizedBaseContracts.length > 0) {
+    // STEP 1: Get all linearized base contracts
     const linearizedBaseContractDefs = contractDef.linearizedBaseContracts.map(base =>
       deref('ContractDefinition', base),
     );
@@ -683,119 +689,197 @@ function* getInitializerErrors(
     // Reverse the order to start from the most derived contract
     linearizedBaseContractDefs.reverse();
 
-    const baseContractsInitializersMap = new Map(
-      linearizedBaseContractDefs.map(base => [base.name, getPossibleInitializers(base, true)]),
+    // Now we have a list of base contracts in the order they should be initialized (if they have initializers)
+
+    // STEP 2: Get a map of each base contract to its initializer function, if any
+    const baseContractsInitializersMap: Map<string, FunctionDefinition | undefined> = new Map(
+      linearizedBaseContractDefs.map(base => [base.name, getCallableInitializer(base)]),
     );
 
-    const requiredBaseContracts = linearizedBaseContractDefs
-      .filter(base => baseContractsInitializersMap.get(base.name)?.length)
-      .map(base => base.name);
+    // // TODO
+    // // get all linearized initializer calls for each base contract, and collect the called contracts into an array
+    // // if the array is not equal to the linearized base contracts, then we have a problem
 
-    if (requiredBaseContracts.length > 0) {
-      // Check for missing initializers
-      const contractInitializers = getPossibleInitializers(contractDef, false);
+    // getLinearizedInitializedContracts(contractDef); // TODO
 
-      // If there are multiple parents with initializers, the contract must have its own initializer to call them.
-      // If there is one parent with possible initializers:
-      // - they are all internal, the contract must have its own initializer
-      // - otherwise the contract does not need its own initializer, since one of the parent's initializers can be called during deployment
-      const requiresParentInitializerCall =
-        requiredBaseContracts.length > 1 ||
-        (requiredBaseContracts.length === 1 &&
-          baseContractsInitializersMap.get(requiredBaseContracts[0])!.length > 0 &&
-          baseContractsInitializersMap
-            .get(requiredBaseContracts[0])!
-            .every(contractDef => contractDef.visibility === 'internal'));
 
-      if (
-        requiresParentInitializerCall &&
-        contractInitializers.length === 0 &&
-        !skipCheck('missing-initializer', contractDef)
-      ) {
-        yield {
-          kind: 'missing-initializer',
-          src: decodeSrc(contractDef),
-        };
-      }
+    // const requiredBaseContracts = linearizedBaseContractDefs
+    //   .filter(base => baseContractsInitializersMap.get(base.name)?.length)
+    //   .map(base => base.name);
 
-      for (const contractInitializer of contractInitializers) {
-        const uninitializedBaseContracts = [...requiredBaseContracts];
-        const calledInitializerIds: number[] = [];
+    // if (requiredBaseContracts.length > 0) {
+    //   // Check for missing initializers
+    //   const contractInitializers = getPossibleInitializers(contractDef, false);
 
-        const expressionStatements =
-          contractInitializer.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
-        for (const stmt of expressionStatements) {
-          const fnCall = stmt.expression;
-          if (
-            fnCall.nodeType === 'FunctionCall' &&
-            (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')
-          ) {
-            const referencedFn = fnCall.expression.referencedDeclaration;
+    //   // If there are multiple parents with initializers, the contract must have its own initializer to call them.
+    //   // If there is one parent with possible initializers:
+    //   // - they are all internal, the contract must have its own initializer
+    //   // - otherwise the contract does not need its own initializer, since one of the parent's initializers can be called during deployment
+    //   const requiresParentInitializerCall =
+    //     requiredBaseContracts.length > 1 ||
+    //     (requiredBaseContracts.length === 1 &&
+    //       baseContractsInitializersMap.get(requiredBaseContracts[0])!.length > 0 &&
+    //       baseContractsInitializersMap
+    //         .get(requiredBaseContracts[0])!
+    //         .every(contractDef => contractDef.visibility === 'internal'));
 
-            // If this is a call to a parent initializer, then:
-            // - Check if it was already called (duplicate call)
-            // - Otherwise, check if the parent initializer is called in the correct order
-            for (const [baseName, initializers] of baseContractsInitializersMap) {
-              const foundParentInitializer = initializers.find(init => init.id === referencedFn);
-              if (referencedFn && foundParentInitializer) {
-                const duplicate = calledInitializerIds.includes(referencedFn);
-                if (
-                  duplicate &&
-                  !skipCheck('duplicate-initializer-call', contractDef) &&
-                  !skipCheck('duplicate-initializer-call', contractInitializer) &&
-                  !skipCheck('duplicate-initializer-call', stmt)
-                ) {
-                  yield {
-                    kind: 'duplicate-initializer-call',
-                    src: decodeSrc(fnCall),
-                    parentInitializer: foundParentInitializer.name,
-                    parentContract: baseName,
-                  };
-                }
-                calledInitializerIds.push(referencedFn);
+    //   if (
+    //     requiresParentInitializerCall &&
+    //     contractInitializers.length === 0 &&
+    //     !skipCheck('missing-initializer', contractDef)
+    //   ) {
+    //     yield {
+    //       kind: 'missing-initializer',
+    //       src: decodeSrc(contractDef),
+    //     };
+    //   }
 
-                const index = uninitializedBaseContracts.indexOf(baseName);
-                if (
-                  !duplicate && // Omit duplicate calls to avoid treating them as out of order. Duplicates are either reported above or they were skipped.
-                  index !== 0 &&
-                  !skipCheck('incorrect-initializer-order', contractDef) &&
-                  !skipCheck('incorrect-initializer-order', contractInitializer)
-                ) {
-                  yield {
-                    kind: 'incorrect-initializer-order',
-                    src: decodeSrc(fnCall),
-                    expectedLinearization: requiredBaseContracts,
-                  };
-                }
-                if (index !== -1) {
-                  uninitializedBaseContracts.splice(index, 1);
-                }
-              }
-            }
-          }
-        }
+    //   for (const contractInitializer of contractInitializers) {
+    //     const uninitializedBaseContracts = [...requiredBaseContracts];
+    //     const calledInitializerIds: number[] = [];
 
-        // If there are any base contracts that were not initialized, report an error
+    //     const expressionStatements =
+    //       contractInitializer.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
+    //     for (const stmt of expressionStatements) {
+    //       const fnCall = stmt.expression;
+    //       if (
+    //         fnCall.nodeType === 'FunctionCall' &&
+    //         (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')
+    //       ) {
+    //         const referencedFn = fnCall.expression.referencedDeclaration;
+
+    //         // If this is a call to a parent initializer, then:
+    //         // - Check if it was already called (duplicate call)
+    //         // - Otherwise, check if the parent initializer is called in the correct order
+    //         for (const [baseName, initializers] of baseContractsInitializersMap) {
+    //           const foundParentInitializer = initializers.find(init => init.id === referencedFn);
+    //           if (referencedFn && foundParentInitializer) {
+    //             const duplicate = calledInitializerIds.includes(referencedFn);
+    //             if (
+    //               duplicate &&
+    //               !skipCheck('duplicate-initializer-call', contractDef) &&
+    //               !skipCheck('duplicate-initializer-call', contractInitializer) &&
+    //               !skipCheck('duplicate-initializer-call', stmt)
+    //             ) {
+    //               yield {
+    //                 kind: 'duplicate-initializer-call',
+    //                 src: decodeSrc(fnCall),
+    //                 parentInitializer: foundParentInitializer.name,
+    //                 parentContract: baseName,
+    //               };
+    //             }
+    //             calledInitializerIds.push(referencedFn);
+
+    //             const index = uninitializedBaseContracts.indexOf(baseName);
+    //             if (
+    //               !duplicate && // Omit duplicate calls to avoid treating them as out of order. Duplicates are either reported above or they were skipped.
+    //               index !== 0 &&
+    //               !skipCheck('incorrect-initializer-order', contractDef) &&
+    //               !skipCheck('incorrect-initializer-order', contractInitializer)
+    //             ) {
+    //               yield {
+    //                 kind: 'incorrect-initializer-order',
+    //                 src: decodeSrc(fnCall),
+    //                 expectedLinearization: requiredBaseContracts,
+    //               };
+    //             }
+    //             if (index !== -1) {
+    //               uninitializedBaseContracts.splice(index, 1);
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+
+    //     // If there are any base contracts that were not initialized, report an error
+    //     if (
+    //       uninitializedBaseContracts.length > 0 &&
+    //       !skipCheck('missing-initializer-call', contractDef) &&
+    //       !skipCheck('missing-initializer-call', contractInitializer)
+    //     ) {
+    //       yield {
+    //         kind: 'missing-initializer-call',
+    //         src: decodeSrc(contractInitializer),
+    //         parentContracts: uninitializedBaseContracts,
+    //       };
+    //     }
+    //   }
+    // }
+  }
+}
+
+
+function getCallableInitializer(contractDef: ContractDefinition): FunctionDefinition | undefined {
+  const fns = [...findAll('FunctionDefinition', contractDef)];
+  const callableInitializers = fns.filter(
+    fnDef =>
+      (fnDef.modifiers.some(modifier =>
+        ['initializer', 'onlyInitializing'].includes(modifier.modifierName.name),
+      ) ||
+        ['initialize', 'initializer'].includes(fnDef.name)) &&
+      // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
+      !(fnDef.virtual && !fnDef.body) &&
+      // Ignore private functions, since they cannot be called outside the contract
+      fnDef.visibility !== 'private' &&
+      // For parent contracts, only functions which contain statements need to be called
+      fnDef.body?.statements?.length,
+  );
+  switch (callableInitializers.length) {
+    case 0:
+      return;
+    case 1:
+      return callableInitializers[0];
+    default:
+      // TODO allow one initializer to be annotated as the initializer to be validated
+      throw new Error('Multiple initializers are not supported yet: Contract ' + contractDef.name + ', Initializers: ' + callableInitializers.map(fn => fn.name).join(', '));
+  }
+}
+
+
+// Get all contracts (including this one) which are initialized by this contract's initializer
+function* getLinearizedInitializedContracts(contractDef: ContractDefinition) {
+  const fns = [...findAll('FunctionDefinition', contractDef)];
+  const callableInitializers = fns.filter(
+    fnDef =>
+      (fnDef.modifiers.some(modifier =>
+        ['initializer', 'onlyInitializing'].includes(modifier.modifierName.name),
+      ) ||
+        ['initialize', 'initializer'].includes(fnDef.name)) &&
+      // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
+      !(fnDef.virtual && !fnDef.body) &&
+      // Ignore private functions, since they cannot be called outside the contract
+      fnDef.visibility !== 'private' &&
+      // For parent contracts, only functions which contain statements need to be called
+      fnDef.body?.statements?.length,
+  );
+  switch (callableInitializers.length) {
+    case 0:
+      return;
+    case 1:
+      const initializerFn = callableInitializers[0];
+      const expressionStatements =
+        initializerFn.body?.statements?.filter(stmt => stmt.nodeType === 'ExpressionStatement') ?? [];
+      for (const stmt of expressionStatements) {
+        const fnCall = stmt.expression;
         if (
-          uninitializedBaseContracts.length > 0 &&
-          !skipCheck('missing-initializer-call', contractDef) &&
-          !skipCheck('missing-initializer-call', contractInitializer)
+          fnCall.nodeType === 'FunctionCall' &&
+          (fnCall.expression.nodeType === 'Identifier' || fnCall.expression.nodeType === 'MemberAccess')
         ) {
-          yield {
-            kind: 'missing-initializer-call',
-            src: decodeSrc(contractInitializer),
-            parentContracts: uninitializedBaseContracts,
-          };
+          const referencedFn = fnCall.expression.referencedDeclaration;
         }
       }
-    }
+      yield contractDef;
+      break;
+    default:
+      // TODO allow one initializer to be annotated as the initializer to be validated
+      throw new Error('Multiple initializers are not supported yet');
   }
 }
 
 /**
  * Get all functions that could be initializers. Does not include private functions.
  */
-function getPossibleInitializers(contractDef: ContractDefinition, isParentContract: boolean) {
+function getPossibleChildInitializers(contractDef: ContractDefinition) {
   const fns = [...findAll('FunctionDefinition', contractDef)];
   return fns.filter(
     fnDef =>
@@ -806,9 +890,7 @@ function getPossibleInitializers(contractDef: ContractDefinition, isParentContra
       // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
       !(fnDef.virtual && !fnDef.body) &&
       // Ignore private functions, since they cannot be called outside the contract
-      fnDef.visibility !== 'private' &&
-      // For parent contracts, only functions which contain statements need to be called
-      (isParentContract ? fnDef.body?.statements?.length : true),
+      fnDef.visibility !== 'private'
   );
 }
 

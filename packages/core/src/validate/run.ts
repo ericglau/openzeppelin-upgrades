@@ -705,13 +705,21 @@ function* getInitializerErrors(
           ) {
             const referencedFn = fnCall.expression.referencedDeclaration;
             if (referencedFn) {
-              const foundParentInitializer = linearizedBaseContractDefs.find(
+              // make a copy of linearizedBaseContractDefs but without the current base contract
+              const otherBaseContractDefs = [...linearizedBaseContractDefs];
+              const index = otherBaseContractDefs.indexOf(base);
+              if (index !== -1) {
+                otherBaseContractDefs.splice(index, 1);
+              }
+
+              const foundParentInitializer = otherBaseContractDefs.find(
                 base => baseContractsInitializersMap.get(base.name)!.some(init => init.id === referencedFn),
               );
               if (foundParentInitializer) {
-                const index = linearizedBaseContractDefs.indexOf(foundParentInitializer);
+                const index = otherBaseContractDefs.indexOf(foundParentInitializer);
                 if (index !== -1) {
-                  linearizedBaseContractDefs.splice(index, 1);
+                  console.log('Removing ' + foundParentInitializer.name + ' from baseContractsInitializersMap because it is called by ' + base.name);
+                  otherBaseContractDefs.splice(index, 1);
                 }
               }
             }
@@ -723,6 +731,8 @@ function* getInitializerErrors(
     const baseContractsToInitialize = linearizedBaseContractDefs
       .filter(base => baseContractsInitializersMap.get(base.name)?.length)
       .map(base => base.name);
+
+    console.log('For contract [' + contractDef.name + ']\n - baseContractsToInitialize: ' + baseContractsToInitialize);
 
     if (baseContractsToInitialize.length > 0) {
       // Check for missing initializers

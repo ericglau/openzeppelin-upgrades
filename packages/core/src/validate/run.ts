@@ -97,6 +97,7 @@ interface ValidationErrorDuplicateInitializerCall extends ValidationErrorBase {
 interface ValidationErrorIncorrectInitializerOrder extends ValidationErrorBase {
   kind: 'incorrect-initializer-order';
   expectedLinearization: string[];
+  foundOrder: string[];
 }
 
 type ValidationErrorInitializer =
@@ -767,7 +768,8 @@ function* getInitializerErrors(
       }
 
       for (const contractInitializer of contractInitializers) {
-        const uninitializedBaseContracts = [...baseContractsToInitialize];
+        const remaining: string[] = [...baseContractsToInitialize];
+        const foundOrder: string[] = [];
         const calledInitializerIds: number[] = [];
 
         const expressionStatements =
@@ -802,8 +804,9 @@ function* getInitializerErrors(
                 }
                 calledInitializerIds.push(referencedFn);
 
+                foundOrder.push(baseName);
                 // TODO handle linearized contracts
-                const index = uninitializedBaseContracts.indexOf(baseName);
+                const index = remaining.indexOf(baseName);
                 if (
                   !duplicate && // Omit duplicate calls to avoid treating them as out of order. Duplicates are either reported above or they were skipped.
                   index !== 0 &&
@@ -814,10 +817,11 @@ function* getInitializerErrors(
                     kind: 'incorrect-initializer-order',
                     src: decodeSrc(fnCall),
                     expectedLinearization: baseContractsToInitialize,
+                    foundOrder,
                   };
                 }
                 if (index !== -1) {
-                  uninitializedBaseContracts.splice(index, 1);
+                  remaining.splice(index, 1);
                 }
               }
             }
@@ -826,14 +830,14 @@ function* getInitializerErrors(
 
         // If there are any base contracts that were not initialized, report an error
         if (
-          uninitializedBaseContracts.length > 0 &&
+          remaining.length > 0 &&
           !skipCheck('missing-initializer-call', contractDef) &&
           !skipCheck('missing-initializer-call', contractInitializer)
         ) {
           yield {
             kind: 'missing-initializer-call',
             src: decodeSrc(contractInitializer),
-            parentContracts: uninitializedBaseContracts,
+            parentContracts: remaining,
           };
         }
       }

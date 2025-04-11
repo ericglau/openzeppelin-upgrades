@@ -13,7 +13,11 @@ task(TASK_COMPILE_SOLIDITY_GET_COMPILATION_JOB_FOR_FILE, async (params, _, runSu
   if (!params.file.sourceName.startsWith('@openzeppelin/contracts/proxy/')) {
     // Mark each CLI Solidity file differently from regular tests, so that they can be compiled separately.
     // This is needed because CLI tests validate the entire build-info file, so each build-info should include only relevant contracts.
-    if (params.file.sourceName.startsWith('contracts/test/cli/')) {
+    // Similar for invalid cases, to avoid causing errors in other compilation jobs.
+    if (
+      params.file.sourceName.startsWith('contracts/test/cli/') ||
+      params.file.sourceName.startsWith('contracts/test/validate-as-initializer-invalid/')
+    ) {
       mark(job, params.file.sourceName);
     } else if (params.file.sourceName.startsWith('contracts/test/Namespaced')) {
       mark(job, 'testNamespaced');

@@ -368,10 +368,10 @@ function inferPossibleInitializer(
   validateAsInitializer: boolean,
   decodeSrc: SrcDecoder,
 ): boolean {
-  if (isVirtualWithoutBody(fnDef)) {
+  if (isAbstractFunction(fnDef)) {
     if (validateAsInitializer) {
       throw new Error(
-        `${decodeSrc(fnDef)}: @custom:${VALIDATE_AS_INITIALIZER_TAG} annotation cannot be used on virtual functions without a body`,
+        `${decodeSrc(fnDef)}: @custom:${VALIDATE_AS_INITIALIZER_TAG} annotation cannot be used on unimplemented functions in abstract contracts`,
       );
     } else {
       // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
@@ -400,7 +400,7 @@ function inferPossibleInitializer(
   return validateAsInitializer || hasInitializerModifierOrName(fnDef);
 }
 
-function isVirtualWithoutBody(fnDef: FunctionDefinition) {
+function isAbstractFunction(fnDef: FunctionDefinition) {
   return fnDef.virtual && !fnDef.body;
 }
 

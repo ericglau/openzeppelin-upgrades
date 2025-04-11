@@ -390,11 +390,14 @@ function inferPossibleInitializer(
     }
   }
 
-  return (
-    (validateAsInitializer || hasInitializerModifierOrName(fnDef)) &&
-    // For parent contracts, only internal and public functions which contain statements need to be called
-    (isParentContract ? isInternalOrPublicWithBody(fnDef) : true)
-  );
+  // For parent contracts, only internal and public functions which contain statements need to be called.
+  // Do not give an error if `validateAsInitializer` is true, since other cases (e.g. external functions or internal/public functions without code)
+  // are valid initializers, but just do not need to be called by children initializers.
+  if (isParentContract && !isInternalOrPublicWithBody(fnDef)) {
+    return false;
+  }
+
+  return validateAsInitializer || hasInitializerModifierOrName(fnDef);
 }
 
 function isVirtualWithoutBody(fnDef: FunctionDefinition) {

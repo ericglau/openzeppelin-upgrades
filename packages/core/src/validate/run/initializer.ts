@@ -6,6 +6,8 @@ import { ValidationExceptionInitializer, skipCheck, tryDerefFunction } from '../
 import { getAnnotationArgs, getDocumentation, hasAnnotationTag } from '../../utils/annotations';
 import { logNote } from '../../utils/log';
 
+const VALIDATE_AS_INITIALIZER_TAG = 'oz-upgrades-validate-as-initializer';
+
 /**
  * Reports if this contract is non-abstract and any of the following are true:
  * - 1. Missing initializer: This contract does not appear to have an initializer, but parent contracts require initialization.
@@ -334,22 +336,23 @@ function getPossibleInitializers(
     const validateAsInitializer = hasValidateAsInitializerAnnotation(fnDef, decodeSrc);
     if (!validateAsInitializer && fnDef.modifiers.some(modifier => 'reinitializer' === modifier.modifierName.name)) {
       logNote(`Reinitializers are not included in validations by default`, [
-        `${decodeSrc(fnDef)}: If you want to validate this function as an initializer, annotate it with '@custom:oz-upgrades-validate-as-initializer'`,
+        `${decodeSrc(fnDef)}: If you want to validate this function as an initializer, annotate it with '@custom:${VALIDATE_AS_INITIALIZER_TAG}'`,
       ]);
     }
 
-    return validateAsInitializer || inferPossibleInitializer(fnDef, isParentContract);
+    return inferPossibleInitializer(fnDef, isParentContract, validateAsInitializer, decodeSrc);
   });
 }
 
 function hasValidateAsInitializerAnnotation(node: Node, decodeSrc: SrcDecoder): boolean {
   const doc = getDocumentation(node);
-  const tag = 'oz-upgrades-validate-as-initializer';
-  const validateAsInitializer = hasAnnotationTag(doc, tag);
+  const validateAsInitializer = hasAnnotationTag(doc, VALIDATE_AS_INITIALIZER_TAG);
   if (validateAsInitializer) {
-    const annotationArgs = getAnnotationArgs(doc, tag);
+    const annotationArgs = getAnnotationArgs(doc, VALIDATE_AS_INITIALIZER_TAG);
     if (annotationArgs.length !== 0) {
-      throw new Error(`${decodeSrc(node)}: @custom:${tag} annotation must not have any arguments`);
+      throw new Error(
+        `${decodeSrc(node)}: @custom:${VALIDATE_AS_INITIALIZER_TAG} annotation must not have any arguments`,
+      );
     }
   }
   return validateAsInitializer;
@@ -359,27 +362,56 @@ function hasValidateAsInitializerAnnotation(node: Node, decodeSrc: SrcDecoder): 
  * Infers whether a function could be an initializer. Does not include private functions.
  * For parent contracts, only internal and public functions which contain statements are included.
  */
-function inferPossibleInitializer(fnDef: FunctionDefinition, isParentContract: boolean): boolean {
+function inferPossibleInitializer(
+  fnDef: FunctionDefinition,
+  isParentContract: boolean,
+  validateAsInitializer: boolean,
+  decodeSrc: SrcDecoder,
+): boolean {
+  if (isVirtualWithoutBody(fnDef)) {
+    if (validateAsInitializer) {
+      throw new Error(
+        `${decodeSrc(fnDef)}: @custom:${VALIDATE_AS_INITIALIZER_TAG} annotation cannot be used on virtual functions without a body`,
+      );
+    } else {
+      // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
+      return false;
+    }
+  }
+
+  if (isPrivate(fnDef)) {
+    if (validateAsInitializer) {
+      throw new Error(
+        `${decodeSrc(fnDef)}: @custom:${VALIDATE_AS_INITIALIZER_TAG} annotation cannot be used on private functions`,
+      );
+    } else {
+      // Ignore private functions, since they cannot be called outside the contract
+      return false;
+    }
+  }
+
   return (
-    (fnDef.modifiers.some(modifier => ['initializer', 'onlyInitializing'].includes(modifier.modifierName.name)) ||
-      ['initialize', 'initializer'].includes(fnDef.name)) &&
-    // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
-    !isVirtualWithoutBody(fnDef) &&
-    // Ignore private functions, since they cannot be called outside the contract
-    !isPrivate(fnDef) &&
+    (validateAsInitializer || hasInitializerModifierOrName(fnDef)) &&
     // For parent contracts, only internal and public functions which contain statements need to be called
     (isParentContract ? isInternalOrPublicWithBody(fnDef) : true)
   );
 }
 
-function isInternalOrPublicWithBody(fnDef: FunctionDefinition): boolean {
-  return Boolean(fnDef.body?.statements?.length) && (fnDef.visibility === 'internal' || fnDef.visibility === 'public');
+function isVirtualWithoutBody(fnDef: FunctionDefinition) {
+  return fnDef.virtual && !fnDef.body;
 }
 
 function isPrivate(fnDef: FunctionDefinition) {
   return fnDef.visibility === 'private';
 }
 
-function isVirtualWithoutBody(fnDef: FunctionDefinition) {
-  return fnDef.virtual && !fnDef.body;
+function isInternalOrPublicWithBody(fnDef: FunctionDefinition): boolean {
+  return Boolean(fnDef.body?.statements?.length) && (fnDef.visibility === 'internal' || fnDef.visibility === 'public');
+}
+
+function hasInitializerModifierOrName(fnDef: FunctionDefinition) {
+  return (
+    fnDef.modifiers.some(modifier => ['initializer', 'onlyInitializing'].includes(modifier.modifierName.name)) ||
+    ['initialize', 'initializer'].includes(fnDef.name)
+  );
 }

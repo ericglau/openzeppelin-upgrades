@@ -364,12 +364,22 @@ function inferPossibleInitializer(fnDef: FunctionDefinition, isParentContract: b
     (fnDef.modifiers.some(modifier => ['initializer', 'onlyInitializing'].includes(modifier.modifierName.name)) ||
       ['initialize', 'initializer'].includes(fnDef.name)) &&
     // Skip virtual functions without a body, since that indicates an abstract function and is not itself an initializer
-    !(fnDef.virtual && !fnDef.body) &&
+    !isVirtualWithoutBody(fnDef) &&
     // Ignore private functions, since they cannot be called outside the contract
-    fnDef.visibility !== 'private' &&
+    !isPrivate(fnDef) &&
     // For parent contracts, only internal and public functions which contain statements need to be called
-    (isParentContract
-      ? Boolean(fnDef.body?.statements?.length) && (fnDef.visibility === 'internal' || fnDef.visibility === 'public')
-      : true)
+    (isParentContract ? isInternalOrPublicWithBody(fnDef) : true)
   );
+}
+
+function isInternalOrPublicWithBody(fnDef: FunctionDefinition): boolean {
+  return Boolean(fnDef.body?.statements?.length) && (fnDef.visibility === 'internal' || fnDef.visibility === 'public');
+}
+
+function isPrivate(fnDef: FunctionDefinition) {
+  return fnDef.visibility === 'private';
+}
+
+function isVirtualWithoutBody(fnDef: FunctionDefinition) {
+  return fnDef.virtual && !fnDef.body;
 }

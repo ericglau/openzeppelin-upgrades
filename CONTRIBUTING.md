@@ -1,7 +1,7 @@
 Contributing to OpenZeppelin Upgrades
 =======
 
-Contributions to OpenZeppelin Upgrades are welcome. Please review the information below to test out and contribute your changes.
+Contributions to OpenZeppelin Upgrades are welcome. Please review the information below to test out and contribute your changes. 
 
 ## Building and testing the project
 

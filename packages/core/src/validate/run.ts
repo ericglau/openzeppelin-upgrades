@@ -237,7 +237,7 @@ export function validate(
 
         validation[key].src = decodeSrc(contractDef);
         validation[key].errors = [
-          ...getConstructorErrors(contractDef, decodeSrc),
+          ...getConstructorErrors(contractDef, decodeSrc), // TODO this needs to get all inherited constructor errors and skip reachable if the annotation is defined in any base, similar to opcode errors
           ...getOpcodeErrors(contractDef, deref, decodeSrc, delegateCallCache, selfDestructCache),
           ...getStateVariableErrors(contractDef, decodeSrc),
           // TODO: add linked libraries support

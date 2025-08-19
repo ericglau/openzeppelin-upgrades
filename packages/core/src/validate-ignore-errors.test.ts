@@ -135,3 +135,6 @@ testValid('UnsafeChild9', 'transparent', false);
 // testValid('ModifierNotUsed', 'transparent', true);
 
 testValid('ModifierUsed', 'transparent', false);
+
+testValid('ChildHasAllowConstructor_Bad', 'transparent', false);
+testValid('ChildHasAllowReachableConstructor_Ok', 'transparent', true);

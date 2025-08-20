@@ -94,6 +94,7 @@ contract UnsafeChild9 is UnsafeFunctions {
 }
 
 abstract contract ParentHasConstructor {
+    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable
     uint256 immutable x;
     constructor(uint256 _x) {
         x = _x;

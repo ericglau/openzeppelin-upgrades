@@ -101,12 +101,12 @@ abstract contract ParentHasConstructor {
     }
 }
 
+/// @custom:oz-upgrades-unsafe-allow constructor
 contract ChildHasAllowConstructor_Bad is ParentHasConstructor {
-    /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() ParentHasConstructor(1) {}
 }
 
+/// @custom:oz-upgrades-unsafe-allow-reachable constructor
 contract ChildHasAllowReachableConstructor_Ok is ParentHasConstructor {
-    /// @custom:oz-upgrades-unsafe-allow-reachable constructor
     constructor() ParentHasConstructor(1) {}
 }

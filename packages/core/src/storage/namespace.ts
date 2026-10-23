@@ -49,6 +49,10 @@ export function loadNamespaces(
   const linearized = namespacedLinearized ?? origLinearized;
   for (const [i, contractDef] of linearized.entries()) {
     const origContractDef = origLinearized[i];
+    assert(
+      contractDef.name === origContractDef.name,
+      `Contract ${contractDef.name} in the namespaced compilation does not match contract ${origContractDef.name} in the original compilation`,
+    );
     // Member documentation is read from the original sources, so the resolver comes from the original context
     // even when the namespaced context is used to look up the structs.
     const contractContext = { ...context, contractDef, structDocs: origContext.structDocs };
@@ -264,11 +268,7 @@ function getNamespacedStorageItems(
       setMemberAnnotations(item, docs);
     }
 
-    const layoutMember = findLayoutStructMember(
-      context.storageLayout?.types ?? {},
-      node.canonicalName,
-      astMember.label,
-    );
+    const layoutMember = findLayoutStructMember(context.storageLayout?.types ?? {}, node, astMember.label);
 
     if (layoutMember?.offset !== undefined && layoutMember?.slot !== undefined) {
       item.offset = layoutMember.offset;
@@ -319,15 +319,12 @@ function getOriginalMemberSrc(structCanonicalName: string, memberLabel: string, 
 }
 
 /**
- * From the given layout types, gets the struct member matching the given struct canonical name and struct member label.
+ * From the given layout types, gets the member with the given label of the given struct definition.
+ * The struct's type is looked up by its type id, which contains the struct's AST id, since different structs can have
+ * the same canonical name.
  */
-function findLayoutStructMember(
-  types: Record<string, TypeItem<string>>,
-  structCanonicalName: string,
-  memberLabel: string,
-) {
-  const structType = findTypeWithLabel(types, `struct ${structCanonicalName}`);
-  const structMembers = structType?.members;
+function findLayoutStructMember(types: Record<string, TypeItem<string>>, node: StructDefinition, memberLabel: string) {
+  const structMembers = types[`t_struct(${node.name})${node.id}_storage`]?.members;
   if (structMembers !== undefined) {
     assert(isStructMembers(structMembers));
     for (const structMember of structMembers) {
@@ -336,13 +333,6 @@ function findLayoutStructMember(
       }
     }
   }
-}
-
-/**
- * From the given layout types, gets the type matching the given type label.
- */
-function findTypeWithLabel(types: Record<string, TypeItem>, label: string) {
-  return Object.values(types).find(type => type.label === label);
 }
 
 export function isNamespaceSupported(solcVersion: string) {
